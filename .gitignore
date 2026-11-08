@@ -1,0 +1,9 @@
+node_modules
+dist
+*.tgz
+.vitest-attachments
+__screenshots__
+test-results
+playwright-report
+.DS_Store
+.tree-shaking

@@ -1,0 +1,1872 @@
+/*
+ * Docspot styles. Customize with the --docspot-* variables on :root or any
+ * ancestor; dark values apply under prefers-color-scheme, [data-theme='dark'],
+ * or the .dark class. Defaults have no specificity, so any rule overrides them.
+ */
+:where(:root) {
+  --docspot-font:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --docspot-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --docspot-background: #ffffff;
+  --docspot-foreground: #18181b;
+  --docspot-muted: #6b6b76;
+  --docspot-subtle: #9a9aa4;
+  --docspot-border: #e7e7ea;
+  --docspot-border-strong: #d4d4d8;
+  --docspot-surface: #f7f7f8;
+  --docspot-surface-elevated: #ffffff;
+  --docspot-accent: #f0f0f2;
+  --docspot-accent-active: #e6e6ea;
+  --docspot-primary: #18181b;
+  --docspot-primary-foreground: #ffffff;
+  --docspot-danger: #d92d20;
+  /* Matched text: a tint and weight by default, or an underline. */
+  --docspot-mark: color-mix(
+    in oklab,
+    var(--docspot-foreground) 8%,
+    transparent
+  );
+  --docspot-mark-weight: 600;
+  --docspot-mark-decoration: none;
+  /* Letter spacing for interface text; tighten it for wide fonts. */
+  --docspot-tracking: normal;
+  /* Type scale. Map it to a site's own scale to match its text sizes. */
+  --docspot-text-2xs: 0.6875rem;
+  --docspot-text-xs: 0.75rem;
+  --docspot-text-sm: 0.8125rem;
+  --docspot-text-md: 0.875rem;
+  --docspot-text-base: 0.9375rem;
+  --docspot-text-lg: 1rem;
+  --docspot-text-xl: 1.125rem;
+  --docspot-text-2xl: 1.5rem;
+  --docspot-overlay: rgb(9 9 11 / 0.4);
+  --docspot-focus: color-mix(in oklab, #3b82f6 60%, transparent);
+  --docspot-radius-control: 0.375rem;
+  --docspot-radius-item: 0.375rem;
+  --docspot-radius-surface: 0.75rem;
+  --docspot-radius-floating: 0.75rem;
+  --docspot-shadow-floating:
+    0 1px 3px -1px rgb(0 0 0 / 0.18), 0 16px 36px -12px rgb(0 0 0 / 0.22);
+  --docspot-shadow-raised:
+    0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.06);
+  /* Space above the docked chat panel, such as a fixed header. */
+  --docspot-chat-top: 0px;
+  --docspot-z-index: 50;
+  /* Optional: --docspot-selected, --docspot-selected-border, and
+     --docspot-selected-shadow style the selected result;
+     --docspot-results-background takes any background, gradients included;
+     --docspot-kbd-background, --docspot-kbd-border, and --docspot-kbd-shadow
+     style key hints; --docspot-scrollbar-color sets scrollbar-color. They
+     fall back to the tokens above where they are used, so a theme that only
+     changes those tokens still applies. */
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme='light'], .light)) {
+    --docspot-background: #111113;
+    --docspot-foreground: #ededf0;
+    --docspot-muted: #a1a1aa;
+    --docspot-subtle: #71717a;
+    --docspot-border: #27272a;
+    --docspot-border-strong: #3f3f46;
+    --docspot-surface: #18181b;
+    --docspot-surface-elevated: #1c1c1f;
+    --docspot-accent: #232327;
+    --docspot-accent-active: #2e2e33;
+    --docspot-primary: #ededf0;
+    --docspot-primary-foreground: #111113;
+    --docspot-overlay: rgb(0 0 0 / 0.6);
+    --docspot-shadow-floating:
+      inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.4),
+      0 20px 48px -16px rgb(0 0 0 / 0.8);
+  }
+}
+
+:where(:root:is([data-theme='dark'], .dark)) {
+  --docspot-background: #111113;
+  --docspot-foreground: #ededf0;
+  --docspot-muted: #a1a1aa;
+  --docspot-subtle: #71717a;
+  --docspot-border: #27272a;
+  --docspot-border-strong: #3f3f46;
+  --docspot-surface: #18181b;
+  --docspot-surface-elevated: #1c1c1f;
+  --docspot-accent: #232327;
+  --docspot-accent-active: #2e2e33;
+  --docspot-primary: #ededf0;
+  --docspot-primary-foreground: #111113;
+  --docspot-overlay: rgb(0 0 0 / 0.6);
+  --docspot-shadow-floating:
+    inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.4),
+    0 20px 48px -16px rgb(0 0 0 / 0.8);
+}
+
+:where(
+  .docspot-search,
+  .docspot-chat,
+  .docspot-trigger,
+  .docspot-launcher,
+  .docspot-menu
+) {
+  font-family: var(--docspot-font);
+  letter-spacing: var(--docspot-tracking);
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+  color: var(--docspot-foreground);
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+:where(.docspot-search, .docspot-chat, .docspot-menu) *,
+:where(.docspot-search, .docspot-chat, .docspot-menu) *::before,
+:where(.docspot-search, .docspot-chat, .docspot-menu) *::after {
+  box-sizing: border-box;
+}
+
+:where(.docspot-search, .docspot-chat, .docspot-menu)
+  :is(button, input, textarea) {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+:where(
+    .docspot-search,
+    .docspot-chat,
+    .docspot-menu,
+    .docspot-trigger,
+    .docspot-launcher
+  )
+  :focus-visible {
+  outline: 2px solid var(--docspot-focus);
+  outline-offset: 1px;
+}
+
+.docspot-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.docspot-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docspot-muted {
+  color: var(--docspot-muted);
+  flex-shrink: 0;
+}
+
+.docspot-subtle {
+  color: var(--docspot-subtle);
+}
+
+.docspot-spin {
+  animation: docspot-spin 0.8s linear infinite;
+}
+
+@keyframes docspot-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* ── Keys, buttons, tooltips ─────────────────────────────────────────── */
+
+/* Keys reset inherited and page-wide kbd styles, so hosts cannot restyle
+   them by accident. */
+.docspot-kbd {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--docspot-kbd-border, var(--docspot-border));
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-kbd-background, var(--docspot-surface));
+  box-shadow: var(--docspot-kbd-shadow, none);
+  color: var(--docspot-muted);
+  font-family: var(--docspot-font);
+  font-size: var(--docspot-text-2xs);
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.docspot-kbd[data-ghost] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.docspot-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--docspot-border-strong);
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-background);
+  color: var(--docspot-foreground);
+  font-size: var(--docspot-text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.docspot-button:hover {
+  background: var(--docspot-accent);
+  text-decoration: none;
+}
+
+.docspot-button-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--docspot-muted);
+}
+
+.docspot-button-ghost:hover,
+.docspot-button-ghost:focus-visible {
+  color: var(--docspot-foreground);
+}
+
+.docspot-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: transparent;
+  color: var(--docspot-muted);
+  cursor: pointer;
+}
+
+.docspot-icon-button:hover {
+  background: var(--docspot-accent);
+  color: var(--docspot-foreground);
+}
+
+.docspot-text-button {
+  padding: 0;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: none;
+  color: var(--docspot-muted);
+  cursor: pointer;
+}
+
+.docspot-text-button:hover {
+  color: var(--docspot-foreground);
+}
+
+.docspot-tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.docspot-tooltip-anchor[hidden] {
+  display: none;
+}
+
+.docspot-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-foreground);
+  color: var(--docspot-background);
+  font-size: var(--docspot-text-xs);
+  line-height: 1rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.docspot-tooltip .docspot-kbd {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.docspot-tooltip-anchor:has(> :hover, > :focus-visible) > .docspot-tooltip {
+  opacity: 1;
+  transition-delay: 400ms;
+}
+
+.docspot-tooltip-anchor[data-side='bottom'] > .docspot-tooltip {
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  translate: -50% 0;
+}
+
+.docspot-tooltip-anchor[data-side='top'] > .docspot-tooltip {
+  bottom: calc(100% + 0.375rem);
+  left: 50%;
+  translate: -50% 0;
+}
+
+.docspot-tooltip-anchor[data-side='left'] > .docspot-tooltip {
+  top: 50%;
+  right: calc(100% + 0.5rem);
+  translate: 0 -50%;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .docspot-tooltip,
+  [data-docspot-hints] {
+    display: none !important;
+  }
+}
+
+.docspot-shimmer {
+  --docspot-shimmer-base: color-mix(
+    in oklab,
+    var(--docspot-muted) 60%,
+    transparent
+  );
+  background-image: linear-gradient(
+    110deg,
+    var(--docspot-shimmer-base) 0%,
+    var(--docspot-shimmer-base) 24%,
+    var(--docspot-foreground) 46%,
+    var(--docspot-foreground) 54%,
+    var(--docspot-shimmer-base) 76%,
+    var(--docspot-shimmer-base) 100%
+  );
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: docspot-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes docspot-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docspot-shimmer {
+    background-image: none;
+    color: var(--docspot-muted);
+    -webkit-text-fill-color: currentColor;
+    animation: none;
+  }
+
+  .docspot-spin {
+    animation: none;
+  }
+}
+
+/* ── Triggers ────────────────────────────────────────────────────────── */
+
+.docspot-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--docspot-border-strong);
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-background);
+  color: color-mix(in oklab, var(--docspot-foreground) 80%, transparent);
+  font-size: var(--docspot-text-md);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.docspot-trigger:hover,
+.docspot-trigger:focus-visible {
+  color: var(--docspot-foreground);
+}
+
+.docspot-trigger-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (width < 768px) {
+  .docspot-trigger-kbd {
+    display: none;
+  }
+
+  .docspot-trigger:has(.docspot-trigger-label) .docspot-trigger-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+.docspot-launcher-anchor {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: var(--docspot-z-index);
+}
+
+.docspot-launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.5rem 0 1rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: 999px;
+  background: var(--docspot-background);
+  box-shadow: var(--docspot-shadow-floating);
+  font-size: var(--docspot-text-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.docspot-launcher[hidden] {
+  display: none;
+}
+
+@media (width < 768px) {
+  .docspot-launcher {
+    padding-right: 1rem;
+  }
+}
+
+/* ── Search dialog ───────────────────────────────────────────────────── */
+
+/* The page behind modal search stays still. */
+:root:has(.docspot-search[open]) {
+  overflow: hidden;
+}
+
+/* Search fills the screen unless the viewport has room for a floating
+   dialog and no on-screen keyboard compresses it. */
+.docspot-search {
+  position: fixed;
+  inset: auto;
+  top: var(--docspot-viewport-top, 0px);
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  height: var(--docspot-viewport-height, 100dvh);
+  max-height: var(--docspot-viewport-height, 100dvh);
+  margin: 0;
+  padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+  border: 0;
+  border-radius: 0;
+  background: var(--docspot-background);
+  /* Clipping without becoming a scroll container, so wheel gestures never
+     latch onto the dialog instead of the results. */
+  overflow: clip;
+  container: docspot-search / inline-size;
+}
+
+.docspot-search::backdrop {
+  background: var(--docspot-background);
+}
+
+@media (width >= 640px) and (height >= 600px) {
+  .docspot-search::backdrop {
+    background: var(--docspot-overlay);
+  }
+
+  .docspot-search:not([data-viewport-compressed]) {
+    top: 8vh;
+    left: 50%;
+    width: min(720px, calc(100vw - 2rem));
+    height: min(85dvh, 820px);
+    max-height: calc(100dvh - 2rem);
+    translate: -50% 0;
+    padding: 0;
+    border: 1px solid var(--docspot-border-strong);
+    border-radius: var(--docspot-radius-floating);
+    box-shadow: var(--docspot-shadow-floating);
+  }
+}
+
+@media (width >= 1024px) and (height >= 600px) {
+  .docspot-search:not([data-viewport-compressed]) {
+    width: min(960px, calc(100vw - 4rem));
+    height: min(75dvh, 720px);
+  }
+}
+
+.docspot-search-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.docspot-search-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--docspot-border);
+}
+
+.docspot-search-form {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  height: 100%;
+}
+
+.docspot-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--docspot-text-xl) !important;
+  outline: none;
+}
+
+.docspot-search-input::placeholder {
+  color: var(--docspot-subtle);
+}
+
+.docspot-search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.docspot-header-action {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: transparent;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-sm);
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+}
+
+.docspot-header-action:hover {
+  background: var(--docspot-accent);
+  color: var(--docspot-foreground);
+}
+
+.docspot-divider {
+  height: 1rem;
+  border-left: 1px solid var(--docspot-border);
+}
+
+@media (width < 640px) {
+  .docspot-search-header {
+    height: calc(3.5rem + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .docspot-search-header button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+.docspot-search-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.docspot-search-results {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--docspot-results-background, var(--docspot-surface));
+}
+
+.docspot-search-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 0.5rem;
+}
+
+.docspot-search-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docspot-stalled {
+  opacity: 0.6;
+}
+
+.docspot-fade-bottom {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 1.5rem),
+    transparent
+  );
+}
+
+.docspot-search-preview {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  background: var(--docspot-background);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  @container docspot-search (width >= 640px) {
+    .docspot-search-results {
+      flex: 0 0 clamp(340px, 40cqw, 400px);
+      border-right: 1px solid var(--docspot-border);
+    }
+
+    .docspot-search-preview {
+      display: block;
+    }
+  }
+}
+
+@container docspot-search (width >= 900px) {
+  .docspot-search-results {
+    flex: 0 0 clamp(340px, 40cqw, 400px);
+    border-right: 1px solid var(--docspot-border);
+  }
+
+  .docspot-search-preview {
+    display: block;
+  }
+}
+
+.docspot-search-empty {
+  padding: 3.5rem 1.25rem;
+  text-align: center;
+}
+
+.docspot-search-empty > svg {
+  margin: 0 auto 1rem;
+}
+
+.docspot-search-empty-title {
+  margin: 0;
+  font-size: var(--docspot-text-md);
+  font-weight: 500;
+}
+
+.docspot-search-empty-hint {
+  margin: 0.5rem 0 0;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-md);
+  line-height: 1.5rem;
+}
+
+.docspot-search-empty .docspot-button {
+  margin-top: 1rem;
+}
+
+.docspot-search-group {
+  margin-bottom: 0.5rem;
+}
+
+.docspot-search-group:last-child {
+  margin-bottom: 0;
+}
+
+.docspot-search-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem 0.375rem;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-2xs);
+  font-weight: 500;
+  line-height: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.docspot-search-group-header h3 {
+  margin: 0;
+  font: inherit;
+}
+
+.docspot-result,
+.docspot-result:is(:hover, :focus) {
+  text-decoration: none;
+}
+
+.docspot-result {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr) 1.25rem;
+  align-content: center;
+  column-gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: calc(0.5rem - 1px) calc(0.75rem - 1px);
+  border: 1px solid transparent;
+  border-radius: var(--docspot-radius-item);
+  color: var(--docspot-foreground);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.docspot-result[aria-selected='true'] {
+  border-color: var(--docspot-selected-border, transparent);
+  background: var(--docspot-selected, var(--docspot-accent));
+  box-shadow: var(--docspot-selected-shadow, none);
+}
+
+.docspot-result-icon,
+.docspot-result-hint {
+  display: grid;
+  place-items: center;
+  grid-row: 1;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--docspot-muted);
+}
+
+.docspot-result-icon {
+  grid-column: 1;
+}
+
+.docspot-result-hint {
+  grid-column: 3;
+}
+
+/* A block box, so the icon centers instead of sitting on a text baseline. */
+.docspot-result-hint > span {
+  display: flex;
+}
+
+.docspot-result[aria-selected='true']
+  :is(.docspot-result-icon, .docspot-result-hint) {
+  color: var(--docspot-foreground);
+}
+
+.docspot-result-title {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  font-size: var(--docspot-text-md);
+  font-weight: 500;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.docspot-result-path,
+.docspot-result-excerpt {
+  grid-column: 2 / -1;
+  min-width: 0;
+  margin: 0.125rem 0 0;
+  overflow: hidden;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docspot-result-path {
+  grid-row: 2;
+}
+
+/* Secondary text darkens on the selected row to keep its contrast. */
+.docspot-result[aria-selected='true']
+  :is(.docspot-result-path, .docspot-result-excerpt) {
+  color: color-mix(
+    in oklab,
+    var(--docspot-foreground) 35%,
+    var(--docspot-muted)
+  );
+}
+
+.docspot-result-path[data-ask] {
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.docspot-result-excerpt {
+  grid-row: 3;
+  margin-top: 0.25rem;
+  line-height: 1.125rem;
+}
+
+.docspot-result-excerpt .docspot-mark {
+  color: color-mix(in oklab, var(--docspot-foreground) 80%, transparent);
+}
+
+.docspot-mark {
+  /* A tint reaches past the letters without moving the text. */
+  margin: 0 -0.125rem;
+  padding: 0 0.125rem;
+  border-radius: 0.1875rem;
+  box-decoration-break: clone;
+  background: var(--docspot-mark);
+  color: var(--docspot-foreground);
+  font-weight: var(--docspot-mark-weight);
+  text-decoration: var(--docspot-mark-decoration);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.docspot-search-footer {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.25rem;
+  border-top: 1px solid var(--docspot-border);
+  background: var(--docspot-background);
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+}
+
+.docspot-search[data-viewport-compressed] .docspot-search-footer {
+  display: none;
+}
+
+@media (width < 640px) {
+  .docspot-search-footer {
+    justify-content: flex-end;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.docspot-hints {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  min-width: 0;
+}
+
+.docspot-hints > span,
+.docspot-kbd-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.docspot-kbd-pair {
+  gap: 0.125rem;
+}
+
+.docspot-branding {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.docspot-toast {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 50%;
+  translate: -50% 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-foreground);
+  color: var(--docspot-background);
+  font-size: var(--docspot-text-sm);
+  white-space: nowrap;
+  box-shadow: var(--docspot-shadow-floating);
+}
+
+/* ── Previews ────────────────────────────────────────────────────────── */
+
+.docspot-preview-frame {
+  height: 100%;
+  transition: opacity 150ms;
+}
+
+.docspot-stale {
+  opacity: 0.6;
+  transition-delay: 300ms;
+}
+
+.docspot-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.docspot-preview-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  container-type: inline-size;
+}
+
+@media (width >= 1024px) {
+  .docspot-preview-scroll {
+    padding: 1.5rem 2rem;
+  }
+}
+
+.docspot-preview-label {
+  margin: 0 0 1rem;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+  font-weight: 500;
+}
+
+.docspot-preview-title {
+  margin: 0;
+  font-size: var(--docspot-text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.docspot-preview-text,
+.docspot-preview-hint {
+  margin: 0.75rem 0 0;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-md);
+  line-height: 1.5rem;
+}
+
+.docspot-preview-hint {
+  margin-top: 1.25rem;
+}
+
+.docspot-preview-footer {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.375rem 1.5rem;
+  background: var(--docspot-background);
+}
+
+.docspot-fade-above::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: 1.5rem;
+  background: linear-gradient(to top, var(--docspot-background), transparent);
+  pointer-events: none;
+}
+
+.docspot-preview-skeleton {
+  height: 100%;
+  padding: 1.5rem;
+}
+
+.docspot-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.docspot-skeleton-line,
+.docspot-skeleton-heading {
+  height: 0.75rem;
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-accent);
+}
+
+.docspot-skeleton-heading {
+  width: 66%;
+  height: 1.75rem;
+}
+
+.docspot-skeleton-paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-block: 0.375rem;
+}
+
+.docspot-skeleton-paragraph .docspot-skeleton-line:last-child {
+  width: 80%;
+}
+
+.docspot-ask-preview {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.docspot-ask-preview-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 2rem;
+}
+
+.docspot-ask-card {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.625rem 0.625rem 1rem;
+  border: 1px solid var(--docspot-border-strong);
+  border-radius: 1rem;
+  background: var(--docspot-surface-elevated);
+  box-shadow: var(--docspot-shadow-raised);
+  text-align: left;
+  cursor: pointer;
+}
+
+.docspot-ask-card:hover {
+  border-color: var(--docspot-muted);
+}
+
+.docspot-ask-card-text {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  padding-block: 0.25rem;
+  font-size: var(--docspot-text-md);
+  line-height: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.docspot-send-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--docspot-primary);
+  color: var(--docspot-primary-foreground);
+}
+
+/* ── Suggestions ─────────────────────────────────────────────────────── */
+
+.docspot-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.docspot-welcome-title {
+  margin: 0;
+  padding: 0 0.625rem;
+  font-size: var(--docspot-text-lg);
+  font-weight: 600;
+}
+
+.docspot-suggestions {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docspot-suggestion {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: transparent;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-sm);
+  line-height: 1.25rem;
+  text-align: left;
+  text-wrap: pretty;
+  cursor: pointer;
+}
+
+.docspot-suggestion:hover {
+  background: var(--docspot-accent);
+  color: var(--docspot-foreground);
+}
+
+.docspot-suggestion-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.25rem;
+  color: var(--docspot-subtle);
+}
+
+/* ── Chat panel ──────────────────────────────────────────────────────── */
+
+/* Chat fills the screen on phones, floats over the page on tablets, and
+   docks beside the page where it leaves room to read. */
+.docspot-chat {
+  display: none;
+}
+
+.docspot-chat[data-open] {
+  position: fixed;
+  top: var(--docspot-viewport-top, 0px);
+  left: 0;
+  z-index: var(--docspot-z-index);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: var(--docspot-viewport-height, 100dvh);
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  background: var(--docspot-background);
+}
+
+@media (width >= 768px) {
+  .docspot-chat[data-open] {
+    top: var(--docspot-chat-top);
+    right: 0;
+    left: auto;
+    width: min(var(--docspot-chat-width, 25rem), calc(100vw - 2rem));
+    height: calc(100dvh - var(--docspot-chat-top));
+    padding-inline: 0;
+    border-left: 1px solid var(--docspot-border);
+    box-shadow: var(--docspot-shadow-floating);
+  }
+}
+
+@media (width >= 1280px) {
+  .docspot-chat[data-open] {
+    box-shadow: none;
+  }
+
+  .docspot-chat[data-open][data-dock='inline'] {
+    position: relative;
+    top: auto;
+    flex: 0 0 var(--docspot-chat-width, 25rem);
+    min-height: 0;
+  }
+
+  /* Pages beside a fixed panel can pad by this much to stay readable. */
+  :root[data-docspot-chat-open='fixed'] {
+    --docspot-chat-inset: var(--docspot-chat-width, 25rem);
+  }
+}
+
+.docspot-chat > * {
+  opacity: var(--docspot-chat-content-opacity, 1);
+  transition: opacity 150ms ease-out;
+}
+
+.docspot-chat[data-sliding-out] > * {
+  opacity: 0;
+}
+
+.docspot-chat[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Resizing only applies where chat docks beside the page. */
+.docspot-chat-resize {
+  display: none;
+}
+
+@media (width >= 1280px) {
+  .docspot-chat-resize {
+    position: absolute;
+    inset-block: 0;
+    left: -0.25rem;
+    z-index: 2;
+    display: block;
+    width: 0.75rem;
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+  }
+
+  .docspot-chat-resize::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0.25rem;
+    width: 2px;
+    translate: -50% 0;
+    transition: background-color 150ms ease-out 75ms;
+  }
+
+  .docspot-chat-resize:hover::after,
+  .docspot-chat[data-resizing] .docspot-chat-resize::after {
+    background: var(--docspot-border-strong);
+  }
+
+  .docspot-chat-resize:focus-visible::after {
+    background: var(--docspot-focus);
+  }
+}
+
+.docspot-chat-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.docspot-chat-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  height: 3rem;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--docspot-border);
+}
+
+.docspot-switcher {
+  margin-right: auto;
+  min-width: 0;
+}
+
+.docspot-switcher-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: transparent;
+  font-size: var(--docspot-text-md);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.docspot-switcher-button:hover,
+.docspot-switcher-button[aria-expanded='true'] {
+  background: var(--docspot-accent);
+}
+
+.docspot-when-covering {
+  display: none;
+}
+
+@media (width < 768px) {
+  .docspot-when-docked {
+    display: none;
+  }
+
+  .docspot-when-covering {
+    display: block;
+  }
+}
+
+.docspot-chat-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.docspot-scroller {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.docspot-scroller-viewport {
+  flex: 1;
+  min-height: 0;
+  padding: 0 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--docspot-scrollbar-color, auto);
+}
+
+.docspot-scroller-edges > div {
+  position: absolute;
+  inset-inline: 0 0.75rem;
+  height: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms;
+}
+
+.docspot-scroller-edges > [data-edge='start'] {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--docspot-background),
+    transparent
+  );
+}
+
+.docspot-scroller-edges > [data-edge='end'] {
+  display: none;
+}
+
+.docspot-scroller-edges > [data-active='true'] {
+  opacity: 1;
+}
+
+.docspot-jump {
+  position: absolute;
+  bottom: calc(var(--docspot-chat-footer-height, 0px) + 0.75rem);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: 999px;
+  background: var(--docspot-surface-elevated);
+  box-shadow: var(--docspot-shadow-floating);
+  cursor: pointer;
+  transition:
+    opacity 150ms,
+    background-color 150ms;
+}
+
+.docspot-jump:hover {
+  background: var(--docspot-accent);
+}
+
+.docspot-jump[data-active='false'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.docspot-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 46rem;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 0 calc(var(--docspot-chat-footer-height, 0px) + 1rem);
+}
+
+.docspot-chat-item {
+  min-width: 0;
+}
+
+.docspot-chat-item[hidden] {
+  display: none;
+}
+
+.docspot-chat-progress {
+  margin-top: -0.75rem;
+  font-size: var(--docspot-text-md);
+  color: var(--docspot-muted);
+}
+
+.docspot-chat-error {
+  padding: 1rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-surface);
+  background: var(--docspot-surface);
+  font-size: var(--docspot-text-md);
+}
+
+.docspot-chat-error p {
+  margin: 0 0 0.75rem;
+}
+
+.docspot-chat-footer {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 0.5rem 0.75rem 0.75rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  background: var(--docspot-background);
+}
+
+.docspot-chat-footer::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: 1.5rem;
+  background: linear-gradient(to top, var(--docspot-background), transparent);
+  pointer-events: none;
+}
+
+.docspot-chat-welcome {
+  max-width: 46rem;
+  margin: 0 auto 0.625rem;
+}
+
+.docspot-message {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--docspot-text-md);
+}
+
+.docspot-message[data-role='user'] {
+  align-items: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.docspot-question {
+  width: fit-content;
+  max-width: 85%;
+  padding: 0.5rem 0.875rem;
+  border-radius: 1rem;
+  background: var(--docspot-accent);
+  line-height: 1.25rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.docspot-reading-anchor {
+  scroll-margin-top: 2rem;
+}
+
+.docspot-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.docspot-message-actions[data-align='end'] {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  height: 1.5rem;
+}
+
+.docspot-message-actions[data-align='start'] {
+  height: 1.75rem;
+  margin: 0.25rem 0 0 -0.25rem;
+}
+
+/* A short delay keeps actions from flashing while the pointer passes by. */
+.docspot-message:hover .docspot-message-actions {
+  opacity: 1;
+  transition-delay: 150ms;
+}
+
+.docspot-message:focus-within .docspot-message-actions,
+.docspot-message-actions:has(:focus-visible) {
+  opacity: 1;
+  transition: none;
+}
+
+@media (pointer: coarse) {
+  .docspot-message-actions {
+    opacity: 1;
+  }
+}
+
+.docspot-message-action {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.docspot-timestamp {
+  padding: 0 0.25rem;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+}
+
+.docspot-sources {
+  margin-top: 1.25rem;
+}
+
+.docspot-sources h3 {
+  margin: 0;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+  font-weight: 500;
+}
+
+.docspot-sources ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docspot-sources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-control);
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+  text-decoration: none;
+}
+
+.docspot-sources a:hover {
+  color: var(--docspot-foreground);
+  text-decoration: none;
+}
+
+.docspot-markdown {
+  min-width: 0;
+  font-size: var(--docspot-text-base);
+  line-height: 1.75rem;
+  overflow-wrap: anywhere;
+}
+
+.docspot-markdown > :first-child {
+  margin-top: 0;
+}
+
+.docspot-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.docspot-markdown :is(p, ul, ol, pre, table, blockquote) {
+  margin: 0.75rem 0;
+}
+
+.docspot-markdown :is(ul, ol) {
+  padding-left: 1.25rem;
+}
+
+.docspot-markdown li + li {
+  margin-top: 0.25rem;
+}
+
+.docspot-markdown :is(h1, h2, h3, h4) {
+  margin: 1.25rem 0 0.5rem;
+  font-size: var(--docspot-text-lg);
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.docspot-markdown a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--docspot-border-strong);
+  text-underline-offset: 0.2em;
+}
+
+.docspot-markdown a:hover {
+  text-decoration-color: currentColor;
+}
+
+.docspot-external-icon {
+  display: inline-block;
+  margin-left: 0.25rem;
+  vertical-align: -0.125em;
+}
+
+.docspot-markdown code {
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--docspot-accent);
+  font-family: var(--docspot-font-mono);
+  font-size: var(--docspot-text-sm);
+}
+
+.docspot-markdown pre {
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-surface);
+  background: var(--docspot-surface);
+  line-height: 1.5rem;
+}
+
+.docspot-markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+.docspot-markdown table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--docspot-text-sm);
+}
+
+.docspot-markdown :is(th, td) {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--docspot-border);
+  text-align: left;
+}
+
+.docspot-markdown blockquote {
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--docspot-border-strong);
+  color: var(--docspot-muted);
+}
+
+.docspot-composer {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--docspot-border-strong);
+  border-radius: 1rem;
+  background: var(--docspot-surface-elevated);
+  box-shadow: var(--docspot-shadow-raised);
+}
+
+.docspot-composer:focus-within {
+  border-color: var(--docspot-muted);
+}
+
+.docspot-composer-input {
+  display: block;
+  width: 100%;
+  max-height: 10rem;
+  padding: 0.75rem 0.875rem 0.25rem;
+  border: 0;
+  background: transparent;
+  font-size: var(--docspot-text-md) !important;
+  line-height: 1.5rem;
+  resize: none;
+  outline: none !important;
+  field-sizing: content;
+}
+
+/* 16px text keeps iOS from zooming into the composer. */
+@media (pointer: coarse) {
+  .docspot-composer-input {
+    font-size: 1rem !important;
+  }
+}
+
+.docspot-composer-input::placeholder {
+  color: var(--docspot-subtle);
+}
+
+.docspot-composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.5rem 0.5rem 0.625rem;
+}
+
+.docspot-composer-bar > .docspot-tooltip-anchor:last-child {
+  margin-left: auto;
+}
+
+.docspot-send {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: var(--docspot-primary);
+  color: var(--docspot-primary-foreground);
+}
+
+.docspot-send:hover {
+  background: color-mix(in oklab, var(--docspot-primary) 85%, transparent);
+  color: var(--docspot-primary-foreground);
+}
+
+.docspot-send[aria-disabled='true'] {
+  background: var(--docspot-accent);
+  color: var(--docspot-subtle);
+  cursor: default;
+}
+
+.docspot-send[data-variant='outline'] {
+  border: 1px solid var(--docspot-border-strong);
+  background: var(--docspot-background);
+  color: var(--docspot-foreground);
+}
+
+@media (pointer: coarse) {
+  .docspot-send {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.docspot-context-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  height: 1.5rem;
+  padding: 0 0.125rem 0 0.5rem;
+  border-radius: var(--docspot-radius-control);
+  background: var(--docspot-accent);
+  font-size: var(--docspot-text-xs);
+}
+
+.docspot-context-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.docspot-context-chip-remove {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--docspot-muted);
+  cursor: pointer;
+}
+
+.docspot-context-chip-remove:hover {
+  background: var(--docspot-accent-active);
+  color: var(--docspot-foreground);
+}
+
+/* ── Menus ───────────────────────────────────────────────────────────── */
+
+.docspot-menu {
+  position: fixed;
+  inset: auto;
+  width: 18rem;
+  max-height: min(24rem, 70dvh);
+  margin: 0;
+  padding: 0.375rem;
+  overflow-y: auto;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-surface);
+  background: var(--docspot-surface-elevated);
+  box-shadow: var(--docspot-shadow-floating);
+  font-size: var(--docspot-text-md);
+}
+
+.docspot-menu-label {
+  padding: 0.375rem 0.5rem 0.25rem;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+  font-weight: 500;
+}
+
+.docspot-menu-text {
+  margin: 0;
+  padding: 0.375rem 0.5rem;
+  color: var(--docspot-muted);
+}
+
+.docspot-menu-separator {
+  height: 1px;
+  margin: 0.375rem -0.375rem;
+  background: var(--docspot-border);
+}
+
+.docspot-menu-row {
+  position: relative;
+}
+
+.docspot-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.375rem 2.25rem 0.375rem 0.5rem;
+  border: 0;
+  border-radius: var(--docspot-radius-item);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.docspot-menu-item > svg {
+  flex-shrink: 0;
+  color: var(--docspot-muted);
+}
+
+.docspot-menu-item:is(:hover, :focus-visible),
+.docspot-menu-row[data-current] .docspot-menu-item,
+.docspot-menu-row:has(.docspot-menu-secondary:is(:hover, :focus-visible))
+  .docspot-menu-item {
+  background: var(--docspot-accent);
+}
+
+.docspot-menu-item[data-danger],
+.docspot-menu-item[data-danger] > svg {
+  color: var(--docspot-danger);
+}
+
+.docspot-menu-secondary {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--docspot-radius-control);
+  background: transparent;
+  color: var(--docspot-subtle);
+  translate: 0 -50%;
+  cursor: pointer;
+  outline: none;
+}
+
+.docspot-menu-secondary:is(:hover, :focus-visible) {
+  background: var(--docspot-accent-active);
+  color: var(--docspot-foreground);
+}
+
+@media (pointer: fine) {
+  .docspot-menu-row:not(:hover, :focus-within) .docspot-menu-secondary {
+    opacity: 0;
+  }
+}

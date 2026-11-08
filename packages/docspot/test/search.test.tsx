@@ -1,0 +1,403 @@
+import { expect, it, vi } from 'vitest';
+import { page, userEvent } from 'vitest/browser';
+import { render } from 'vitest-browser-react';
+
+import { Docspot, type DocspotSearch, type DocspotSearchResult } from '../src';
+import { chatGptHandoff, claudeHandoff } from '../src/handoffs';
+import { results, wait } from './fixtures';
+
+const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
+const searchInput = () =>
+  page.getByRole('combobox', { name: 'Search documentation' });
+const searchDialog = () =>
+  page.getByRole('dialog', { name: 'Search documentation' });
+
+async function openSearch(name = 'Search docs') {
+  await page.getByRole('button', { name }).click();
+  await expect.element(searchInput()).toHaveFocus();
+}
+
+it('groups highlighted results, previews the active one, and opens it with Enter', async () => {
+  const navigate = vi.fn();
+  await render(<Docspot search={() => results} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('product');
+
+  const lakehouse = page.getByRole('region', { name: 'Lakehouse' });
+  await expect.element(lakehouse).toBeVisible();
+  await expect
+    .element(page.getByRole('region', { name: 'Agents' }))
+    .toBeVisible();
+  const first = lakehouse.getByRole('option').first();
+  await expect.element(first).toHaveAttribute('aria-selected', 'true');
+  await expect
+    .element(first.getByText('product', { exact: true }))
+    .toHaveProperty('tagName', 'MARK');
+  await expect
+    .element(
+      page
+        .getByRole('region', { name: 'Result preview' })
+        .getByRole('heading', { name: 'SQL Explorer' })
+    )
+    .toBeVisible();
+
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  expect(navigate).toHaveBeenCalledWith('/docs/query/http-api', {});
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+});
+
+it('shows the Enter hint only on the selected result, beside its title', async () => {
+  await render(<Docspot search={() => results} />);
+  await openSearch();
+  await userEvent.keyboard('product');
+  const [first, second] = page.getByRole('option').all();
+  await expect.element(first!).toHaveAttribute('aria-selected', 'true');
+  const enterHint = (option: typeof first) =>
+    option!.element().querySelector('[data-docspot-hints] svg');
+  const title = first!.element().querySelector('.docspot-result-title')!;
+  const titleBounds = title.getBoundingClientRect();
+  const hintBounds = enterHint(first)!.getBoundingClientRect();
+  expect(hintBounds.top + hintBounds.height / 2).toBeCloseTo(
+    titleBounds.top + titleBounds.height / 2,
+    0
+  );
+  expect(enterHint(second)).toBeNull();
+});
+
+it('keeps native link behavior for modified clicks', async () => {
+  const navigate = vi.fn();
+  await render(<Docspot search={() => results} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('http');
+  const link = page.getByRole('option', { name: /HTTP API/ });
+  await expect.element(link).toHaveAttribute('href', '/docs/query/http-api');
+  // A modified click is left to the browser, which opens a new tab.
+  link
+    .element()
+    .addEventListener('click', event => event.preventDefault(), { once: true });
+  await link.click({ modifiers: [modifier === 'Meta' ? 'Meta' : 'Control'] });
+  expect(navigate).not.toHaveBeenCalled();
+  await expect.element(searchDialog()).toBeVisible();
+
+  await link.click();
+  expect(navigate).toHaveBeenCalledWith(
+    '/docs/query/http-api',
+    expect.anything()
+  );
+});
+
+it('cancels outdated requests and never shows or opens a stale result', async () => {
+  const navigate = vi.fn();
+  const signals: Record<string, AbortSignal> = {};
+  const search: DocspotSearch = async ({ query, signal }) => {
+    signals[query] = signal;
+    if (query === 'slow') await wait(400);
+    return query === 'slow'
+      ? [{ url: '/stale', title: 'Stale result' }]
+      : [{ url: '/fresh', title: `Fresh ${query}` }];
+  };
+  await render(<Docspot search={search} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('slow');
+  await wait(50);
+  await userEvent.keyboard('{Backspace>4/}fresh');
+  await expect
+    .element(page.getByRole('option', { name: /Fresh fresh/ }))
+    .toBeVisible();
+  expect(signals.slow?.aborted).toBe(true);
+  await wait(450);
+  await expect.element(page.getByText('Stale result')).not.toBeInTheDocument();
+  await userEvent.keyboard('{Enter}');
+  expect(navigate).toHaveBeenCalledWith('/fresh', {});
+});
+
+it('reports failures, retries, and recovers from no matches', async () => {
+  let fail = true;
+  const search: DocspotSearch = ({ query }) => {
+    if (fail) throw new Error('offline');
+    return query === 'nothing' ? [] : results;
+  };
+  await render(<Docspot search={search} />);
+  await openSearch();
+  await userEvent.keyboard('sql');
+  await expect.element(page.getByText('Search is unavailable')).toBeVisible();
+  fail = false;
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect
+    .element(page.getByRole('option', { name: /Example/ }))
+    .toBeVisible();
+
+  await userEvent.fill(searchInput(), 'nothing');
+  await expect
+    .element(page.getByText('No results for “nothing”'))
+    .toBeVisible();
+  await expect.element(page.getByText('Try a different term.')).toBeVisible();
+});
+
+it('clears with Escape, closes with a second Escape, and restores focus', async () => {
+  await render(<Docspot search={() => results} />);
+  await openSearch();
+  await userEvent.keyboard('sql');
+  await expect.element(page.getByRole('option').first()).toBeVisible();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchInput()).toHaveValue('');
+  await expect.element(searchDialog()).toBeVisible();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+  await expect
+    .element(page.getByRole('button', { name: 'Search docs' }))
+    .toHaveFocus();
+});
+
+it('toggles with the shortcut, once while held, and opens with slash', async () => {
+  await render(<Docspot search={() => results} />);
+  await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
+  await expect.element(searchInput()).toHaveFocus();
+  await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+
+  await userEvent.keyboard(`{${modifier}>}{k>3}{/k}{/${modifier}}`);
+  await expect.element(searchDialog()).toBeVisible();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+
+  await userEvent.keyboard('/');
+  await expect.element(searchInput()).toHaveFocus();
+});
+
+it('shows default results and recent pages before typing, with separate clearing', async () => {
+  const defaults: DocspotSearchResult[] = [
+    { url: '/docs/start', title: 'Getting started' },
+    { url: '/docs/query/http-api', title: 'HTTP API' },
+  ];
+  await render(
+    <Docspot
+      search={({ query }) =>
+        results.filter(result => result.title.toLowerCase().includes(query))
+      }
+      defaultResults={defaults}
+      navigate={() => {}}
+      history
+    />
+  );
+  await openSearch();
+  const suggested = page.getByRole('region', { name: 'Suggested pages' });
+  await expect.element(suggested.getByRole('option')).toHaveLength(2);
+  await expect
+    .element(page.getByRole('region', { name: 'Recent' }))
+    .not.toBeInTheDocument();
+
+  await userEvent.keyboard('http{Enter}');
+  await openSearch();
+  const recent = page.getByRole('region', { name: 'Recent' });
+  await expect
+    .element(recent.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  // A recent page is not suggested twice.
+  await expect.element(suggested.getByRole('option')).toHaveLength(1);
+
+  await recent.getByRole('button', { name: 'Clear history' }).click();
+  await expect.element(recent).not.toBeInTheDocument();
+  await expect.element(suggested.getByRole('option')).toHaveLength(2);
+});
+
+it('copies the selected link with Mod+C but keeps copying selected query text', async () => {
+  const writeText = vi
+    .spyOn(navigator.clipboard, 'writeText')
+    .mockResolvedValue();
+  await render(<Docspot search={() => results} />);
+  await openSearch();
+  await userEvent.keyboard('http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  await userEvent.keyboard(`{ArrowDown}{${modifier}>}c{/${modifier}}`);
+  expect(writeText).toHaveBeenCalledWith(
+    `${location.origin}/docs/query/http-api`
+  );
+  await expect
+    .element(page.getByText('Link to “HTTP API” copied'))
+    .toBeVisible();
+
+  writeText.mockClear();
+  await userEvent.keyboard(
+    `{${modifier}>}a{/${modifier}}{${modifier}>}c{/${modifier}}`
+  );
+  expect(writeText).not.toHaveBeenCalled();
+});
+
+it('renders slots for previews, page actions, and branding', async () => {
+  function Preview({
+    result,
+    navigate,
+  }: {
+    result: DocspotSearchResult;
+    navigate: (url: string) => void;
+  }) {
+    return (
+      <div>
+        <p>Preview of {result.title}</p>
+        <button type="button" onClick={() => navigate('/docs/related')}>
+          Related
+        </button>
+      </div>
+    );
+  }
+  const navigate = vi.fn();
+  await render(
+    <Docspot
+      search={() => results}
+      navigate={navigate}
+      slots={{
+        preview: Preview,
+        pageActions: ({ result }) => (
+          <button type="button">Share {result.title}</button>
+        ),
+        branding: () => <span>Search by Example</span>,
+      }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  await userEvent.keyboard('{ArrowDown}');
+  await expect.element(page.getByText('Preview of HTTP API')).toBeVisible();
+  await expect
+    .element(page.getByRole('button', { name: 'Share HTTP API' }))
+    .toBeVisible();
+  await expect.element(page.getByText('Search by Example')).toBeVisible();
+  await page.getByRole('button', { name: 'Related' }).click();
+  expect(navigate).toHaveBeenCalledWith('/docs/related', {});
+});
+
+it('overrides messages partially', async () => {
+  await render(
+    <Docspot
+      search={() => []}
+      messages={{
+        trigger: { search: 'Find in docs' },
+        search: {
+          emptyTitle: 'Look something up',
+          placeholder: 'Find a page…',
+          placeholderWithAsk: 'Find a page or ask…',
+        },
+      }}
+    />
+  );
+  await openSearch('Find in docs');
+  await expect.element(page.getByText('Look something up')).toBeVisible();
+  await expect
+    .element(searchInput())
+    .toHaveAttribute('placeholder', 'Find a page…');
+  await expect
+    .element(page.getByRole('button', { name: 'Close' }))
+    .toBeVisible();
+});
+
+it('opens results on other sites in a new tab', async () => {
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  const navigate = vi.fn();
+  await render(
+    <Docspot
+      search={({ query }) => [
+        {
+          url: `https://chat.example/?q=${encodeURIComponent(query)}`,
+          title: 'Ask Example',
+          group: 'Open in chat',
+        },
+      ]}
+      navigate={navigate}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('zoom');
+  const option = page.getByRole('option', { name: /Ask Example/ });
+  await expect.element(option).toHaveAttribute('target', '_blank');
+  await userEvent.keyboard('{Enter}');
+  expect(open).toHaveBeenCalledWith(
+    'https://chat.example/?q=zoom',
+    '_blank',
+    'noopener,noreferrer'
+  );
+  expect(navigate).not.toHaveBeenCalled();
+  await expect.element(searchDialog()).toBeVisible();
+});
+
+it('shows a handoff with the icon it is given', async () => {
+  await render(
+    <Docspot
+      search={() => results}
+      handoffs={[claudeHandoff({ icon: <svg data-testid="own-logo" /> })]}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('product');
+  await expect
+    .element(
+      page.getByRole('option', { name: /Ask Claude/ }).getByTestId('own-logo')
+    )
+    .toBeInTheDocument();
+});
+
+it('hands the query to other sites after the results, without recording it', async () => {
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  const onEvent = vi.fn();
+  await render(
+    <Docspot
+      search={() => results}
+      handoffs={[
+        chatGptHandoff({
+          prompt: (query, context) =>
+            `${query}\n\nRead ${context.results[0]!.url}`,
+        }),
+        claudeHandoff(),
+      ]}
+      history
+      onEvent={onEvent}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('product');
+  const chatGpt = page.getByRole('option', { name: /Ask ChatGPT/ });
+  await expect.element(chatGpt).toHaveTextContent('“product”');
+  await expect
+    .element(chatGpt)
+    .toHaveAttribute(
+      'href',
+      `https://chatgpt.com/?q=${encodeURIComponent(`product\n\nRead ${results[0]!.url}`).replaceAll('%20', '+')}`
+    );
+  await expect
+    .element(page.getByRole('option', { name: /Ask Claude/ }))
+    .toHaveAttribute('href', 'https://claude.ai/new?q=product');
+  const options = page.getByRole('option').all();
+  expect(options.at(-1)!.element()).toHaveAccessibleName(/Ask Claude/);
+
+  await userEvent.keyboard('{ArrowUp}{ArrowUp}{Enter}');
+  expect(open).toHaveBeenCalledWith(
+    chatGpt.element().getAttribute('href'),
+    '_blank',
+    'noopener,noreferrer'
+  );
+  expect(onEvent).toHaveBeenCalledWith(
+    expect.objectContaining({ type: 'search.handoff', handoff: 'chatgpt' })
+  );
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchInput()).toHaveValue('');
+  await expect
+    .element(page.getByRole('region', { name: 'Recent' }))
+    .not.toBeInTheDocument();
+});
+
+it('warms search when a reader shows intent to search', async () => {
+  const search: DocspotSearch = Object.assign(() => results, {
+    preload: vi.fn(),
+  });
+  await render(<Docspot search={search} />);
+  await page.getByRole('button', { name: 'Search docs' }).hover();
+  expect(search.preload).toHaveBeenCalledTimes(1);
+  await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
+  await expect.element(searchInput()).toHaveFocus();
+  expect(search.preload).toHaveBeenCalledTimes(2);
+});
