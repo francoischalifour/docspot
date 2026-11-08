@@ -6,6 +6,9 @@
   "include-v-in-release-name": false,
   "bump-minor-pre-major": true,
   "packages": {
-    "packages/docspot": { "package-name": "docspot" }
-  }
+    "packages/docspot": {
+      "package-name": "docspot"
+    }
+  },
+  "bootstrap-sha": "7b6ae99aa6ce4dead41a34a93e98cc646212dd9c"
 }
