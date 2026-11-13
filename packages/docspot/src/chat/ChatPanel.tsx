@@ -210,9 +210,11 @@ export function ChatPanel({
             <span className="docspot-sr-only" role="status" aria-live="polite">
               {busy
                 ? messages.answerInProgress
-                : chatMessages.length
-                  ? messages.answerReady
-                  : ''}
+                : error
+                  ? messages.answerFailed
+                  : chatMessages.length
+                    ? messages.answerReady
+                    : ''}
             </span>
           </div>
         </Scroller>

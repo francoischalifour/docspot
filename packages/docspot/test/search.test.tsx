@@ -4,7 +4,7 @@ import { render } from 'vitest-browser-react';
 
 import { Docspot, type DocspotSearch, type DocspotSearchResult } from '../src';
 import { chatGptHandoff, claudeHandoff } from '../src/handoffs';
-import { results, wait } from './fixtures';
+import { createChatServer, lastQuestion, results, wait } from './fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>
@@ -109,6 +109,114 @@ it('cancels outdated requests and never shows or opens a stale result', async ()
   await expect.element(page.getByText('Stale result')).not.toBeInTheDocument();
   await userEvent.keyboard('{Enter}');
   expect(navigate).toHaveBeenCalledWith('/fresh', {});
+});
+
+it('never reports no results while a request is pending', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const settled: string[] = [];
+  // Like a real network: slow, and it rejects when aborted.
+  const search: DocspotSearch = ({ query, signal }) =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () => {
+          settled.push(query);
+          resolve(results);
+        },
+        query.includes('slow') ? 60_000 : 400
+      );
+      signal.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    });
+  let sawNoResults = false;
+  const observer = new MutationObserver(() => {
+    if (document.body.textContent?.includes('No results')) sawNoResults = true;
+  });
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+  await render(<Docspot search={search} chat={chat} />);
+  await openSearch('Search or ask docs');
+
+  // Nothing to keep yet: the list says it is searching.
+  await userEvent.keyboard('deploy');
+  await expect.element(page.getByText('Searching documentation')).toBeVisible();
+  await expect.poll(() => settled).toContain('deploy');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+
+  // Each keystroke aborts the previous request; the results stay meanwhile.
+  await userEvent.keyboard(' b');
+  await expect.element(searchInput()).toHaveAttribute('aria-busy', 'true');
+  await expect.element(page.getByText('HTTP API')).toBeVisible();
+  await expect
+    .element(page.getByRole('option', { name: /“deploy b”/ }))
+    .toBeVisible();
+  await expect.poll(() => settled).toContain('deploy b');
+  await expect.element(searchInput()).toHaveAttribute('aria-busy', 'false');
+
+  // A request that never returns keeps loading and keeps Ask AI live.
+  await userEvent.keyboard(' slow');
+  await wait(1000);
+  await expect.element(searchInput()).toHaveAttribute('aria-busy', 'true');
+  await expect.element(page.getByText('HTTP API')).toBeVisible();
+  await expect
+    .element(page.getByRole('option', { name: /“deploy b slow”/ }))
+    .toBeVisible();
+  observer.disconnect();
+  expect(sawNoResults).toBe(false);
+});
+
+it('offers the page questions as rows when there is nothing else to list', async () => {
+  const { chat, requests } = createChatServer(() => ({ text: 'Answer.' }));
+  await render(
+    <Docspot
+      search={() => results}
+      chat={chat}
+      context={{
+        page: {
+          url: '/docs/query',
+          title: 'Query data',
+          prompts: ['How do I join tables?', 'Can I export results?'],
+        },
+      }}
+    />
+  );
+  await openSearch('Search or ask docs');
+  await expect
+    .element(page.getByText('Type to search the docs.'))
+    .toBeVisible();
+  const ask = page.getByRole('region', { name: 'Ask AI' });
+  await expect.element(ask.getByRole('option')).toHaveLength(2);
+  await expect
+    .element(page.getByRole('textbox', { name: /ask/i }))
+    .not.toBeInTheDocument();
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  await expect
+    .element(
+      page.getByRole('complementary', { name: 'Ask AI' }).getByText('Answer.')
+    )
+    .toBeVisible();
+  expect(lastQuestion(requests[0])).toBe('Can I export results?');
+});
+
+it('leaves out breadcrumb parts the group heading already shows', async () => {
+  await render(<Docspot search={() => results} />);
+  await openSearch();
+  await userEvent.keyboard('sql');
+  const group = page.getByRole('region', { name: 'Lakehouse' });
+  const section = group.getByRole('option', { name: /Example/ });
+  await expect.element(section).toBeVisible();
+  // A section keeps its page; the group name is not repeated.
+  expect(
+    section.element().querySelector('.docspot-result-path')?.textContent
+  ).toBe('SQL Explorer');
+  const httpApi = group.getByRole('option', { name: /HTTP API/ });
+  expect(httpApi.element().querySelector('.docspot-result-path')).toBeNull();
 });
 
 it('reports failures, retries, and recovers from no matches', async () => {

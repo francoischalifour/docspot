@@ -289,18 +289,21 @@ function AskPreview({
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages;
-  const { query, conversation } = item;
+  const { query, conversation, prompt } = item;
   function start() {
     if (query) onStartChat({ action: 'submit', text: query, source: 'search' });
+    else if (prompt)
+      onStartChat({ action: 'submit', text: prompt, source: 'prompt' });
     else if (conversation) onStartChat({ action: 'resume', conversation });
     else onStartChat();
   }
-  const text = query || conversation?.title;
-  const action = query
-    ? messages.search.askDocs
-    : conversation
-      ? messages.search.continueChat
-      : messages.search.openChat;
+  const text = query || prompt || conversation?.title;
+  const action =
+    query || prompt
+      ? messages.search.askDocs
+      : conversation
+        ? messages.search.continueChat
+        : messages.search.openChat;
   return (
     <section
       aria-label={messages.search.askPreview}

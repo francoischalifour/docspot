@@ -13,7 +13,13 @@ export type SearchItem = {
   sourceLabel: string;
 } & (
   | { kind: 'page'; result: DocspotSearchResult; recent: boolean }
-  | { kind: 'ask'; title: string; conversation?: StoredConversation }
+  | {
+      kind: 'ask';
+      title: string;
+      conversation?: StoredConversation;
+      /** A suggested question, offered before anything is typed. */
+      prompt?: string;
+    }
   | { kind: 'handoff'; handoff: DocspotHandoff; url: string }
 );
 
@@ -68,10 +74,6 @@ export function toStoredPage(result: DocspotSearchResult): StoredPage {
 
 export function getResultId(result: DocspotSearchResult) {
   return result.id ?? result.url;
-}
-
-export function getBreadcrumbText(result: DocspotSearchResult) {
-  return (result.breadcrumb ?? []).join(' › ');
 }
 
 export function plain(text: string | undefined): HighlightedText {

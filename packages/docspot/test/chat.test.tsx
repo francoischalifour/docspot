@@ -51,7 +51,7 @@ it('works without search: prompts, page context, streaming Markdown, and sources
 
   await openChat();
   await expect
-    .element(panel().getByRole('heading', { name: 'Ask the docs' }))
+    .element(panel().getByRole('heading', { name: 'Ask AI about these docs' }))
     .toBeVisible();
   await expect.element(panel().getByText('Page context:')).toBeInTheDocument();
   await panel()
@@ -132,7 +132,13 @@ it('recovers from a failed answer', async () => {
   const alert = panel().getByRole('alert');
   await expect
     .element(alert)
-    .toHaveTextContent("Couldn't finish the answer. Try again.");
+    .toHaveTextContent("Couldn't get an answer.Try again");
+  await expect
+    .element(panel().getByRole('status').getByText('Answer failed'))
+    .toBeInTheDocument();
+  await expect
+    .element(panel().getByText('Answer ready'))
+    .not.toBeInTheDocument();
   await alert.getByRole('button', { name: 'Try again' }).click();
   await expect.element(answers().getByText('Recovered.')).toBeVisible();
 });
@@ -211,7 +217,7 @@ it('switches, deletes, and clears conversations', async () => {
     await expect
       .element(answers().getByText(`About ${question}.`))
       .toBeVisible();
-    await panel().getByRole('button', { name: 'New conversation' }).click();
+    await panel().getByRole('button', { name: 'New chat' }).click();
   }
   await panel().getByRole('button', { name: 'Switch chat, New chat' }).click();
   const menu = page.getByRole('menu');
@@ -226,7 +232,7 @@ it('switches, deletes, and clears conversations', async () => {
   await menu.getByRole('menuitem', { name: 'Clear history…' }).click();
   await menu.getByRole('menuitem', { name: 'Confirm clear history' }).click();
   await expect
-    .element(panel().getByRole('heading', { name: 'Ask the docs' }))
+    .element(panel().getByRole('heading', { name: 'Ask AI about these docs' }))
     .toBeVisible();
   await panel().getByRole('button', { name: 'Switch chat, New chat' }).click();
   await expect.element(menu.getByText('No recent chats')).toBeVisible();
