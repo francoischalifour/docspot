@@ -25,6 +25,7 @@ import {
 import { addRecentPage } from '../core/storage';
 import { LoadingIcon, SearchIcon } from '../ui/icons';
 import { Kbd, cx } from '../ui/primitives';
+import { getPrompts } from '../ui/Suggestions';
 import { useScrollEdges } from '../ui/useScrollEdges';
 import { PreviewPanel } from './PreviewPanel';
 import { ResultItem } from './ResultItem';
@@ -75,6 +76,9 @@ export function SearchDialog() {
     latest.current = { navigateItem, selectItem, chat, config };
   });
   const abortRef = useRef<AbortController | null>(null);
+  const latestSources = useRef<Promise<AutocompleteSource<SearchItem>[]>>(
+    Promise.resolve([])
+  );
 
   const [autocomplete] = useState(() =>
     createAutocomplete<SearchItem, FormEvent, MouseEvent, KeyboardEvent>({
@@ -89,132 +93,167 @@ export function SearchDialog() {
         navigate: ({ itemUrl, item }) =>
           latest.current.navigateItem(item, itemUrl),
       },
-      async getSources({ query }) {
-        const { config, chat } = latest.current;
-        const { messages, canChat, stores } = config;
-        const trimmed = query.trim();
+      getSources({ query }) {
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
-        // Older versions stored handoffs, which belong on other sites.
-        const recentPages = trimmed
-          ? []
-          : stores.recentPages.get().filter(page => !isExternalUrl(page.url));
-        let groups: ResultGroup[];
-        let results: DocspotSearchResult[] = [];
-        let prioritizeChat = false;
-        if (trimmed) {
-          try {
-            const response = normalizeResponse(
-              await config.search!({
-                query: trimmed,
-                signal: controller.signal,
-              })
-            );
-            results = response.results;
-            groups = groupResults(results, messages.search.documentation);
-            prioritizeChat = response.prioritizeChat;
-            setErrorQuery(current => (current === trimmed ? null : current));
-            if (!controller.signal.aborted)
-              config.emit({
-                type: 'search.results',
-                query: trimmed,
-                count: response.results.length,
-              });
-          } catch (error) {
-            // A newer query replaced this one; autocomplete ignores the result.
-            if (controller.signal.aborted) return [];
-            setErrorQuery(trimmed);
-            config.emit({ type: 'search.error', query: trimmed, error });
-            groups = [];
-          }
-        } else {
-          const recentUrls = new Set(recentPages.map(page => page.url));
-          groups = groupResults(
-            config.defaultResults.filter(result => !recentUrls.has(result.url)),
-            messages.search.suggested
-          );
-        }
-        const select = ({ item }: { item: SearchItem }) =>
-          latest.current.selectItem(item);
-        const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
-          getItemUrl(item);
-        const resultSources: AutocompleteSource<SearchItem>[] = [
-          ...(recentPages.length
-            ? [
-                {
-                  sourceId: 'recent',
-                  getItems: () =>
-                    recentPages.map((page): SearchItem => ({
-                      id: `recent:${page.url}`,
-                      kind: 'page',
-                      result: page,
-                      recent: true,
-                      query: '',
-                      sourceLabel: messages.search.recent,
-                    })),
-                  getItemUrl: getSourceItemUrl,
-                  onSelect: select,
-                },
-              ]
-            : []),
-          ...groups.map((group, index) => ({
-            sourceId: `group-${index}`,
-            getItems: () =>
-              group.results.map((result): SearchItem => ({
-                id: getResultId(result),
-                kind: 'page',
-                result,
-                recent: false,
-                query: trimmed,
-                sourceLabel: group.label,
-              })),
-            getItemUrl: getSourceItemUrl,
-            onSelect: select,
-          })),
-          ...(trimmed && config.handoffs.length
-            ? [
-                {
-                  sourceId: 'handoffs',
-                  getItems: () =>
-                    config.handoffs.map((handoff): SearchItem => ({
-                      id: `handoff:${handoff.id}`,
-                      kind: 'handoff',
-                      handoff,
-                      url: handoff.getUrl(trimmed, { results }),
-                      query: trimmed,
-                      sourceLabel: messages.search.handoffs,
-                    })),
-                  getItemUrl: getSourceItemUrl,
-                  onSelect: select,
-                },
-              ]
-            : []),
-        ];
-        if (!canChat) return resultSources;
-        const conversation = trimmed ? null : chat.getActiveConversation();
-        const askSource: AutocompleteSource<SearchItem> = {
-          sourceId: 'ask-ai',
-          getItems: () => [
-            {
-              id: 'ask-ai',
-              kind: 'ask',
-              title: conversation ? conversation.title : messages.search.askAi,
-              query: trimmed,
-              sourceLabel: trimmed
-                ? messages.search.askAbout(trimmed)
-                : messages.search.askQuestion,
-              conversation: conversation ?? undefined,
-            },
-          ],
-          onSelect: select,
-        };
-        return conversation || prioritizeChat
-          ? [askSource, ...resultSources]
-          : [...resultSources, askSource];
+        const sources = loadSources(query, controller);
+        latestSources.current = sources;
+        return sources;
       },
     })
   );
+
+  /**
+   * A request a newer query aborted resolves with the newer sources, so
+   * autocomplete stays loading and keeps the previous results meanwhile.
+   */
+  function supersede(controller: AbortController) {
+    // Closing search aborts the last request too; nothing reads it then.
+    return abortRef.current === controller ? [] : latestSources.current;
+  }
+
+  async function loadSources(
+    query: string,
+    controller: AbortController
+  ): Promise<AutocompleteSource<SearchItem>[]> {
+    const { config, chat } = latest.current;
+    const { messages, canChat, stores } = config;
+    const trimmed = query.trim();
+    // Older versions stored handoffs, which belong on other sites.
+    const recentPages = trimmed
+      ? []
+      : stores.recentPages.get().filter(page => !isExternalUrl(page.url));
+    let groups: ResultGroup[];
+    let results: DocspotSearchResult[] = [];
+    let prioritizeChat = false;
+    if (trimmed) {
+      try {
+        const response = normalizeResponse(
+          await config.search!({
+            query: trimmed,
+            signal: controller.signal,
+          })
+        );
+        // A search that ignores the signal may still resolve.
+        if (controller.signal.aborted) return supersede(controller);
+        results = response.results;
+        groups = groupResults(results, messages.search.documentation);
+        prioritizeChat = response.prioritizeChat;
+        setErrorQuery(current => (current === trimmed ? null : current));
+        config.emit({
+          type: 'search.results',
+          query: trimmed,
+          count: response.results.length,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return supersede(controller);
+        setErrorQuery(trimmed);
+        config.emit({ type: 'search.error', query: trimmed, error });
+        groups = [];
+      }
+    } else {
+      const recentUrls = new Set(recentPages.map(page => page.url));
+      groups = groupResults(
+        config.defaultResults.filter(result => !recentUrls.has(result.url)),
+        messages.search.suggested
+      );
+    }
+    const select = ({ item }: { item: SearchItem }) =>
+      latest.current.selectItem(item);
+    const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
+      getItemUrl(item);
+    const resultSources: AutocompleteSource<SearchItem>[] = [
+      ...(recentPages.length
+        ? [
+            {
+              sourceId: 'recent',
+              getItems: () =>
+                recentPages.map((page): SearchItem => ({
+                  id: `recent:${page.url}`,
+                  kind: 'page',
+                  result: page,
+                  recent: true,
+                  query: '',
+                  sourceLabel: messages.search.recent,
+                })),
+              getItemUrl: getSourceItemUrl,
+              onSelect: select,
+            },
+          ]
+        : []),
+      ...groups.map((group, index) => ({
+        sourceId: `group-${index}`,
+        getItems: () =>
+          group.results.map((result): SearchItem => ({
+            id: getResultId(result),
+            kind: 'page',
+            result,
+            recent: false,
+            query: trimmed,
+            sourceLabel: group.label,
+          })),
+        getItemUrl: getSourceItemUrl,
+        onSelect: select,
+      })),
+      ...(trimmed && config.handoffs.length
+        ? [
+            {
+              sourceId: 'handoffs',
+              getItems: () =>
+                config.handoffs.map((handoff): SearchItem => ({
+                  id: `handoff:${handoff.id}`,
+                  kind: 'handoff',
+                  handoff,
+                  url: handoff.getUrl(trimmed, { results }),
+                  query: trimmed,
+                  sourceLabel: messages.search.handoffs,
+                })),
+              getItemUrl: getSourceItemUrl,
+              onSelect: select,
+            },
+          ]
+        : []),
+    ];
+    if (!canChat) return resultSources;
+    const conversation = trimmed ? null : chat.getActiveConversation();
+    // With nothing else to list, the page's questions fill the list.
+    const prompts =
+      trimmed || conversation || resultSources.length
+        ? []
+        : getPrompts(config.currentPage, config.prompts);
+    const askSource: AutocompleteSource<SearchItem> = {
+      sourceId: 'ask-ai',
+      getItems: () =>
+        prompts.length
+          ? prompts.map((prompt): SearchItem => ({
+              id: `ask-prompt:${prompt}`,
+              kind: 'ask',
+              title: prompt,
+              prompt,
+              query: '',
+              sourceLabel: messages.search.askAi,
+            }))
+          : [
+              {
+                id: 'ask-ai',
+                kind: 'ask',
+                title: conversation
+                  ? conversation.title
+                  : messages.search.askAi,
+                query: trimmed,
+                sourceLabel: trimmed
+                  ? messages.search.askAbout(trimmed)
+                  : messages.search.askQuestion,
+                conversation: conversation ?? undefined,
+              },
+            ],
+      onSelect: select,
+    };
+    return conversation || prioritizeChat
+      ? [askSource, ...resultSources]
+      : [...resultSources, askSource];
+  }
 
   const query = state.query.trim();
   // Results arrive after typing; Ask AI always offers what is typed now.
@@ -226,6 +265,7 @@ export function SearchDialog() {
       query,
       sourceLabel: messages.askAbout(query),
       conversation: undefined,
+      prompt: undefined,
     };
   }
   const items = state.collections.flatMap(collection =>
@@ -236,6 +276,10 @@ export function SearchDialog() {
   const currentItems = items.filter(item => item.query === query);
   const pageItems = currentItems.filter(item => item.kind === 'page');
   const isLoading = state.status === 'loading' || state.status === 'stalled';
+  // While loading, the previous results stay until the new ones arrive.
+  const hasVisiblePages = isLoading
+    ? items.some(item => item.kind === 'page')
+    : pageItems.length > 0;
   const hasError = errorQuery === query;
   const canNavigate = activeItem?.query === query;
   const inputProps = autocomplete.getInputProps({ inputElement });
@@ -313,6 +357,8 @@ export function SearchDialog() {
       });
     else if (item.conversation)
       openChat({ action: 'resume', conversation: item.conversation });
+    else if (item.prompt)
+      openChat({ action: 'submit', text: item.prompt, source: 'prompt' });
     else
       openChat(
         item.query
@@ -581,8 +627,7 @@ export function SearchDialog() {
               )}
               aria-busy={isLoading}
             >
-              {(!items.length ||
-                (!pageItems.length && !isLoading && query)) && (
+              {!hasVisiblePages && (
                 <div className="docspot-search-empty">
                   <SearchIcon size={20} className="docspot-subtle" />
                   <p className="docspot-search-empty-title">
@@ -594,17 +639,17 @@ export function SearchDialog() {
                           ? messages.noResults(state.query)
                           : messages.emptyTitle}
                   </p>
-                  <p className="docspot-search-empty-hint">
-                    {hasError
-                      ? messages.errorHint
-                      : isLoading
-                        ? messages.loadingHint
-                        : query
-                          ? canChat
+                  {(hasError || isLoading || query) && (
+                    <p className="docspot-search-empty-hint">
+                      {hasError
+                        ? messages.errorHint
+                        : isLoading
+                          ? messages.loadingHint
+                          : canChat
                             ? messages.noResultsHintWithAsk
-                            : messages.noResultsHint
-                          : messages.emptyHint}
-                  </p>
+                            : messages.noResultsHint}
+                    </p>
+                  )}
                   {hasError && (
                     <button
                       type="button"
@@ -626,6 +671,11 @@ export function SearchDialog() {
                   return null;
                 const isStale = firstItem.query !== query;
                 const label = firstItem.sourceLabel;
+                // Suggested questions give way to asking what is typed.
+                const sourceItems =
+                  firstItem.kind === 'ask' && collection.items[0] !== firstItem
+                    ? collection.items.slice(0, 1)
+                    : collection.items;
                 return (
                   <section
                     key={collection.source.sourceId}
@@ -657,7 +707,7 @@ export function SearchDialog() {
                         source: collection.source,
                       })}
                     >
-                      {collection.items.map(item => (
+                      {sourceItems.map(item => (
                         <ResultItem
                           key={item.id}
                           item={withLiveQuery(item)}

@@ -291,8 +291,10 @@ function AskPreview({
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages;
   const { query, conversation } = item;
-  const page = query ? config.currentPage : undefined;
-  const text = query ? messages.search.quotedQuery(query) : conversation?.title;
+  // A suggested question previews like a typed one.
+  const asked = query || item.prompt;
+  const page = asked ? config.currentPage : undefined;
+  const text = asked ? messages.search.quotedQuery(asked) : conversation?.title;
   return (
     <section
       aria-label={messages.search.askPreview}
@@ -316,7 +318,7 @@ function AskPreview({
               </span>
             )}
             <p className="docspot-preview-hint">
-              {query
+              {asked
                 ? messages.search.enterToAsk
                 : messages.search.continueChat}
             </p>

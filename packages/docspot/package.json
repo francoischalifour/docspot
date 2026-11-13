@@ -1,18 +1,16 @@
 {
   "name": "docspot",
   "version": "0.1.0",
-  "description": "Documentation search and AI chat for React: search-only, chat-only, or both.",
+  "description": "Docs search and Ask AI for React. Bring your own search and your own model.",
   "keywords": [
-    "ai",
     "ai-sdk",
-    "algolia",
-    "chat",
+    "command-palette",
+    "docsearch",
     "documentation",
-    "minisearch",
     "react",
     "search"
   ],
-  "homepage": "https://github.com/francoischalifour/docspot/tree/main/packages/docspot#readme",
+  "homepage": "https://francoischalifour.com/docspot/",
   "bugs": "https://github.com/francoischalifour/docspot/issues",
   "license": "MIT",
   "author": "Francois Chalifour <francois.chalifour@gmail.com>",
