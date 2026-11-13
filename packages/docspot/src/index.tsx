@@ -25,7 +25,9 @@ function DocspotComponent({ children, ...props }: DocspotProps) {
       <Trigger />
       {children}
       <SearchDialog />
-      <ChatPanel launcher={Boolean(props.search)} />
+      {/* The trigger opens search, which asks AI; add `Docspot.ChatTrigger`
+          as a child for a separate way into chat. */}
+      <ChatPanel launcher={false} />
     </DocspotRoot>
   );
 }

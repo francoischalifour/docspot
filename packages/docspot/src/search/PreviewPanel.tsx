@@ -10,7 +10,7 @@ import {
 import { type ChatRequest, useDocspotInternal } from '../core/Root';
 import { hasModifierKey, isExternalUrl } from '../core/platform';
 import type { DocspotSearchResult } from '../types';
-import { ExternalIcon, SendIcon } from '../ui/icons';
+import { ExternalIcon, PageIcon } from '../ui/icons';
 import { cx } from '../ui/primitives';
 import { Welcome, getPrompts } from '../ui/Suggestions';
 import { useScrollEdges } from '../ui/useScrollEdges';
@@ -139,6 +139,7 @@ function PagePreview({
     config.navigate(url, {});
   }
 
+  // Shown when the preview fails to render.
   const fallback = (
     <div>
       <h2 className="docspot-preview-title">
@@ -147,7 +148,6 @@ function PagePreview({
       {result.excerpt && (
         <p className="docspot-preview-text">{result.excerpt}</p>
       )}
-      <p className="docspot-preview-hint">{messages.previewFallback}</p>
     </div>
   );
 
@@ -184,7 +184,7 @@ function PagePreview({
               : result.group}
           </p>
         )}
-        {Preview ? (
+        {Preview && (
           <PreviewErrorBoundary key={result.url} fallback={fallback}>
             <Preview
               result={result}
@@ -193,8 +193,6 @@ function PagePreview({
               notify={onNotify}
             />
           </PreviewErrorBoundary>
-        ) : (
-          fallback
         )}
       </div>
       <div
@@ -279,7 +277,10 @@ function HandoffPreview({
   );
 }
 
-/** Shows what chat will receive; the conversation happens in the panel. */
+/**
+ * Shows what asking sends: the question and the page attached to it. The
+ * search input stays the only place to edit the question.
+ */
 function AskPreview({
   item,
   onStartChat,
@@ -290,24 +291,37 @@ function AskPreview({
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages;
   const { query, conversation } = item;
-  function start() {
-    if (query) onStartChat({ action: 'submit', text: query, source: 'search' });
-    else if (conversation) onStartChat({ action: 'resume', conversation });
-    else onStartChat();
-  }
-  const text = query || conversation?.title;
-  const action = query
-    ? messages.search.askDocs
-    : conversation
-      ? messages.search.continueChat
-      : messages.search.openChat;
+  const page = query ? config.currentPage : undefined;
+  const text = query ? messages.search.quotedQuery(query) : conversation?.title;
   return (
     <section
       aria-label={messages.search.askPreview}
       className="docspot-ask-preview"
     >
       <div className="docspot-ask-preview-inner">
-        {!text && (
+        {text ? (
+          <div>
+            <p className="docspot-ask-preview-text">{text}</p>
+            {page && (
+              <span className="docspot-context-chip">
+                <span className="docspot-context-chip-label">
+                  <PageIcon size={12} className="docspot-muted" />
+                  <span className="docspot-truncate">
+                    <span className="docspot-sr-only">
+                      {messages.chat.pageContext}
+                    </span>
+                    {page.title ?? page.url}
+                  </span>
+                </span>
+              </span>
+            )}
+            <p className="docspot-preview-hint">
+              {query
+                ? messages.search.enterToAsk
+                : messages.search.continueChat}
+            </p>
+          </div>
+        ) : (
           <Welcome
             title={messages.chat.welcome}
             questions={getPrompts(config.currentPage, config.prompts)}
@@ -320,23 +334,6 @@ function AskPreview({
             }
           />
         )}
-        {/* The question sits in a composer-like card whose send button sends it. */}
-        <button
-          type="button"
-          onClick={start}
-          aria-label={text ? `${action}: ${text}` : action}
-          aria-keyshortcuts="Enter"
-          className="docspot-ask-card"
-        >
-          <span
-            className={cx('docspot-ask-card-text', !text && 'docspot-subtle')}
-          >
-            {text ?? messages.chat.placeholder}
-          </span>
-          <span aria-hidden="true" className="docspot-send-icon">
-            <SendIcon size={14} />
-          </span>
-        </button>
       </div>
     </section>
   );
