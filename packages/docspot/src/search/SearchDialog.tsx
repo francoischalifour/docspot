@@ -456,6 +456,8 @@ export function SearchDialog() {
   }
 
   const BrandingSlot = config.slots.branding;
+  // Without a preview slot, results take the whole dialog.
+  const hasPreview = Boolean(config.slots.preview);
 
   return (
     <dialog
@@ -464,6 +466,7 @@ export function SearchDialog() {
         setDialog(element);
       }}
       data-docspot-search=""
+      data-preview={hasPreview || undefined}
       className="docspot-search"
       aria-labelledby={`${id}-title`}
       aria-describedby={`${id}-description`}
@@ -604,21 +607,7 @@ export function SearchDialog() {
                 inputProps.onKeyDown(event);
               }}
             />
-            {canChat && (
-              <button
-                type="button"
-                className="docspot-header-action"
-                onClick={askCurrentQuery}
-                aria-keyshortcuts="Tab"
-              >
-                {messages.askAi}
-                <span data-docspot-hints="">
-                  <Kbd aria-hidden="true" keys={['tab']} />
-                </span>
-              </button>
-            )}
           </form>
-          {canChat && <span aria-hidden="true" className="docspot-divider" />}
           <button
             type="button"
             className="docspot-header-action"
@@ -747,16 +736,18 @@ export function SearchDialog() {
               })}
             </div>
           </div>
-          <PreviewPanel
-            activeItem={activeItem}
-            query={query}
-            isLoading={isLoading}
-            onClose={close}
-            onLeave={search.leave}
-            onNotify={announce}
-            onStartChat={openChat}
-            onHandoff={selectItem}
-          />
+          {hasPreview && (
+            <PreviewPanel
+              activeItem={activeItem}
+              query={query}
+              isLoading={isLoading}
+              onClose={close}
+              onLeave={search.leave}
+              onNotify={announce}
+              onStartChat={openChat}
+              onHandoff={selectItem}
+            />
+          )}
         </div>
         <footer className="docspot-search-footer">
           <div

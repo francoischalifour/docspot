@@ -99,7 +99,15 @@ type Body = {
 <Docspot search={search} chat={chat} history syncUrl />
 ```
 
-Search offers to ask about the query: press <kbd>Tab</kbd>, choose **Ask AI**, or press <kbd>⌘J</kbd>. When the search response sets `prioritizeChat`, asking comes first.
+Search offers to ask about the query: press <kbd>Tab</kbd>, choose the **Ask AI** row, or press <kbd>⌘J</kbd>. When the search response sets `prioritizeChat`, asking comes first.
+
+The default trigger opens search, which is the way into chat, so `<Docspot>` renders no floating chat button. For a separate chat button, add one as a child:
+
+```tsx
+<Docspot search={search} chat={chat}>
+  <Docspot.ChatTrigger />
+</Docspot>
+```
 
 Docspot requires at least one of `search` or `chat`. TypeScript reports a missing capability, and rendering throws.
 
@@ -300,12 +308,12 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 />
 ```
 
-| Slot          | Props                                                                                                                                                                                           |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preview`     | `{ result, query, navigate, notify }`. Renders the active result beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the result URL's hash |
-| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                |
-| `branding`    | None. Shown in the search footer                                                                                                                                                                |
-| `resultIcon`  | `{ result, recent }`. Replaces the page, section, and recent icons                                                                                                                              |
+| Slot          | Props                                                                                                                                                                                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preview`     | `{ result, query, navigate, notify }`. Renders the active result beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the result URL's hash. Without it, search has no preview pane and shows results in one column with two-line excerpts |
+| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                               |
+| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                               |
+| `resultIcon`  | `{ result, recent }`. Replaces the page, section, and recent icons                                                                                                                                                                                                                             |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
 

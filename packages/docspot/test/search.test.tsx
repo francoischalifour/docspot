@@ -33,13 +33,10 @@ it('groups highlighted results, previews the active one, and opens it with Enter
   await expect
     .element(first.getByText('product', { exact: true }))
     .toHaveProperty('tagName', 'MARK');
+  // Without a preview slot, there is no preview pane.
   await expect
-    .element(
-      page
-        .getByRole('region', { name: 'Result preview' })
-        .getByRole('heading', { name: 'SQL Explorer' })
-    )
-    .toBeVisible();
+    .element(page.getByRole('region', { name: 'Result preview' }))
+    .not.toBeInTheDocument();
 
   await userEvent.keyboard('{ArrowDown}{Enter}');
   expect(navigate).toHaveBeenCalledWith('/docs/query/http-api', {});

@@ -515,8 +515,9 @@
   }
 }
 
+/* Only a preview pane needs the extra width. */
 @media (width >= 1024px) and (height >= 600px) {
-  .docspot-search:not([data-viewport-compressed]) {
+  .docspot-search[data-preview]:not([data-viewport-compressed]) {
     width: min(960px, calc(100vw - 4rem));
     height: min(75dvh, 720px);
   }
@@ -588,11 +589,6 @@
   color: var(--docspot-foreground);
 }
 
-.docspot-divider {
-  height: 1rem;
-  border-left: 1px solid var(--docspot-border);
-}
-
 @media (width < 640px) {
   .docspot-search-header {
     height: calc(3.5rem + env(safe-area-inset-top, 0px));
@@ -657,19 +653,19 @@
 
 @media (hover: hover) and (pointer: fine) {
   @container docspot-search (width >= 640px) {
-    .docspot-search-results {
-      flex: 0 0 clamp(340px, 40cqw, 400px);
-      border-right: 1px solid var(--docspot-border);
-    }
-
     .docspot-search-preview {
       display: block;
+    }
+
+    .docspot-search[data-preview] .docspot-search-results {
+      flex: 0 0 clamp(340px, 40cqw, 400px);
+      border-right: 1px solid var(--docspot-border);
     }
   }
 }
 
 @container docspot-search (width >= 900px) {
-  .docspot-search-results {
+  .docspot-search[data-preview] .docspot-search-results {
     flex: 0 0 clamp(340px, 40cqw, 400px);
     border-right: 1px solid var(--docspot-border);
   }
@@ -828,6 +824,15 @@
 .docspot-result-excerpt {
   grid-row: 3;
   margin-top: 0.25rem;
+}
+
+/* Without a preview pane, the list has room for two lines of excerpt. */
+.docspot-search:not([data-preview]) .docspot-result-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
 }
 
 .docspot-result-excerpt .docspot-mark {
@@ -1045,43 +1050,12 @@
   padding: 3rem 1.25rem 2rem;
 }
 
-.docspot-ask-card {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.625rem 0.625rem 0.625rem 1rem;
-  border: 1px solid var(--docspot-border-strong);
-  border-radius: 1rem;
-  background: var(--docspot-surface-elevated);
-  box-shadow: var(--docspot-shadow-raised);
-  text-align: left;
-  cursor: pointer;
-}
-
-.docspot-ask-card:hover {
-  border-color: var(--docspot-muted);
-}
-
-.docspot-ask-card-text {
-  flex: 1;
-  min-width: 0;
-  align-self: center;
-  padding-block: 0.25rem;
-  font-size: var(--docspot-text-md);
-  line-height: 1.5rem;
+.docspot-ask-preview-text {
+  margin: 0 0 0.75rem;
+  font-size: var(--docspot-text-xl);
+  font-weight: 500;
+  line-height: 1.75rem;
   overflow-wrap: anywhere;
-}
-
-.docspot-send-icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  background: var(--docspot-primary);
-  color: var(--docspot-primary-foreground);
 }
 
 /* ── Suggestions ─────────────────────────────────────────────────────── */
