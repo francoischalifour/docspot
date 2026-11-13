@@ -76,7 +76,7 @@ it('hands the query to chat with Tab, with the page being read attached', async 
   await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
   const first = page.getByRole('option').first();
   await expect.element(first).toHaveTextContent(/how do I join tables/);
-  await expect.element(first).toHaveTextContent(/Continue conversation/);
+  await expect.element(first).toHaveTextContent(/Continue chat/);
 });
 
 it('leads with Ask AI only when the search response prioritizes chat', async () => {
@@ -227,7 +227,7 @@ it('composes surfaces and controls them with useDocspot', async () => {
 
   await page.getByRole('button', { name: 'Fresh' }).click();
   await expect
-    .element(panel().getByRole('heading', { name: 'Ask the docs' }))
+    .element(panel().getByRole('heading', { name: 'Ask AI about these docs' }))
     .toBeVisible();
 });
 

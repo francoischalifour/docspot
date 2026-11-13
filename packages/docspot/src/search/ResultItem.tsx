@@ -11,7 +11,7 @@ import {
   SectionIcon,
 } from '../ui/icons';
 import { isExternalUrl } from '../core/platform';
-import { type SearchItem, getBreadcrumbText, getItemUrl, plain } from './model';
+import { type SearchItem, getItemUrl, plain } from './model';
 
 export function Highlight({ value }: { value: HighlightedText }) {
   return value.map((segment, index) =>
@@ -60,6 +60,10 @@ export function ResultItem({
     itemProps['aria-selected'] === 'true';
 
   const url = getItemUrl(item);
+  // The group heading already names the leading breadcrumb parts.
+  const breadcrumb = item.kind === 'page' ? (item.result.breadcrumb ?? []) : [];
+  let skipped = 0;
+  while (breadcrumb[skipped] === item.sourceLabel) skipped++;
   const isExternal = item.kind === 'handoff' || (url && isExternalUrl(url));
 
   let icon;
@@ -88,15 +92,15 @@ export function ResultItem({
         )}
       </div>
       {item.kind === 'page' ? (
-        getBreadcrumbText(item.result) && (
+        skipped < breadcrumb.length && (
           <p className="docspot-result-path">
             <BreadcrumbHighlight
-              parts={item.result.breadcrumb ?? []}
-              highlights={item.result.highlights?.breadcrumb}
+              parts={breadcrumb.slice(skipped)}
+              highlights={item.result.highlights?.breadcrumb?.slice(skipped)}
             />
           </p>
         )
-      ) : (
+      ) : item.kind === 'ask' && item.prompt ? null : (
         <p className="docspot-result-path" data-ask="">
           {item.query
             ? messages.quotedQuery(item.query)
