@@ -789,6 +789,20 @@
   overflow-wrap: anywhere;
 }
 
+.docspot-result-title[data-command] {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* A command's shortcut, at the end of its title's line. */
+.docspot-result-shortcut {
+  display: flex;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-weight: 400;
+}
+
 .docspot-result-path,
 .docspot-result-excerpt {
   grid-column: 2 / -1;

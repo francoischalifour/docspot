@@ -3,6 +3,7 @@ import type { HTMLAttributes, MouseEvent } from 'react';
 import { useDocspotInternal } from '../core/Root';
 import type { HighlightedText } from '../types';
 import {
+  CommandIcon,
   EnterIcon,
   ExternalIcon,
   HistoryIcon,
@@ -11,6 +12,7 @@ import {
   SectionIcon,
 } from '../ui/icons';
 import { isExternalUrl } from '../core/platform';
+import { Kbd } from '../ui/primitives';
 import { type SearchItem, getItemUrl, plain } from './model';
 
 export function Highlight({ value }: { value: HighlightedText }) {
@@ -41,16 +43,44 @@ function BreadcrumbHighlight({
   ));
 }
 
+/** Key names as `aria-keyshortcuts` writes them, drawn as on the keyboard. */
+const shortcutKeys: Record<string, string> = {
+  meta: '⌘',
+  control: 'Ctrl',
+  alt: '⌥',
+  shift: 'shift',
+  enter: 'enter',
+  escape: 'esc',
+  arrowup: 'up',
+  arrowdown: 'down',
+};
+
+/** A command's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
+function Shortcut({ shortcut }: { shortcut: string }) {
+  const { config } = useDocspotInternal('Docspot.SearchDialog');
+  const Slot = config.slots.shortcut;
+  if (Slot) return <Slot shortcut={shortcut} />;
+  return (
+    <Kbd
+      variant="ghost"
+      keys={shortcut
+        .split('+')
+        .map(key => shortcutKeys[key.toLowerCase()] ?? key.toUpperCase())}
+    />
+  );
+}
+
 export function ResultItem({
   item,
   itemProps,
   onNavigate,
-  onAsk,
+  onSelect,
 }: {
   item: SearchItem;
   itemProps: HTMLAttributes<HTMLElement>;
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
-  onAsk: () => void;
+  /** Chooses an item that opens no URL: asking AI, or a command. */
+  onSelect: () => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages.search;
@@ -68,6 +98,7 @@ export function ResultItem({
 
   let icon;
   if (item.kind === 'ask') icon = <QuestionIcon />;
+  else if (item.kind === 'command') icon = item.command.icon ?? <CommandIcon />;
   else if (item.kind === 'handoff')
     icon = item.handoff.icon ?? <QuestionIcon />;
   else if (ResultIcon)
@@ -80,8 +111,22 @@ export function ResultItem({
     <>
       {/* Icons sit on the title's first line; lines below span the full width. */}
       <span className="docspot-result-icon">{icon}</span>
-      <div className="docspot-result-title">
-        {item.kind === 'page' ? (
+      <div
+        className="docspot-result-title"
+        data-command={item.kind === 'command' || undefined}
+      >
+        {item.kind === 'command' ? (
+          <>
+            <span>
+              <Highlight value={item.title} />
+            </span>
+            {item.command.shortcut && (
+              <span className="docspot-result-shortcut">
+                <Shortcut shortcut={item.command.shortcut} />
+              </span>
+            )}
+          </>
+        ) : item.kind === 'page' ? (
           <Highlight
             value={item.result.highlights?.title ?? plain(item.result.title)}
           />
@@ -100,7 +145,8 @@ export function ResultItem({
             />
           </p>
         )
-      ) : item.kind === 'ask' && item.prompt ? null : (
+      ) : item.kind === 'command' ? null : item.kind === 'ask' &&
+        item.prompt ? null : (
         <p className="docspot-result-path" data-ask="">
           {item.query
             ? messages.quotedQuery(item.query)
@@ -151,7 +197,7 @@ export function ResultItem({
           {content}
         </a>
       ) : (
-        <div {...itemProps} className="docspot-result" onClick={onAsk}>
+        <div {...itemProps} className="docspot-result" onClick={onSelect}>
           {content}
         </div>
       )}

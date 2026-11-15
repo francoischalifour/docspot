@@ -35,7 +35,10 @@ import {
   type SearchItem,
   getItemUrl,
   getResultId,
+  groupCommands,
   groupResults,
+  highlightTerms,
+  matchCommands,
   normalizeResponse,
   toStoredPage,
 } from './model';
@@ -163,7 +166,25 @@ export function SearchDialog() {
       latest.current.selectItem(item);
     const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
       getItemUrl(item);
+    // Things to do come first, apart from the pages: few, and named by what is typed.
+    const commandSources: AutocompleteSource<SearchItem>[] = groupCommands(
+      matchCommands(config.commands, trimmed),
+      messages.search.commands
+    ).map((group, index) => ({
+      sourceId: `commands-${index}`,
+      getItems: () =>
+        group.commands.map((command): SearchItem => ({
+          id: `command:${command.id}`,
+          kind: 'command',
+          command,
+          title: highlightTerms(command.title, trimmed.split(/\s+/)),
+          query: trimmed,
+          sourceLabel: group.label,
+        })),
+      onSelect: select,
+    }));
     const resultSources: AutocompleteSource<SearchItem>[] = [
+      ...commandSources,
       ...(recentPages.length
         ? [
             {
@@ -274,11 +295,13 @@ export function SearchDialog() {
   const activeItem =
     state.activeItemId === null ? undefined : items[state.activeItemId];
   const currentItems = items.filter(item => item.query === query);
-  const pageItems = currentItems.filter(item => item.kind === 'page');
+  const isListed = (item: SearchItem) =>
+    item.kind === 'page' || item.kind === 'command';
+  const pageItems = currentItems.filter(isListed);
   const isLoading = state.status === 'loading' || state.status === 'stalled';
   // While loading, the previous results stay until the new ones arrive.
   const hasVisiblePages = isLoading
-    ? items.some(item => item.kind === 'page')
+    ? items.some(isListed)
     : pageItems.length > 0;
   const hasError = errorQuery === query;
   const canNavigate = activeItem?.query === query;
@@ -348,6 +371,15 @@ export function SearchDialog() {
         result: item.result,
         position: items.indexOf(selected),
       });
+    } else if (item.kind === 'command') {
+      config.emit({
+        type: 'search.command',
+        query: item.query,
+        command: item.command.id,
+      });
+      // Closed first, so what the command opens, such as a dialog, takes the focus.
+      close();
+      item.command.run();
     } else if (item.kind === 'handoff')
       config.emit({
         type: 'search.handoff',
@@ -715,8 +747,8 @@ export function SearchDialog() {
                             item,
                             source: collection.source,
                           })}
-                          // Asking does not wait for pending results.
-                          onAsk={() => selectItem(item)}
+                          // Asking and commands do not wait for pending results.
+                          onSelect={() => selectItem(item)}
                           onNavigate={(url, event) => {
                             if (
                               event.button !== 0 ||
@@ -746,6 +778,7 @@ export function SearchDialog() {
               onNotify={announce}
               onStartChat={openChat}
               onHandoff={selectItem}
+              onCommand={selectItem}
             />
           )}
         </div>

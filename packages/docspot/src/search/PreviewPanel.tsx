@@ -14,7 +14,7 @@ import { ExternalIcon, PageIcon } from '../ui/icons';
 import { cx } from '../ui/primitives';
 import { Welcome, getPrompts } from '../ui/Suggestions';
 import { useScrollEdges } from '../ui/useScrollEdges';
-import type { AskItem, HandoffItem, SearchItem } from './model';
+import type { AskItem, CommandItem, HandoffItem, SearchItem } from './model';
 
 export function PreviewPanel({
   activeItem,
@@ -25,6 +25,7 @@ export function PreviewPanel({
   onNotify,
   onStartChat,
   onHandoff,
+  onCommand,
 }: {
   activeItem: SearchItem | undefined;
   query: string;
@@ -36,6 +37,8 @@ export function PreviewPanel({
   onStartChat: (request?: ChatRequest) => void;
   /** Records a handoff opened from its preview. */
   onHandoff: (item: HandoffItem) => void;
+  /** Runs a command from its preview. */
+  onCommand: (item: CommandItem) => void;
 }) {
   const deferredItem = useDeferredValue(activeItem);
   const isStale = Boolean(
@@ -61,6 +64,8 @@ export function PreviewPanel({
             />
           ) : deferredItem?.kind === 'handoff' ? (
             <HandoffPreview item={deferredItem} onOpen={onHandoff} />
+          ) : deferredItem?.kind === 'command' ? (
+            <CommandPreview item={deferredItem} onRun={onCommand} />
           ) : deferredItem ? (
             <AskPreview item={deferredItem} onStartChat={onStartChat} />
           ) : (
@@ -272,6 +277,39 @@ function HandoffPreview({
           {messages.openLink}
           <ExternalIcon size={12} />
         </a>
+      </div>
+    </section>
+  );
+}
+
+/** Names a command and says what it does, with a button that runs it. */
+function CommandPreview({
+  item,
+  onRun,
+}: {
+  item: CommandItem;
+  onRun: (item: CommandItem) => void;
+}) {
+  const { config } = useDocspotInternal('Docspot.SearchDialog');
+  const messages = config.messages.search;
+  const { command } = item;
+  return (
+    <section aria-label={messages.preview} className="docspot-preview">
+      <div className="docspot-preview-scroll">
+        <p className="docspot-preview-label">{item.sourceLabel}</p>
+        <h2 className="docspot-preview-title">{command.title}</h2>
+        {command.description && (
+          <p className="docspot-preview-text">{command.description}</p>
+        )}
+      </div>
+      <div className="docspot-preview-footer">
+        <button
+          type="button"
+          className="docspot-button docspot-button-ghost"
+          onClick={() => onRun(item)}
+        >
+          {messages.run}
+        </button>
       </div>
     </section>
   );

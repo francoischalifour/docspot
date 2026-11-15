@@ -155,3 +155,10 @@ export const EnterIcon = (props: IconProps) => (
     <path d="M19 6v5a3 3 0 0 1-3 3H6M10 10l-4 4 4 4" />
   </Icon>
 );
+
+/** A command: something to do rather than a page to open. */
+export const CommandIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m13 3-7.5 10.5H12L11 21l7.5-10.5H12Z" />
+  </Icon>
+);
