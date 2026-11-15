@@ -50,6 +50,8 @@ export const defaultMessages = {
     openLink: 'Open in new tab',
     linkCopied: (title: string): string => `Link to “${title}” copied`,
     handoffs: 'Open in chat',
+    commands: 'Actions',
+    run: 'Run',
     handoffDescription: 'Opens a new tab with your question.',
     askPreview: 'Ask AI',
     enterToAsk: 'Enter to ask',

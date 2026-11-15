@@ -13,6 +13,7 @@ import type { ChatRuntime, ChatSession } from '../chat/contract';
 import { getChatInternals } from '../chat/contract';
 import { type DocspotMessages, resolveMessages } from '../messages';
 import type {
+  DocspotCommand,
   DocspotEvent,
   DocspotHandoff,
   DocspotNavigate,
@@ -76,6 +77,7 @@ export type DocspotConfig = {
   prompts: string[];
   defaultResults: DocspotSearchResult[];
   handoffs: DocspotHandoff[];
+  commands: DocspotCommand[];
   navigate: DocspotNavigate;
   /** Resolves a URL against the canonical origin. */
   toSiteUrl: (url: string) => string;
@@ -166,6 +168,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     loadPage,
     defaultResults,
     handoffs,
+    commands,
     navigate,
     siteUrl,
     history = false,
@@ -207,6 +210,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     prompts: context?.prompts ?? [],
     defaultResults: defaultResults ?? [],
     handoffs: handoffs ?? [],
+    commands: commands ?? [],
     navigate: navigate ?? defaultNavigate,
     toSiteUrl: url => new URL(url, siteUrl ?? window.location.href).href,
     toInternalUrl(url) {

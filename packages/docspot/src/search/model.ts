@@ -1,5 +1,6 @@
 import type { StoredConversation, StoredPage } from '../core/storage';
 import type {
+  DocspotCommand,
   DocspotHandoff,
   DocspotSearchResponse,
   DocspotSearchResult,
@@ -21,11 +22,13 @@ export type SearchItem = {
       prompt?: string;
     }
   | { kind: 'handoff'; handoff: DocspotHandoff; url: string }
+  | { kind: 'command'; command: DocspotCommand; title: HighlightedText }
 );
 
 export type PageItem = Extract<SearchItem, { kind: 'page' }>;
 export type AskItem = Extract<SearchItem, { kind: 'ask' }>;
 export type HandoffItem = Extract<SearchItem, { kind: 'handoff' }>;
+export type CommandItem = Extract<SearchItem, { kind: 'command' }>;
 
 /** The URL an item opens, if it opens one. */
 export function getItemUrl(item: SearchItem) {
@@ -59,6 +62,45 @@ export function groupResults(
     groups.set(label, [...(groups.get(label) ?? []), result]);
   }
   return [...groups].map(([label, items]) => ({ label, results: items }));
+}
+
+/** Lowercase, without accents, so "Theme" finds "Thème" and the other way around. */
+function fold(text: string) {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+const words = (text: string) =>
+  fold(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+/**
+ * The commands every word of the query starts a word of, in their title or
+ * keywords, in the order given; none for an empty query.
+ */
+export function matchCommands(
+  commands: DocspotCommand[],
+  query: string
+): DocspotCommand[] {
+  const terms = words(query);
+  if (!terms.length) return [];
+  return commands.filter(command => {
+    const known = [command.title, ...(command.keywords ?? [])].flatMap(words);
+    return terms.every(term => known.some(word => word.startsWith(term)));
+  });
+}
+
+/** Groups commands in first-appearance order. */
+export function groupCommands(
+  commands: DocspotCommand[],
+  fallbackLabel: string
+): Array<{ label: string; commands: DocspotCommand[] }> {
+  const groups = new Map<string, DocspotCommand[]>();
+  for (const command of commands) {
+    const label = command.group ?? fallbackLabel;
+    groups.set(label, [...(groups.get(label) ?? []), command]);
+  }
+  return [...groups].map(([label, items]) => ({ label, commands: items }));
 }
 
 export function toStoredPage(result: DocspotSearchResult): StoredPage {

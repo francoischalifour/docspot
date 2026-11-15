@@ -32,6 +32,31 @@ export type DocspotSearchResult = {
   data?: unknown;
 };
 
+/**
+ * Something to do rather than a page to open, such as switching the theme.
+ * Commands that match the query are listed in their own group, before the
+ * results; choosing one closes search and runs it. They are not pages, so
+ * they stay out of recent pages and have no link to copy or open in a tab.
+ */
+export type DocspotCommand = {
+  /** Unique among commands. */
+  id: string;
+  title: string;
+  /** Other words that find it, such as synonyms or its name in another language. */
+  keywords?: string[];
+  /** Commands sharing a group are listed together. Defaults to `messages.search.commands`. */
+  group?: string;
+  /** What it does, in the preview. */
+  description?: string;
+  icon?: ReactNode;
+  /**
+   * The keys that run it outside search, as `aria-keyshortcuts` writes them,
+   * such as `Meta+S` or `Shift+Meta+Z`. Shown beside its title.
+   */
+  shortcut?: string;
+  run: () => void;
+};
+
 export type DocspotSearchResponse =
   | DocspotSearchResult[]
   | {
@@ -120,6 +145,11 @@ export type DocspotPageActionsProps = {
   notify: (message: string) => void;
 };
 
+export type DocspotShortcutProps = {
+  /** As `aria-keyshortcuts` writes it, such as `Meta+S`. */
+  shortcut: string;
+};
+
 export type DocspotResultIconProps = {
   result: DocspotSearchResult;
   recent: boolean;
@@ -138,6 +168,8 @@ export type DocspotSlots = {
   pageActions?: ComponentType<DocspotPageActionsProps>;
   /** Replaces the default page, section, and recent icons. */
   resultIcon?: ComponentType<DocspotResultIconProps>;
+  /** Replaces how a command's shortcut is drawn. */
+  shortcut?: ComponentType<DocspotShortcutProps>;
 };
 
 export type DocspotQuestionSource =
@@ -159,6 +191,7 @@ export type DocspotEvent =
     }
   | { type: 'search.error'; query: string; error: unknown }
   | { type: 'search.handoff'; query: string; handoff: string; url: string }
+  | { type: 'search.command'; query: string; command: string }
   | { type: 'history.clear' }
   | { type: 'chat.open' }
   | { type: 'chat.close' }
@@ -214,6 +247,8 @@ type DocspotSharedProps = {
   defaultResults?: DocspotSearchResult[];
   /** Places to send a query besides these docs, such as `docspot/handoffs`. */
   handoffs?: DocspotHandoff[];
+  /** Things to do, found by typing, such as switching the theme. Needs `search`. */
+  commands?: DocspotCommand[];
   /** Defaults to `window.location.assign`. */
   navigate?: DocspotNavigate;
   /**

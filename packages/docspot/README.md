@@ -168,6 +168,7 @@ Triggers accept button props. Their `onClick` runs first, and calling `event.pre
 | `context`        | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL           |
 | `loadPage`       | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation |
 | `defaultResults` | Results shown before typing. Recently visited pages are left out                                                                     |
+| `commands`       | Things to do, found by typing, such as switching the theme. See [Commands](#commands)                                                |
 | `handoffs`       | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                    |
 | `navigate`       | `(url, { event }) => void`. Defaults to `window.location.assign`                                                                     |
 | `siteUrl`        | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
@@ -208,6 +209,40 @@ type HighlightedText = Array<{ text: string; highlighted: boolean }>;
 Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens a result that belongs to an older query. Search functions can return results synchronously.
 
 Results on other sites open in a new tab and are not added to recent pages.
+
+### Commands
+
+Commands are things to do rather than pages to open, such as switching the theme or saving a file. The ones whose title or keywords start with every word typed are listed in their own group, before the results. Choosing one closes search and runs it. Commands stay out of recent pages, and have no link to copy or open in a new tab.
+
+```tsx
+<Docspot
+  search={search}
+  commands={[
+    {
+      id: 'theme-dark',
+      title: 'Dark theme',
+      keywords: ['appearance', 'night'],
+      shortcut: 'Shift+Meta+L',
+      run: () => setTheme('dark'),
+    },
+  ]}
+/>
+```
+
+```ts
+type DocspotCommand = {
+  id: string;
+  title: string;
+  keywords?: string[]; // Other words that find it, such as another language's
+  group?: string; // Defaults to "Actions"
+  description?: string; // Shown in the preview
+  icon?: ReactNode;
+  shortcut?: string; // As aria-keyshortcuts writes it, such as "Meta+S"
+  run: () => void;
+};
+```
+
+Matching ignores case and accents. Nothing typed lists no commands, so `defaultResults` stay as they are.
 
 ### Handoffs
 
@@ -314,6 +349,7 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 | `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                               |
 | `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                               |
 | `resultIcon`  | `{ result, recent }`. Replaces the page, section, and recent icons                                                                                                                                                                                                                             |
+| `shortcut`    | `{ shortcut }`. Draws a command's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                             |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
 
@@ -433,7 +469,7 @@ syncUrl={{
 
 ## Events
 
-`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select`, `search.error`, `search.handoff`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
+`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select`, `search.error`, `search.handoff`, `search.command`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
 
 ## Loading and server rendering
 
