@@ -475,7 +475,15 @@ export function SearchDialog() {
   }
 
   const BrandingSlot = config.slots.branding;
-  // Without a preview slot, results take the whole dialog.
+  const emptyHint = isLoading
+    ? messages.loadingHint
+    : hasError
+      ? messages.errorHint
+      : query
+        ? canChat
+          ? messages.noResultsHintWithAsk
+          : messages.noResultsHint
+        : undefined;
   const hasPreview = Boolean(config.slots.preview);
 
   return (
@@ -646,7 +654,9 @@ export function SearchDialog() {
             >
               {!hasVisiblePages && (
                 <div className="docspot-search-empty">
-                  <SearchIcon size={20} className="docspot-subtle" />
+                  {!isLoading && (
+                    <SearchIcon size={20} className="docspot-subtle" />
+                  )}
                   <p className="docspot-search-empty-title">
                     {isLoading ? (
                       <Shimmer>{messages.loading}</Shimmer>
@@ -658,18 +668,10 @@ export function SearchDialog() {
                       messages.emptyTitle
                     )}
                   </p>
-                  {(hasError || isLoading || query) && (
-                    <p className="docspot-search-empty-hint">
-                      {hasError
-                        ? messages.errorHint
-                        : isLoading
-                          ? messages.loadingHint
-                          : canChat
-                            ? messages.noResultsHintWithAsk
-                            : messages.noResultsHint}
-                    </p>
+                  {emptyHint && (
+                    <p className="docspot-search-empty-hint">{emptyHint}</p>
                   )}
-                  {hasError && (
+                  {!isLoading && hasError && (
                     <button
                       type="button"
                       className="docspot-button"

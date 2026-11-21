@@ -43,6 +43,36 @@ it('groups highlighted results, previews the active one, and opens it with Enter
   await expect.element(searchDialog()).not.toBeInTheDocument();
 });
 
+it('keeps the preview beside search on small screens while a query loads', async () => {
+  await page.viewport(390, 800);
+  try {
+    let finish!: (results: DocspotResult[]) => void;
+    const pending = new Promise<DocspotResult[]>(resolve => {
+      finish = resolve;
+    });
+    await render(
+      <Docspot
+        search={() => pending}
+        slots={{ preview: ({ result }) => <p>{result.title} preview</p> }}
+      />
+    );
+    await openSearch();
+    await userEvent.keyboard('http');
+    const searching = page
+      .getByRole('paragraph')
+      .filter({ hasText: /^Searching$/ });
+    const preview = page.getByRole('status', { name: 'Loading preview' });
+    await expect.element(preview).toBeVisible();
+    expect(
+      searching.element().getBoundingClientRect().right
+    ).toBeLessThanOrEqual(preview.element().getBoundingClientRect().left);
+    finish(results);
+    await expect.element(page.getByText('Example preview')).toBeVisible();
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
+
 it('shows the Enter hint only on the selected result, beside its title', async () => {
   await render(<Docspot search={() => results} />);
   await openSearch();
@@ -140,7 +170,9 @@ it('never reports no results while a request is pending', async () => {
 
   // Nothing to keep yet: the list says it is searching.
   await userEvent.keyboard('deploy');
-  await expect.element(page.getByText('Searching documentation')).toBeVisible();
+  await expect
+    .element(page.getByRole('paragraph').filter({ hasText: /^Searching$/ }))
+    .toBeVisible();
   await expect.poll(() => settled).toContain('deploy');
   await expect
     .element(page.getByRole('option', { name: /HTTP API/ }))
