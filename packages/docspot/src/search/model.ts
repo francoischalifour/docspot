@@ -1,12 +1,11 @@
 import type { StoredConversation, StoredPage } from '@/core/storage';
 import type {
-  DocspotHandoff,
   DocspotItem,
-  DocspotLinkItem,
+  DocspotResult,
   DocspotSearchResponse,
   HighlightedText,
 } from '@/types';
-import { isLinkItem, recentItems } from '@/search/items';
+import { isResult, recentItems } from '@/search/items';
 
 export type SearchItem = {
   id: string;
@@ -15,11 +14,17 @@ export type SearchItem = {
   sourceLabel: string;
 } & (
   | {
+      kind: 'result';
+      result: DocspotResult;
+      /** The title as drawn, with the query's matches marked. */
+      title: HighlightedText;
+      recent: boolean;
+    }
+  | {
       kind: 'item';
       item: DocspotItem;
       /** The title as drawn, with the query's matches marked. */
       title: HighlightedText;
-      recent: boolean;
     }
   | {
       kind: 'ask';
@@ -28,66 +33,73 @@ export type SearchItem = {
       /** A suggested question, offered before anything is typed. */
       prompt?: string;
     }
-  | { kind: 'handoff'; handoff: DocspotHandoff; url: string }
 );
 
-export type ListItem = Extract<SearchItem, { kind: 'item' }>;
-export type AskItem = Extract<SearchItem, { kind: 'ask' }>;
-export type HandoffItem = Extract<SearchItem, { kind: 'handoff' }>;
+export type ItemEntry = Extract<SearchItem, { kind: 'item' }>;
+export type AskEntry = Extract<SearchItem, { kind: 'ask' }>;
 
-/** The URL an item opens, if it opens one. */
-export function getItemUrl(item: SearchItem) {
-  if (item.kind === 'item')
-    return isLinkItem(item.item) ? item.item.action : undefined;
-  if (item.kind === 'handoff') return item.url;
+/** The URL an entry opens, if it opens one. */
+export function getEntryUrl(entry: SearchItem) {
+  if (entry.kind === 'result') return entry.result.url;
+  if (entry.kind === 'item' && typeof entry.item.action === 'string')
+    return entry.item.action;
   return undefined;
 }
 
-/** A group of items, or the place of the reader's recent pages. */
+/** A group of results and items, or the place of the reader's recent pages. */
 export type ItemSection =
-  | { kind: 'group'; label: string; items: DocspotItem[] }
+  | {
+      kind: 'group';
+      label: string;
+      entries: Array<DocspotResult | DocspotItem>;
+    }
   | { kind: 'recent' };
 
 export function normalizeResponse(response: DocspotSearchResponse) {
   return Array.isArray(response)
-    ? { items: response, prioritizeChat: false }
+    ? { results: response, prioritizeChat: false }
     : {
-        items: response.items,
+        results: response.results,
         prioritizeChat: response.prioritizeChat ?? false,
       };
 }
 
 /**
- * Groups items in first-appearance order, dropping repeated pages (by URL,
- * whatever their id) and repeated actions (by id). Items
- * without a group fall back by action: pages to `pageLabel`, the rest to
- * `actionLabel`. `recentItems` keeps its place among the groups.
+ * Groups results and items in first-appearance order, dropping repeated
+ * URLs and repeated item ids. Those without a group fall back to
+ * `labels.result` or `labels.item`. `recentItems` keeps its place among the
+ * groups.
  */
-export function groupItems(
-  items: ReadonlyArray<DocspotItem | typeof recentItems>,
-  labels: { page: string; action: string }
+export function groupEntries(
+  entries: ReadonlyArray<DocspotResult | DocspotItem | typeof recentItems>,
+  labels: { result: string; item: string }
 ): ItemSection[] {
   const sections: ItemSection[] = [];
-  const groups = new Map<string, DocspotItem[]>();
+  const groups = new Map<string, Array<DocspotResult | DocspotItem>>();
   const seen = new Set<string>();
-  for (const item of items) {
-    if (item === recentItems) {
+  for (const entry of entries) {
+    if (entry === recentItems) {
       if (!sections.some(section => section.kind === 'recent'))
         sections.push({ kind: 'recent' });
       continue;
     }
-    const key = isLinkItem(item) ? `url:${item.action}` : `id:${item.id}`;
+    // A URL is listed once, whether a result or an item opens it.
+    const key = isResult(entry)
+      ? `url:${entry.url}`
+      : typeof entry.action === 'string'
+        ? `url:${entry.action}`
+        : `id:${entry.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const label =
-      item.group ?? (isLinkItem(item) ? labels.page : labels.action);
+      entry.group ?? (isResult(entry) ? labels.result : labels.item);
     let group = groups.get(label);
     if (!group) {
       group = [];
       groups.set(label, group);
-      sections.push({ kind: 'group', label, items: group });
+      sections.push({ kind: 'group', label, entries: group });
     }
-    group.push(item);
+    group.push(entry);
   }
   return sections;
 }
@@ -115,19 +127,15 @@ export function matchItems(items: DocspotItem[], query: string): DocspotItem[] {
   });
 }
 
-export function toStoredPage(item: DocspotLinkItem): StoredPage {
-  return {
-    url: item.action,
-    title: item.title,
-    pageTitle: item.pageTitle,
-    breadcrumb: item.breadcrumb,
-    group: item.group,
-    type: item.type,
-  };
-}
-
-export function fromStoredPage({ url, ...page }: StoredPage): DocspotLinkItem {
-  return { ...page, action: url };
+export function toStoredPage({
+  url,
+  title,
+  pageTitle,
+  breadcrumb,
+  group,
+  type,
+}: DocspotResult): StoredPage {
+  return { url, title, pageTitle, breadcrumb, group, type };
 }
 
 export function plain(text: string | undefined): HighlightedText {

@@ -73,6 +73,7 @@
     --docspot-surface-elevated: #1c1c1f;
     --docspot-accent: #232327;
     --docspot-accent-active: #2e2e33;
+    --docspot-selected: #232327;
     --docspot-primary: #ededf0;
     --docspot-primary-foreground: #111113;
     --docspot-overlay: rgb(0 0 0 / 0.6);
@@ -93,6 +94,7 @@
   --docspot-surface-elevated: #1c1c1f;
   --docspot-accent: #232327;
   --docspot-accent-active: #2e2e33;
+  --docspot-selected: #232327;
   --docspot-primary: #ededf0;
   --docspot-primary-foreground: #111113;
   --docspot-overlay: rgb(0 0 0 / 0.6);
@@ -613,7 +615,11 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  background: var(--docspot-results-background, var(--docspot-surface));
+  /* A touch lighter than the surface, so the list stays quiet. */
+  background: var(
+    --docspot-results-background,
+    color-mix(in oklab, var(--docspot-surface) 65%, var(--docspot-background))
+  );
 }
 
 .docspot-search-list {
@@ -745,10 +751,11 @@
   cursor: pointer;
 }
 
+/* The selected result rises off the list as a card. */
 .docspot-result[aria-selected='true'] {
-  border-color: var(--docspot-selected-border, transparent);
-  background: var(--docspot-selected, var(--docspot-accent));
-  box-shadow: var(--docspot-selected-shadow, none);
+  border-color: var(--docspot-selected-border, var(--docspot-border));
+  background: var(--docspot-selected, var(--docspot-surface-elevated));
+  box-shadow: var(--docspot-selected-shadow, 0 1px 2px rgb(0 0 0 / 0.05));
 }
 
 .docspot-result-icon,
@@ -761,8 +768,16 @@
   color: var(--docspot-muted);
 }
 
+/* Icons carry the row: full size and full color, given or default. */
 .docspot-result-icon {
   grid-column: 1;
+  color: var(--docspot-foreground);
+}
+
+.docspot-result-icon > svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke-width: 1.5;
 }
 
 .docspot-result-hint {
@@ -774,8 +789,7 @@
   display: flex;
 }
 
-.docspot-result[aria-selected='true']
-  :is(.docspot-result-icon, .docspot-result-hint) {
+.docspot-result[aria-selected='true'] .docspot-result-hint {
   color: var(--docspot-foreground);
 }
 
@@ -791,15 +805,16 @@
 
 .docspot-result-title[data-shortcut] {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
-/* An item's shortcut, at the end of its title's line. */
+/* An item's shortcut, right after its title, on its first line. */
 .docspot-result-shortcut {
   display: flex;
   flex-shrink: 0;
-  margin-left: auto;
+  align-items: center;
+  height: 1.5rem;
   font-weight: 400;
 }
 
@@ -818,6 +833,7 @@
 
 .docspot-result-path {
   grid-row: 2;
+  margin-top: 0;
 }
 
 /* Secondary text darkens on the selected row to keep its contrast. */
@@ -836,7 +852,7 @@
 
 .docspot-result-excerpt {
   grid-row: 3;
-  margin-top: 0.25rem;
+  margin-top: 0.3125rem;
 }
 
 /* Without a preview pane, the list has room for two lines of excerpt. */

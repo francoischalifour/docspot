@@ -10,18 +10,12 @@ import {
 import { type ChatRequest, useDocspotInternal } from '@/core/Root';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { stripHash } from '@/core/url';
-import type { DocspotLinkItem } from '@/types';
-import { isLinkItem } from '@/search/items';
+import type { DocspotResult } from '@/types';
 import { ExternalIcon, PageIcon } from '@/ui/icons';
 import { cx } from '@/ui/primitives';
 import { Welcome, getPrompts } from '@/ui/Suggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
-import type {
-  AskItem,
-  HandoffItem,
-  ListItem,
-  SearchItem,
-} from '@/search/model';
+import type { AskEntry, ItemEntry, SearchItem } from '@/search/model';
 
 export function PreviewPanel({
   activeItem,
@@ -31,8 +25,7 @@ export function PreviewPanel({
   onLeave,
   onNotify,
   onStartChat,
-  onHandoff,
-  onRun,
+  onSelect,
 }: {
   activeItem: SearchItem | undefined;
   query: string;
@@ -42,10 +35,8 @@ export function PreviewPanel({
   onLeave: () => void;
   onNotify: (message: string) => void;
   onStartChat: (request?: ChatRequest) => void;
-  /** Records a handoff opened from its preview. */
-  onHandoff: (item: HandoffItem) => void;
-  /** Runs an action from its preview. */
-  onRun: (item: ListItem) => void;
+  /** Chooses an item from its preview: runs it, or records the link opened. */
+  onSelect: (item: ItemEntry) => void;
 }) {
   const deferredItem = useDeferredValue(activeItem);
   const isStale = Boolean(
@@ -61,18 +52,20 @@ export function PreviewPanel({
       {/* Like stalled results, dims only after 300ms so typing doesn't flicker. */}
       <div className={cx('docspot-preview-frame', isStale && 'docspot-stale')}>
         <Suspense fallback={<PreviewLoading />}>
-          {deferredItem?.kind === 'item' && isLinkItem(deferredItem.item) ? (
-            <PagePreview
-              item={deferredItem.item}
+          {deferredItem?.kind === 'result' ? (
+            <ResultPreview
+              result={deferredItem.result}
               query={deferredItem.query}
               onClose={onClose}
               onLeave={onLeave}
               onNotify={onNotify}
             />
-          ) : deferredItem?.kind === 'handoff' ? (
-            <HandoffPreview item={deferredItem} onOpen={onHandoff} />
           ) : deferredItem?.kind === 'item' ? (
-            <ActionPreview item={deferredItem} onRun={onRun} />
+            <ItemPreview
+              entry={deferredItem}
+              onLeave={onLeave}
+              onSelect={onSelect}
+            />
           ) : deferredItem ? (
             <AskPreview item={deferredItem} onStartChat={onStartChat} />
           ) : (
@@ -98,14 +91,14 @@ class PreviewErrorBoundary extends Component<
   }
 }
 
-function PagePreview({
-  item,
+function ResultPreview({
+  result,
   query,
   onClose,
   onLeave,
   onNotify,
 }: {
-  item: DocspotLinkItem;
+  result: DocspotResult;
   query: string;
   onClose: () => void;
   onLeave: () => void;
@@ -124,7 +117,7 @@ function PagePreview({
     let anchor = '';
     try {
       anchor = decodeURIComponent(
-        new URL(item.action, window.location.href).hash.slice(1)
+        new URL(result.url, window.location.href).hash.slice(1)
       );
     } catch {
       // An invalid anchor opens the preview at the top.
@@ -144,7 +137,7 @@ function PagePreview({
   });
   useLayoutEffect(() => {
     scrollToResult();
-  }, [item.action]);
+  }, [result.url]);
 
   function navigate(url: string) {
     onLeave();
@@ -154,8 +147,12 @@ function PagePreview({
   // Shown when the preview fails to render.
   const fallback = (
     <div>
-      <h2 className="docspot-preview-title">{item.pageTitle ?? item.title}</h2>
-      {item.excerpt && <p className="docspot-preview-text">{item.excerpt}</p>}
+      <h2 className="docspot-preview-title">
+        {result.pageTitle ?? result.title}
+      </h2>
+      {result.excerpt && (
+        <p className="docspot-preview-text">{result.excerpt}</p>
+      )}
     </div>
   );
 
@@ -177,7 +174,7 @@ function PagePreview({
           const href = link.getAttribute('href');
           if (!href) return;
           const target = href.startsWith('#')
-            ? `${stripHash(item.action)}${href}`
+            ? `${stripHash(result.url)}${href}`
             : href;
           const url = new URL(target, window.location.href);
           if (url.origin !== window.location.origin) return;
@@ -185,26 +182,26 @@ function PagePreview({
           navigate(target);
         }}
       >
-        {(item.breadcrumb?.length || item.group) && (
+        {(result.breadcrumb?.length || result.group) && (
           <p className="docspot-preview-label">
-            {item.breadcrumb?.length ? item.breadcrumb.join(' › ') : item.group}
+            {result.breadcrumb?.length
+              ? result.breadcrumb.join(' › ')
+              : result.group}
           </p>
         )}
-        {isExternalUrl(item.action) ? (
+        {isExternalUrl(result.url) ? (
           // The preview slot renders this site's pages; another site's link says what it is.
           <>
-            <h2 className="docspot-preview-title">{item.title}</h2>
-            {(item.description ?? item.excerpt) && (
-              <p className="docspot-preview-text">
-                {item.description ?? item.excerpt}
-              </p>
+            <h2 className="docspot-preview-title">{result.title}</h2>
+            {result.excerpt && (
+              <p className="docspot-preview-text">{result.excerpt}</p>
             )}
           </>
         ) : (
           Preview && (
-            <PreviewErrorBoundary key={item.action} fallback={fallback}>
+            <PreviewErrorBoundary key={result.url} fallback={fallback}>
               <Preview
-                item={item}
+                result={result}
                 query={query}
                 navigate={navigate}
                 notify={onNotify}
@@ -219,9 +216,9 @@ function PagePreview({
           canScrollDown && 'docspot-fade-above'
         )}
       >
-        {isExternalUrl(item.action) ? (
+        {isExternalUrl(result.url) ? (
           <a
-            href={item.action}
+            href={result.url}
             target="_blank"
             rel="noopener noreferrer"
             className="docspot-button docspot-button-ghost"
@@ -231,13 +228,13 @@ function PagePreview({
           </a>
         ) : (
           <a
-            href={item.action}
+            href={result.url}
             className="docspot-button docspot-button-ghost"
             onClick={event => {
               if (event.button !== 0 || hasModifierKey(event)) return;
               event.preventDefault();
               onLeave();
-              config.navigate(item.action, { event });
+              config.navigate(result.url, { event });
             }}
           >
             {messages.openPage}
@@ -245,7 +242,7 @@ function PagePreview({
         )}
         {PageActions && (
           <PageActions
-            item={item}
+            result={result}
             query={query}
             close={onClose}
             notify={onNotify}
@@ -256,73 +253,78 @@ function PagePreview({
   );
 }
 
-/** Says where a handoff goes and what it sends. */
-function HandoffPreview({
-  item,
-  onOpen,
+/**
+ * Names an item and says what it does, or shows its own preview, with a
+ * button that runs it or opens its link.
+ */
+function ItemPreview({
+  entry,
+  onLeave,
+  onSelect,
 }: {
-  item: HandoffItem;
-  onOpen: (item: HandoffItem) => void;
+  entry: ItemEntry;
+  onLeave: () => void;
+  onSelect: (item: ItemEntry) => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages.search;
-  const { handoff } = item;
-  return (
-    <section aria-label={messages.preview} className="docspot-preview">
-      <div className="docspot-preview-scroll">
-        <p className="docspot-preview-label">{messages.handoffs}</p>
-        <h2 className="docspot-preview-title">{handoff.title}</h2>
-        <p className="docspot-preview-text">
-          {messages.quotedQuery(item.query)}
-        </p>
-        <p className="docspot-preview-hint">
-          {handoff.description ?? messages.handoffDescription}
-        </p>
-      </div>
-      <div className="docspot-preview-footer">
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="docspot-button docspot-button-ghost"
-          onClick={() => onOpen(item)}
-        >
-          {messages.openLink}
-          <ExternalIcon size={12} />
-        </a>
-      </div>
-    </section>
+  const { item, query } = entry;
+  const { action, preview: Preview } = item;
+  const summary = (
+    <>
+      <h2 className="docspot-preview-title">{item.title}</h2>
+      {item.description && (
+        <p className="docspot-preview-text">{item.description}</p>
+      )}
+    </>
   );
-}
-
-/** Names an action and says what it does, with a button that runs it. */
-function ActionPreview({
-  item,
-  onRun,
-}: {
-  item: ListItem;
-  onRun: (item: ListItem) => void;
-}) {
-  const { config } = useDocspotInternal('Docspot.SearchDialog');
-  const messages = config.messages.search;
-  const { item: command } = item;
   return (
     <section aria-label={messages.preview} className="docspot-preview">
       <div className="docspot-preview-scroll">
-        <p className="docspot-preview-label">{item.sourceLabel}</p>
-        <h2 className="docspot-preview-title">{command.title}</h2>
-        {command.description && (
-          <p className="docspot-preview-text">{command.description}</p>
+        <p className="docspot-preview-label">{entry.sourceLabel}</p>
+        {Preview ? (
+          <PreviewErrorBoundary key={item.id} fallback={summary}>
+            <Preview item={item} query={query} />
+          </PreviewErrorBoundary>
+        ) : (
+          summary
         )}
       </div>
       <div className="docspot-preview-footer">
-        <button
-          type="button"
-          className="docspot-button docspot-button-ghost"
-          onClick={() => onRun(item)}
-        >
-          {messages.run}
-        </button>
+        {typeof action === 'function' ? (
+          <button
+            type="button"
+            className="docspot-button docspot-button-ghost"
+            onClick={() => onSelect(entry)}
+          >
+            {messages.run}
+          </button>
+        ) : isExternalUrl(action) ? (
+          <a
+            href={action}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="docspot-button docspot-button-ghost"
+            onClick={() => onSelect(entry)}
+          >
+            {messages.openLink}
+            <ExternalIcon size={12} />
+          </a>
+        ) : (
+          <a
+            href={action}
+            className="docspot-button docspot-button-ghost"
+            onClick={event => {
+              if (event.button !== 0 || hasModifierKey(event)) return;
+              event.preventDefault();
+              onSelect(entry);
+              onLeave();
+              config.navigate(action, { event });
+            }}
+          >
+            {messages.openPage}
+          </a>
+        )}
       </div>
     </section>
   );
@@ -336,7 +338,7 @@ function AskPreview({
   item,
   onStartChat,
 }: {
-  item: AskItem;
+  item: AskEntry;
   onStartChat: (request?: ChatRequest) => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');

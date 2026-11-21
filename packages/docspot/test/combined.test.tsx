@@ -88,7 +88,7 @@ it('offers one way to ask from search, previewed without a second input', async 
       search={() => results}
       chat={chat}
       context={{ page: currentPage }}
-      slots={{ preview: ({ item }) => <p>Preview of {item.title}</p> }}
+      slots={{ preview: ({ result }) => <p>Preview of {result.title}</p> }}
     />
   );
   // The default layout has no floating launcher beside the search trigger.
@@ -124,7 +124,7 @@ it('offers one way to ask from search, previewed without a second input', async 
 it('leads with Ask AI only when the search response prioritizes chat', async () => {
   const { chat } = createChatServer(() => ({ text: 'Answer.' }));
   const search: DocspotSearch = ({ query }) => ({
-    items: results,
+    results,
     prioritizeChat: query.endsWith('?'),
   });
   await render(<Docspot search={search} chat={chat} />);

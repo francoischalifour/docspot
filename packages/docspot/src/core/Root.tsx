@@ -22,6 +22,7 @@ import type {
   DocspotRootProps,
   DocspotSearch,
   DocspotItem,
+  DocspotResult,
   DocspotSlots,
   DocspotUrlAdapter,
 } from '@/types';
@@ -76,7 +77,7 @@ export type DocspotConfig = {
   canChat: boolean;
   currentPage: DocspotPage | undefined;
   prompts: string[];
-  defaultItems: Array<DocspotItem | typeof recentItems>;
+  defaultItems: Array<DocspotResult | DocspotItem | typeof recentItems>;
   handoffs: DocspotHandoff[];
   items: DocspotItem[];
   navigate: DocspotNavigate;
