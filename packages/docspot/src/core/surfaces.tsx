@@ -50,7 +50,9 @@ export function SearchTrigger({
 }: ButtonProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchTrigger');
   const buttonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => search.registerTrigger(buttonRef.current), [search]);
+  const { registerTrigger } = search;
+  // The button mounts with `search`; the registry itself never changes.
+  useEffect(() => registerTrigger(buttonRef.current), [config.canSearch]);
   if (!config.canSearch) return null;
   const label = config.canChat
     ? config.messages.trigger.searchAndAsk
@@ -374,7 +376,6 @@ function ChatPanelFrame({
             }}
             toInternalUrl={config.toInternalUrl}
             messages={messages}
-            onEvent={config.emit}
           />
         )}
       </aside>

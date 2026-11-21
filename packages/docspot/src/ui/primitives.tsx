@@ -134,7 +134,6 @@ export type MenuItem =
       danger?: boolean;
       /** Keeps the menu open after selecting. */
       keepOpen?: boolean;
-      'aria-label'?: string;
       onSelect: () => void;
       /** A secondary action shown at the end of the row. */
       secondary?: {
@@ -155,13 +154,11 @@ export type MenuItem =
 export function Menu({
   trigger,
   items,
-  align = 'start',
   className,
   onOpenChange,
 }: {
   trigger: (props: ComponentProps<'button'>) => ReactNode;
   items: MenuItem[];
-  align?: 'start' | 'end';
   className?: string;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -190,13 +187,7 @@ export function Menu({
         ? anchor.top - height - 4
         : below;
     menu.style.top = `${top}px`;
-    if (align === 'end') {
-      menu.style.left = '';
-      menu.style.right = `${window.innerWidth - anchor.right}px`;
-    } else {
-      menu.style.right = '';
-      menu.style.left = `${Math.max(4, anchor.left)}px`;
-    }
+    menu.style.left = `${Math.max(4, anchor.left)}px`;
   }
 
   function close({ restoreFocus = true } = {}) {
@@ -296,7 +287,6 @@ export function Menu({
                 role="menuitem"
                 tabIndex={-1}
                 aria-current={item.current || undefined}
-                aria-label={item['aria-label']}
                 data-danger={item.danger || undefined}
                 className="docspot-menu-item"
                 onClick={() => {

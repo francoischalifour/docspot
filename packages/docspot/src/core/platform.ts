@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useState, type MouseEvent } from 'react';
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 
 const IDLE_PRELOAD_DELAY_MS = 3_000;
 // A page that never idles, such as one running animations, still preloads.
@@ -24,7 +30,7 @@ export function hasModifierKey(event: MouseEvent | KeyboardEvent) {
 
 /** True for Cmd (Mac) or Ctrl (elsewhere) plus `key`, without Alt or Shift. */
 export function isCommandKey(
-  event: KeyboardEvent | React.KeyboardEvent,
+  event: KeyboardEvent | ReactKeyboardEvent,
   key: string
 ) {
   return (
@@ -67,14 +73,6 @@ export function isExternalUrl(url: string) {
   }
 }
 
-export function toAbsoluteUrl(url: string) {
-  try {
-    return new URL(url, window.location.href).href;
-  } catch {
-    return url;
-  }
-}
-
 /**
  * Runs `preload` once the page has settled and the browser is idle, so
  * optional code doesn't compete with the first render.
@@ -82,17 +80,21 @@ export function toAbsoluteUrl(url: string) {
 export function useIdlePreload(preload: (() => void) | undefined) {
   useEffect(() => {
     if (!preload) return;
-    let idleHandle: number | undefined;
+    let cancelIdle: (() => void) | undefined;
     const timeout = setTimeout(() => {
-      idleHandle =
-        typeof requestIdleCallback === 'function'
-          ? requestIdleCallback(preload, { timeout: IDLE_PRELOAD_TIMEOUT_MS })
-          : (setTimeout(preload, 0) as unknown as number);
+      if (typeof requestIdleCallback === 'function') {
+        const handle = requestIdleCallback(preload, {
+          timeout: IDLE_PRELOAD_TIMEOUT_MS,
+        });
+        cancelIdle = () => cancelIdleCallback(handle);
+      } else {
+        const handle = setTimeout(preload, 0);
+        cancelIdle = () => clearTimeout(handle);
+      }
     }, IDLE_PRELOAD_DELAY_MS);
     return () => {
       clearTimeout(timeout);
-      if (idleHandle !== undefined && typeof cancelIdleCallback === 'function')
-        cancelIdleCallback(idleHandle);
+      cancelIdle?.();
     };
   }, [preload]);
 }

@@ -11,7 +11,7 @@ import {
 import type { DocspotRequestContext } from 'docspot/chat';
 import type { Plugin } from 'vite';
 
-import { pages } from './src/pages';
+import { findPage, pages } from './src/pages';
 
 type Body = { messages: UIMessage[]; docspot?: DocspotRequestContext };
 
@@ -30,13 +30,15 @@ function getQuestion(body: Body) {
 /** Ranks pages by shared words, preferring the attached page. */
 function findRelevantPages(question: string, attachedUrl: string | undefined) {
   const words = new Set(question.toLowerCase().match(/[a-z]{3,}/g) ?? []);
+  // Docspot sends the attached page's absolute URL.
+  const attached = attachedUrl && findPage(attachedUrl);
   return pages
     .map(page => ({
       page,
       score:
         (page.markdown.toLowerCase().match(/[a-z]{3,}/g) ?? []).filter(word =>
           words.has(word)
-        ).length + (page.url === attachedUrl ? 2 : 0),
+        ).length + (page === attached ? 2 : 0),
     }))
     .filter(entry => entry.score > 0)
     .sort((a, b) => b.score - a.score)

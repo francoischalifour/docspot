@@ -57,7 +57,6 @@ export type ChatPanelProps = {
   /** The in-app path for a URL on this site, or null for other sites. */
   toInternalUrl: (url: string) => string | null;
   messages: DocspotMessages;
-  onEvent: (event: DocspotEvent) => void;
 };
 
 export type ChatRuntime = {

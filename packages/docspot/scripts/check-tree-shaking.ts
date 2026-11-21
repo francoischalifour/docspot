@@ -61,7 +61,7 @@ try {
       input,
       write: false,
       cwd: packageRoot,
-      // Peer dependencies stay external, as an app's own copies would be.
+      // Installed packages stay external, as an app's bundler resolves them.
       external: [
         /^react/,
         'ai',

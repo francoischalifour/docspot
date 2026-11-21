@@ -7,6 +7,7 @@ import {
 } from 'ai';
 
 import type { StoredConversation, StoredMessage } from '../core/storage';
+import { stripHash } from '../core/url';
 import type {
   DocspotEvent,
   DocspotLoadPage,
@@ -66,7 +67,7 @@ function withPageContent(
   const contents = new Map<string, Promise<DocspotPageContent | null>>();
   function load(page: DocspotPage, signal: AbortSignal | undefined) {
     if (!loadPage) return Promise.resolve(null);
-    const key = page.url.split('#')[0] ?? page.url;
+    const key = stripHash(page.url);
     let content = contents.get(key);
     if (!content) {
       content = loadPage(page, {

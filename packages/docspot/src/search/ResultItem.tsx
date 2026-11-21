@@ -148,7 +148,7 @@ export function ResultItem({
           {item.query
             ? messages.quotedQuery(item.query)
             : item.kind === 'ask' && item.conversation
-              ? messages.continueConversation
+              ? messages.continueChat
               : messages.askDescription}
         </p>
       )}

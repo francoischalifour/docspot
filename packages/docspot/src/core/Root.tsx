@@ -41,6 +41,7 @@ import {
 } from './storage';
 import {
   browserUrlAdapter,
+  isSamePage,
   readChatLink,
   readSearchQuery,
   removeChatLink,
@@ -141,14 +142,6 @@ export function useDocspotInternal(component: string) {
   if (!state)
     throw new Error(`Docspot: <${component}> must be inside <Docspot.Root>.`);
   return state;
-}
-
-function stripHash(url: string) {
-  return url.split('#')[0] ?? url;
-}
-
-function samePage(a: DocspotPage | undefined, b: DocspotPage | undefined) {
-  return Boolean(a && b && stripHash(a.url) === stripHash(b.url));
 }
 
 const defaultNavigate: DocspotNavigate = url => window.location.assign(url);
@@ -345,7 +338,7 @@ export function DocspotRoot(props: DocspotRootProps) {
   }
 
   function resolve(page: DocspotPage): DocspotPage {
-    if (samePage(page, currentPage)) return { ...currentPage, ...page };
+    if (isSamePage(page, currentPage)) return { ...currentPage, ...page };
     const known = resolvePage?.(page.url);
     return known ? { ...page, ...known } : page;
   }
@@ -353,13 +346,13 @@ export function DocspotRoot(props: DocspotRootProps) {
   /** A page named by a link; one the site does not know attaches nothing. */
   function resolveLinkPage(url: string): DocspotPage | null {
     if (!resolvePage) return { url };
-    if (samePage({ url }, currentPage)) return currentPage ?? null;
+    if (isSamePage({ url }, currentPage)) return currentPage ?? null;
     return resolvePage(url) ?? null;
   }
 
   function contextFor(page: DocspotPage | null): PageContext {
     if (!page) return { page: undefined };
-    return samePage(page, currentPage)
+    return isSamePage(page, currentPage)
       ? { follow: true }
       : { page: resolve(page) };
   }
