@@ -1,61 +1,30 @@
 // Verifies that each entry point loads only what it needs on import. Static
 // imports load eagerly; dynamic imports load on use, so they are allowed.
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const dist = join(import.meta.dir, '..', 'dist');
 
-const forbidden: Record<string, string[]> = {
-  // Search-only and chat-only consumers share the core.
-  'index.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react-markdown',
-    'remark-gfm',
-    '@algolia/autocomplete-core',
-    'minisearch',
-  ],
-  'chat.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react-markdown',
-    '@algolia/autocomplete-core',
-    'minisearch',
-  ],
-  'algolia.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react',
-    'react-markdown',
-    '@algolia/autocomplete-core',
-  ],
-  'algolia-chat.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react-markdown',
-    '@algolia/autocomplete-core',
-    'minisearch',
-  ],
-  'minisearch.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react',
-    'react-markdown',
-    '@algolia/autocomplete-core',
-    'minisearch',
-  ],
-  // Icons only: the core renders them.
-  'handoffs.js': [
-    'ai',
-    '@ai-sdk/react',
-    'react-markdown',
-    '@algolia/autocomplete-core',
-    'minisearch',
-  ],
+const optionalFeatures = [
+  'ai',
+  '@ai-sdk/react',
+  'react-markdown',
+  'remark-gfm',
+  '@algolia/autocomplete-core',
+  'minisearch',
+];
+const providerDependencies = [...optionalFeatures, 'react', 'react-dom'];
+
+const forbidden = {
+  'index.js': optionalFeatures,
+  'chat.js': optionalFeatures,
+  'algolia.js': providerDependencies,
+  'algolia-chat.js': providerDependencies,
+  'minisearch.js': providerDependencies,
+  'handoffs.js': optionalFeatures,
 };
 
-const staticImport =
-  /(?:^|;|\n)\s*(?:import|export)\s*(?:[\w*{}\s,$]+from\s*)?["']([^"']+)["']/g;
+const transpiler = new Bun.Transpiler({ loader: 'js' });
 
 function collect(
   file: string,
@@ -64,18 +33,19 @@ function collect(
 ) {
   if (seen.has(file)) return packages;
   seen.add(file);
-  const source = readFileSync(join(dist, file), 'utf8');
-  for (const [, specifier] of source.matchAll(staticImport)) {
-    if (specifier!.startsWith('./'))
-      collect(specifier!.slice(2), seen, packages);
-    else packages.add(specifier!);
+  const source = readFileSync(file, 'utf8');
+  for (const { kind, path } of transpiler.scanImports(source)) {
+    if (kind !== 'import-statement') continue;
+    if (path.startsWith('.'))
+      collect(resolve(dirname(file), path), seen, packages);
+    else packages.add(path);
   }
   return packages;
 }
 
 let failed = false;
 for (const [entry, packages] of Object.entries(forbidden)) {
-  const loaded = collect(entry);
+  const loaded = collect(join(dist, entry));
   const leaked = [...loaded].filter(name =>
     packages.some(
       forbiddenName =>

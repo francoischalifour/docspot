@@ -12,6 +12,7 @@ Documentation search and AI chat for React. See the [package README](packages/do
 ```sh
 bun install
 bun run build      # Builds the package
+bun run --cwd packages/docspot playwright install chromium
 bun run test       # Browser tests (Playwright Chromium)
 bun run check      # Formatting, lint, build, types, tests, and package checks
 bun run --cwd examples/chat-only dev

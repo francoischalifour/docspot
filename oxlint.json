@@ -23,5 +23,5 @@
       }
     }
   ],
-  "ignorePatterns": ["**/dist/**", "**/.tree-shaking/**"]
+  "ignorePatterns": ["**/dist/**"]
 }
