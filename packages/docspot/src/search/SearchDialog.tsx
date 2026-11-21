@@ -29,17 +29,18 @@ import { getPrompts } from '../ui/Suggestions';
 import { useScrollEdges } from '../ui/useScrollEdges';
 import { PreviewPanel } from './PreviewPanel';
 import { ResultItem } from './ResultItem';
-import type { DocspotSearchResult } from '../types';
+import type { DocspotItem, DocspotLinkItem } from '../types';
+import { getItemId, isLinkItem, recentItems } from './items';
 import {
-  type ResultGroup,
+  type ItemSection,
   type SearchItem,
+  fromStoredPage,
   getItemUrl,
-  getResultId,
-  groupCommands,
-  groupResults,
+  groupItems,
   highlightTerms,
-  matchCommands,
+  matchItems,
   normalizeResponse,
+  plain,
   toStoredPage,
 } from './model';
 
@@ -127,10 +128,16 @@ export function SearchDialog() {
     const recentPages = trimmed
       ? []
       : stores.recentPages.get().filter(page => !isExternalUrl(page.url));
-    let groups: ResultGroup[];
-    let results: DocspotSearchResult[] = [];
+    let sections: ItemSection[];
+    let results: DocspotItem[] = [];
     let prioritizeChat = false;
+    const labels = {
+      page: trimmed ? messages.search.documentation : messages.search.suggested,
+      action: messages.search.actions,
+    };
     if (trimmed) {
+      // Items found by name come first: few, and named by what is typed.
+      const matched = matchItems(config.items, trimmed);
       try {
         const response = normalizeResponse(
           await config.search!({
@@ -140,83 +147,88 @@ export function SearchDialog() {
         );
         // A search that ignores the signal may still resolve.
         if (controller.signal.aborted) return supersede(controller);
-        results = response.results;
-        groups = groupResults(results, messages.search.documentation);
+        results = response.items;
         prioritizeChat = response.prioritizeChat;
         setErrorQuery(current => (current === trimmed ? null : current));
         config.emit({
           type: 'search.results',
           query: trimmed,
-          count: response.results.length,
+          count: results.length,
         });
       } catch (error) {
         if (controller.signal.aborted) return supersede(controller);
         setErrorQuery(trimmed);
         config.emit({ type: 'search.error', query: trimmed, error });
-        groups = [];
       }
+      sections = groupItems([...matched, ...results], labels);
     } else {
       const recentUrls = new Set(recentPages.map(page => page.url));
-      groups = groupResults(
-        config.defaultResults.filter(result => !recentUrls.has(result.url)),
-        messages.search.suggested
+      const defaults = config.defaultItems.filter(
+        item =>
+          item === recentItems ||
+          !isLinkItem(item) ||
+          !recentUrls.has(item.action)
+      );
+      sections = groupItems(
+        defaults.includes(recentItems) ? defaults : [recentItems, ...defaults],
+        labels
       );
     }
     const select = ({ item }: { item: SearchItem }) =>
       latest.current.selectItem(item);
     const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
       getItemUrl(item);
-    // Things to do come first, apart from the pages: few, and named by what is typed.
-    const commandSources: AutocompleteSource<SearchItem>[] = groupCommands(
-      matchCommands(config.commands, trimmed),
-      messages.search.commands
-    ).map((group, index) => ({
-      sourceId: `commands-${index}`,
-      getItems: () =>
-        group.commands.map((command): SearchItem => ({
-          id: `command:${command.id}`,
-          kind: 'command',
-          command,
-          title: highlightTerms(command.title, trimmed.split(/\s+/)),
-          query: trimmed,
-          sourceLabel: group.label,
-        })),
-      onSelect: select,
-    }));
+    // Matches in local items are marked here; providers mark their own.
+    const terms = trimmed.split(/\s+/);
     const resultSources: AutocompleteSource<SearchItem>[] = [
-      ...commandSources,
-      ...(recentPages.length
-        ? [
+      ...sections.flatMap(
+        (section, index): AutocompleteSource<SearchItem>[] => {
+          if (section.kind === 'recent')
+            return recentPages.length
+              ? [
+                  {
+                    sourceId: 'recent',
+                    getItems: () =>
+                      recentPages.map((page): SearchItem => {
+                        const item = fromStoredPage(page);
+                        return {
+                          id: `recent:${page.url}`,
+                          kind: 'item',
+                          item,
+                          title: plain(item.title),
+                          recent: true,
+                          query: '',
+                          sourceLabel: messages.search.recent,
+                        };
+                      }),
+                    getItemUrl: getSourceItemUrl,
+                    onSelect: select,
+                  },
+                ]
+              : [];
+          return [
             {
-              sourceId: 'recent',
+              sourceId: `group-${index}`,
               getItems: () =>
-                recentPages.map((page): SearchItem => ({
-                  id: `recent:${page.url}`,
-                  kind: 'page',
-                  result: page,
-                  recent: true,
-                  query: '',
-                  sourceLabel: messages.search.recent,
+                section.items.map((item): SearchItem => ({
+                  id: getItemId(item),
+                  kind: 'item',
+                  item,
+                  title:
+                    item.highlights?.title ??
+                    (trimmed && !results.includes(item)
+                      ? highlightTerms(item.title, terms)
+                      : plain(item.title)),
+                  recent: false,
+                  query: trimmed,
+                  sourceLabel: section.label,
                 })),
               getItemUrl: getSourceItemUrl,
               onSelect: select,
             },
-          ]
-        : []),
-      ...groups.map((group, index) => ({
-        sourceId: `group-${index}`,
-        getItems: () =>
-          group.results.map((result): SearchItem => ({
-            id: getResultId(result),
-            kind: 'page',
-            result,
-            recent: false,
-            query: trimmed,
-            sourceLabel: group.label,
-          })),
-        getItemUrl: getSourceItemUrl,
-        onSelect: select,
-      })),
+          ];
+        }
+      ),
       ...(trimmed && config.handoffs.length
         ? [
             {
@@ -226,7 +238,7 @@ export function SearchDialog() {
                   id: `handoff:${handoff.id}`,
                   kind: 'handoff',
                   handoff,
-                  url: handoff.getUrl(trimmed, { results }),
+                  url: handoff.getUrl(trimmed, { items: results }),
                   query: trimmed,
                   sourceLabel: messages.search.handoffs,
                 })),
@@ -295,8 +307,7 @@ export function SearchDialog() {
   const activeItem =
     state.activeItemId === null ? undefined : items[state.activeItemId];
   const currentItems = items.filter(item => item.query === query);
-  const isListed = (item: SearchItem) =>
-    item.kind === 'page' || item.kind === 'command';
+  const isListed = (item: SearchItem) => item.kind === 'item';
   const pageItems = currentItems.filter(isListed);
   const isLoading = state.status === 'loading' || state.status === 'stalled';
   // While loading, the previous results stay until the new ones arrive.
@@ -359,27 +370,25 @@ export function SearchDialog() {
 
   function selectItem(selected: SearchItem) {
     const item = withLiveQuery(selected);
-    if (item.kind === 'page') {
-      // Recent pages are this site's pages, not handoffs elsewhere.
-      if (!isExternalUrl(item.result.url))
-        stores.recentPages.set(pages =>
-          addRecentPage(pages, toStoredPage(item.result))
-        );
+    if (item.kind === 'item') {
+      const { item: chosen } = item;
       config.emit({
         type: 'search.select',
         query: item.query,
-        result: item.result,
-        position: items.indexOf(selected),
+        item: chosen,
+        position: items.findIndex(entry => entry.id === selected.id),
       });
-    } else if (item.kind === 'command') {
-      config.emit({
-        type: 'search.command',
-        query: item.query,
-        command: item.command.id,
-      });
-      // Closed first, so what the command opens, such as a dialog, takes the focus.
+      if (isLinkItem(chosen)) {
+        // Recent pages are this site's pages, not links elsewhere.
+        if (!isExternalUrl(chosen.action))
+          stores.recentPages.set(pages =>
+            addRecentPage(pages, toStoredPage(chosen))
+          );
+        return;
+      }
+      // Closed first, so what the action opens, such as a dialog, takes the focus.
       close();
-      item.command.run();
+      chosen.action({ query: item.query });
     } else if (item.kind === 'handoff')
       config.emit({
         type: 'search.handoff',
@@ -433,10 +442,10 @@ export function SearchDialog() {
     statusTimeout.current = setTimeout(() => setStatus(null), 2000);
   }
 
-  async function copyLink(item: Extract<SearchItem, { kind: 'page' }>) {
+  async function copyLink(link: DocspotLinkItem) {
     try {
-      await navigator.clipboard.writeText(config.toSiteUrl(item.result.url));
-      announce(messages.linkCopied(item.result.title));
+      await navigator.clipboard.writeText(config.toSiteUrl(link.action));
+      announce(messages.linkCopied(link.title));
     } catch {
       // Clipboard access can be denied; the shortcut then does nothing.
     }
@@ -462,13 +471,11 @@ export function SearchDialog() {
       if (!event.repeat) askCurrentQuery();
       return;
     }
-    if (
-      !isCommandKey(event, 'c') ||
-      event.repeat ||
-      activeItem?.kind !== 'page' ||
-      !canNavigate
-    )
-      return;
+    const link =
+      canNavigate && activeItem.kind === 'item' && isLinkItem(activeItem.item)
+        ? activeItem.item
+        : undefined;
+    if (!isCommandKey(event, 'c') || event.repeat || !link) return;
     const target = event.target;
     if (
       target instanceof HTMLTextAreaElement ||
@@ -484,7 +491,7 @@ export function SearchDialog() {
     if (window.getSelection()?.toString()) return;
     event.preventDefault();
     event.stopPropagation();
-    void copyLink(activeItem);
+    void copyLink(link);
   }
 
   const BrandingSlot = config.slots.branding;
@@ -747,7 +754,7 @@ export function SearchDialog() {
                             item,
                             source: collection.source,
                           })}
-                          // Asking and commands do not wait for pending results.
+                          // Asking and actions do not wait for pending results.
                           onSelect={() => selectItem(item)}
                           onNavigate={(url, event) => {
                             if (
@@ -778,7 +785,7 @@ export function SearchDialog() {
               onNotify={announce}
               onStartChat={openChat}
               onHandoff={selectItem}
-              onCommand={selectItem}
+              onRun={selectItem}
             />
           )}
         </div>

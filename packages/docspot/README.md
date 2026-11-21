@@ -42,7 +42,7 @@ const search: DocspotSearch = async ({ query, signal }) => {
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
     signal,
   });
-  return response.json(); // DocspotSearchResult[]
+  return response.json(); // DocspotItem[]
 };
 
 export function Header() {
@@ -161,88 +161,97 @@ Triggers accept button props. Their `onClick` runs first, and calling `event.pre
 
 ## Props
 
-| Prop             | Description                                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `search`         | `({ query, signal }) => DocspotSearchResponse \| Promise<…>`                                                                         |
-| `chat`           | From `createChat()` or a provider integration                                                                                        |
-| `context`        | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL           |
-| `loadPage`       | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation |
-| `defaultResults` | Results shown before typing. Recently visited pages are left out                                                                     |
-| `commands`       | Things to do, found by typing, such as switching the theme. See [Commands](#commands)                                                |
-| `handoffs`       | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                    |
-| `navigate`       | `(url, { event }) => void`. Defaults to `window.location.assign`                                                                     |
-| `siteUrl`        | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
-| `history`        | Persists history. Without it, history lasts until the page reloads                                                                   |
-| `id`             | Scopes persisted history, for several instances on one origin                                                                        |
-| `syncUrl`        | `true` for the browser history, or an adapter for routers that own it                                                                |
-| `slots`          | Components that replace parts of the interface                                                                                       |
-| `messages`       | Interface text overrides                                                                                                             |
-| `onEvent`        | Receives interaction events, for analytics                                                                                           |
+| Prop           | Description                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `search`       | `({ query, signal }) => DocspotSearchResponse \| Promise<…>`                                                                         |
+| `chat`         | From `createChat()` or a provider integration                                                                                        |
+| `context`      | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL           |
+| `loadPage`     | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation |
+| `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                  |
+| `items`        | Items found by typing their title or keywords, such as switching the theme. See [Items](#items)                                      |
+| `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                    |
+| `navigate`     | `(url, { event }) => void`. Defaults to `window.location.assign`                                                                     |
+| `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
+| `history`      | Persists history. Without it, history lasts until the page reloads                                                                   |
+| `id`           | Scopes persisted history, for several instances on one origin                                                                        |
+| `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
+| `slots`        | Components that replace parts of the interface                                                                                       |
+| `messages`     | Interface text overrides                                                                                                             |
+| `onEvent`      | Receives interaction events, for analytics                                                                                           |
 
-### Search results
+### Items
 
-A search function returns results, or `{ results, prioritizeChat }`:
+Everything search lists is an item: a page to open, or something to do, such as switching the theme. `action` says which: a URL opens that page, a function runs and closes search.
 
 ```ts
-type DocspotSearchResult = {
-  url: string;
-  title: string; // A page title, or a section heading
+type DocspotItem = {
+  title: string; // A page title, a section heading, or what it does
+  action: string | ((context: { query: string }) => void);
+  id?: string; // Defaults to the URL; required when action is a function
+  group?: string; // Items with the same group are listed together
+  icon?: ReactNode;
+  description?: string; // Previews an action, or a link to another site
+  keywords?: string[]; // Other words that find it among `items`
+  shortcut?: string; // As aria-keyshortcuts writes it, such as "Meta+S"
   pageTitle?: string; // The page a section belongs to
   breadcrumb?: string[]; // From the top level down, without the title
   excerpt?: string;
-  group?: string; // Results with the same group are listed together
   type?: 'page' | 'section';
   highlights?: {
     title?: HighlightedText;
     breadcrumb?: HighlightedText[];
     excerpt?: HighlightedText;
   };
-  id?: string; // Defaults to the URL
   data?: unknown; // Passed through to slots
 };
 
 type HighlightedText = Array<{ text: string; highlighted: boolean }>;
 ```
 
-`parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query)` and `shouldPrioritizeChat(…)` help decide `prioritizeChat`.
+`defineItem(item)` checks an item's shape where it is declared, so one item can be listed both before and after typing. Only URL items are pages: they join recent pages, and can be copied or opened in a new tab. Items on other sites open in a new tab and are not added to recent pages.
 
-Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens a result that belongs to an older query. Search functions can return results synchronously.
+#### Search results
 
-Results on other sites open in a new tab and are not added to recent pages.
+A search function returns items, or `{ items, prioritizeChat }`. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query)` and `shouldPrioritizeChat(…)` help decide `prioritizeChat`.
 
-### Commands
+Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens an item that belongs to an older query. Search functions can return items synchronously.
 
-Commands are things to do rather than pages to open, such as switching the theme or saving a file. The ones whose title or keywords start with every word typed are listed in their own group, before the results. Choosing one closes search and runs it. Commands stay out of recent pages, and have no link to copy or open in a new tab.
+#### Found by typing
+
+`items` are listed when their title or keywords start with every word typed, ignoring case and accents, before the search results. Items without a group are listed under "Actions" for functions, or "Documentation" for URLs. Links to other sites preview their `description`.
 
 ```tsx
+import { defineItem } from 'docspot';
+
+const darkTheme = defineItem({
+  id: 'theme-dark',
+  title: 'Dark theme',
+  keywords: ['appearance', 'night'],
+  shortcut: 'Shift+Meta+L',
+  action: () => setTheme('dark'),
+});
+
+<Docspot search={search} items={[darkTheme]} />;
+```
+
+#### Before typing
+
+`defaultItems` is what search lists before typing, in the order given: groups appear in the order of their first item. Place `recentItems` where the reader's recent pages go; without it, they come first. Recent pages are left out of the other groups.
+
+```tsx
+import { recentItems } from 'docspot';
+
 <Docspot
   search={search}
-  commands={[
-    {
-      id: 'theme-dark',
-      title: 'Dark theme',
-      keywords: ['appearance', 'night'],
-      shortcut: 'Shift+Meta+L',
-      run: () => setTheme('dark'),
-    },
+  items={[darkTheme]}
+  defaultItems={[
+    { action: '/docs/', title: 'Introduction', group: 'Get started' },
+    darkTheme, // Listed under "Actions"
+    recentItems,
+    { action: '/docs/api/', title: 'API', group: 'Popular' },
   ]}
-/>
+/>;
 ```
-
-```ts
-type DocspotCommand = {
-  id: string;
-  title: string;
-  keywords?: string[]; // Other words that find it, such as another language's
-  group?: string; // Defaults to "Actions"
-  description?: string; // Shown in the preview
-  icon?: ReactNode;
-  shortcut?: string; // As aria-keyshortcuts writes it, such as "Meta+S"
-  run: () => void;
-};
-```
-
-Matching ignores case and accents. Nothing typed lists no commands, so `defaultResults` stay as they are.
 
 ### Handoffs
 
@@ -252,10 +261,12 @@ Handoffs send the query somewhere else, such as a general assistant. They follow
 import { chatGptHandoff, claudeHandoff } from 'docspot/handoffs';
 
 // The assistant reads the best result to answer.
-const prompt = (query, { results }) =>
-  results[0]
-    ? `${query}\n\nRead ${new URL(results[0].url, location.href)} and answer`
+const prompt = (query, { items }) => {
+  const page = items.find(item => typeof item.action === 'string');
+  return page
+    ? `${query}\n\nRead ${new URL(page.action, location.href)} and answer`
     : query;
+};
 
 <Docspot
   search={search}
@@ -263,7 +274,7 @@ const prompt = (query, { results }) =>
 />;
 ```
 
-Any other destination is a `DocspotHandoff`: `{ id, title, icon?, description?, getUrl(query, { results }) }`.
+Any other destination is a `DocspotHandoff`: `{ id, title, icon?, description?, getUrl(query, { items }) }`, where `items` are the search results.
 
 ## Providers
 
@@ -310,7 +321,7 @@ const search = createMiniSearchSearch({
   // An index, or a function that loads one on preload or the first search.
   index: () => import('./search-index').then(module => module.index),
   getDocument: hit => ({
-    url: hit.id,
+    action: hit.id,
     title: hit.title,
     breadcrumb: [hit.section],
     group: hit.section,
@@ -343,13 +354,13 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 />
 ```
 
-| Slot          | Props                                                                                                                                                                                                                                                                                          |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preview`     | `{ result, query, navigate, notify }`. Renders the active result beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the result URL's hash. Without it, search has no preview pane and shows results in one column with two-line excerpts |
-| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                               |
-| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                               |
-| `resultIcon`  | `{ result, recent }`. Replaces the page, section, and recent icons                                                                                                                                                                                                                             |
-| `shortcut`    | `{ shortcut }`. Draws a command's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                             |
+| Slot          | Props                                                                                                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preview`     | `{ item, query, navigate, notify }`. Renders the active page beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the URL's hash. Without it, search has no preview pane and shows results in one column with two-line excerpts |
+| `pageActions` | `{ item, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                      |
+| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                    |
+| `resultIcon`  | `{ item, recent }`. Replaces the icons of items without an `icon`                                                                                                                                                                                                                   |
+| `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                    |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
 
@@ -469,7 +480,7 @@ syncUrl={{
 
 ## Events
 
-`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select`, `search.error`, `search.handoff`, `search.command`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
+`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select`, `search.error`, `search.handoff`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
 
 ## Loading and server rendering
 

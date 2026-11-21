@@ -1,25 +1,42 @@
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
 import type { DocspotMessagesInput } from './messages';
+import type { recentItems } from './search/items';
 
 /** A run of text, marked when it matched the query. */
 export type HighlightSegment = { text: string; highlighted: boolean };
 export type HighlightedText = HighlightSegment[];
 
-export type DocspotSearchResult = {
-  /** Unique within a response. Defaults to the URL. */
-  id?: string;
-  url: string;
-  /** The result's own title: a page title, or a section heading. */
+/** What choosing an item does: a URL opens that page, a function runs. */
+export type DocspotAction = string | ((context: DocspotActionContext) => void);
+
+export type DocspotActionContext = {
+  /** The query the item was chosen for; empty before typing. */
+  query: string;
+};
+
+type DocspotItemFields = {
+  /** The item's own title: a page title, a section heading, or what it does. */
   title: string;
+  /** Items sharing a group are listed together, in first-appearance order. */
+  group?: string;
+  /** Replaces the default icon, and the `resultIcon` slot. */
+  icon?: ReactNode;
+  /** Explains an action, or a link to another site, in the preview. */
+  description?: string;
+  /** Other words that find it among `items`, such as synonyms. */
+  keywords?: string[];
+  /**
+   * The keys that run it outside search, as `aria-keyshortcuts` writes them,
+   * such as `Meta+S` or `Shift+Meta+Z`. Shown beside its title.
+   */
+  shortcut?: string;
   /** The page a section belongs to. Defaults to the title. */
   pageTitle?: string;
-  /** Where the result sits, from the top level down, excluding the title. */
+  /** Where the item sits, from the top level down, excluding the title. */
   breadcrumb?: string[];
   /** A short passage around the match. */
   excerpt?: string;
-  /** Results sharing a group are listed together, in first-appearance order. */
-  group?: string;
   /** Sections are parts of a page; pages are whole pages. */
   type?: 'page' | 'section';
   /** Matched text, when the provider reports it. */
@@ -33,34 +50,31 @@ export type DocspotSearchResult = {
 };
 
 /**
- * Something to do rather than a page to open, such as switching the theme.
- * Commands that match the query are listed in their own group, before the
- * results; choosing one closes search and runs it. They are not pages, so
- * they stay out of recent pages and have no link to copy or open in a tab.
+ * Something search lists: a page to open, or something to do, such as
+ * switching the theme. Choosing an item closes search. Only URL items are
+ * pages: they join recent pages and can be copied or opened in a tab.
  */
-export type DocspotCommand = {
-  /** Unique among commands. */
-  id: string;
-  title: string;
-  /** Other words that find it, such as synonyms or its name in another language. */
-  keywords?: string[];
-  /** Commands sharing a group are listed together. Defaults to `messages.search.commands`. */
-  group?: string;
-  /** What it does, in the preview. */
-  description?: string;
-  icon?: ReactNode;
-  /**
-   * The keys that run it outside search, as `aria-keyshortcuts` writes them,
-   * such as `Meta+S` or `Shift+Meta+Z`. Shown beside its title.
-   */
-  shortcut?: string;
-  run: () => void;
-};
+export type DocspotItem = DocspotItemFields &
+  (
+    | {
+        action: string;
+        /** Unique within a list. Defaults to the URL. */
+        id?: string;
+      }
+    | {
+        action: (context: DocspotActionContext) => void;
+        /** Unique within a list. */
+        id: string;
+      }
+  );
+
+/** An item whose action is a URL. */
+export type DocspotLinkItem = Extract<DocspotItem, { action: string }>;
 
 export type DocspotSearchResponse =
-  | DocspotSearchResult[]
+  | DocspotItem[]
   | {
-      results: DocspotSearchResult[];
+      items: DocspotItem[];
       /** Offers the question to chat before the results. */
       prioritizeChat?: boolean;
     };
@@ -129,7 +143,7 @@ export type DocspotUrlAdapter = {
  * elsewhere on the page.
  */
 export type DocspotPreviewProps = {
-  result: DocspotSearchResult;
+  item: DocspotLinkItem;
   query: string;
   /** Opens a URL and closes search. */
   navigate: (url: string) => void;
@@ -138,7 +152,7 @@ export type DocspotPreviewProps = {
 };
 
 export type DocspotPageActionsProps = {
-  result: DocspotSearchResult;
+  item: DocspotLinkItem;
   query: string;
   close: () => void;
   /** Shows a short status message inside search. */
@@ -151,7 +165,7 @@ export type DocspotShortcutProps = {
 };
 
 export type DocspotResultIconProps = {
-  result: DocspotSearchResult;
+  item: DocspotItem;
   recent: boolean;
 };
 
@@ -166,9 +180,9 @@ export type DocspotSlots = {
   branding?: ComponentType;
   /** Extra actions for the previewed result, such as copying Markdown. */
   pageActions?: ComponentType<DocspotPageActionsProps>;
-  /** Replaces the default page, section, and recent icons. */
+  /** Replaces the default icons of items without their own `icon`. */
   resultIcon?: ComponentType<DocspotResultIconProps>;
-  /** Replaces how a command's shortcut is drawn. */
+  /** Replaces how an item's shortcut is drawn. */
   shortcut?: ComponentType<DocspotShortcutProps>;
 };
 
@@ -186,12 +200,11 @@ export type DocspotEvent =
   | {
       type: 'search.select';
       query: string;
-      result: DocspotSearchResult;
+      item: DocspotItem;
       position: number;
     }
   | { type: 'search.error'; query: string; error: unknown }
   | { type: 'search.handoff'; query: string; handoff: string; url: string }
-  | { type: 'search.command'; query: string; command: string }
   | { type: 'history.clear' }
   | { type: 'chat.open' }
   | { type: 'chat.close' }
@@ -215,8 +228,8 @@ declare const chatBrand: unique symbol;
 
 /** What a handoff can use to build its URL. */
 export type DocspotHandoffContext = {
-  /** The query's results, best first. Empty when search failed. */
-  results: DocspotSearchResult[];
+  /** The query's search results, best first. Empty when search failed. */
+  items: DocspotItem[];
 };
 
 /**
@@ -243,12 +256,18 @@ type DocspotSharedProps = {
   context?: DocspotContextInput;
   /** Loads a page's content when a question uses it as context. */
   loadPage?: DocspotLoadPage;
-  /** Results shown before typing. */
-  defaultResults?: DocspotSearchResult[];
+  /**
+   * What search lists before typing, in this order. Place `recentItems` to
+   * position the reader's recent pages; they come first otherwise.
+   */
+  defaultItems?: Array<DocspotItem | typeof recentItems>;
   /** Places to send a query besides these docs, such as `docspot/handoffs`. */
   handoffs?: DocspotHandoff[];
-  /** Things to do, found by typing, such as switching the theme. Needs `search`. */
-  commands?: DocspotCommand[];
+  /**
+   * Items found by typing their title or keywords, listed before the search
+   * results, such as switching the theme. Needs `search`.
+   */
+  items?: DocspotItem[];
   /** Defaults to `window.location.assign`. */
   navigate?: DocspotNavigate;
   /**

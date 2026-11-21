@@ -5,11 +5,7 @@ import {
   isQuestion,
   shouldPrioritizeChat,
 } from '../search/intent';
-import type {
-  DocspotSearch,
-  DocspotSearchResult,
-  HighlightedText,
-} from '../types';
+import type { DocspotSearch, DocspotLinkItem, HighlightedText } from '../types';
 
 const HIGHLIGHT_START = '__docspot_highlight__';
 const HIGHLIGHT_END = '__/docspot_highlight__';
@@ -188,7 +184,7 @@ export function createAlgoliaSearch({
     const hits = results.flatMap(result => result.hits);
     const counts = new Map<string, number>();
     const seen = new Set<string>();
-    const normalized: DocspotSearchResult[] = [];
+    const normalized: DocspotLinkItem[] = [];
     for (const hit of hits) {
       const url = mapUrl(hit.url);
       if (!url || seen.has(url)) continue;
@@ -220,7 +216,7 @@ export function createAlgoliaSearch({
       const snippet = hit._snippetResult?.content?.value;
       normalized.push({
         id: hit.objectID,
-        url,
+        action: url,
         title: stripNumbering(title),
         pageTitle: page?.title ?? hit.hierarchy.lvl1 ?? title,
         breadcrumb,
@@ -250,10 +246,10 @@ export function createAlgoliaSearch({
     }
     const topHit = hits[0];
     return {
-      results: normalized,
+      items: normalized,
       prioritizeChat: shouldPrioritizeChat({
         query,
-        pageTitles: normalized.map(result => result.pageTitle ?? result.title),
+        pageTitles: normalized.map(item => item.pageTitle ?? item.title),
         hasResults: topHit !== undefined,
         hasCompleteMatch:
           topHit !== undefined &&

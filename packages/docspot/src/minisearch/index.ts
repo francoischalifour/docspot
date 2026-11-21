@@ -3,14 +3,14 @@ import type { SearchResult } from 'minisearch';
 
 import { highlightTerms } from '../search/model';
 import type {
+  DocspotLinkItem,
   DocspotSearch,
   DocspotSearchParams,
-  DocspotSearchResult,
 } from '../types';
 
-/** What a MiniSearch document becomes in results. */
+/** What a MiniSearch document becomes in results: a page. */
 export type MiniSearchDocument = Omit<
-  DocspotSearchResult,
+  DocspotLinkItem,
   'highlights' | 'excerpt'
 > & {
   /** Text to take the excerpt from: the passage that best matches. */
@@ -82,10 +82,7 @@ export function createMiniSearchSearch<T>({
   let loaded: MiniSearch<T> | undefined;
   let loading: Promise<MiniSearch<T>> | undefined;
 
-  function run(
-    miniSearch: MiniSearch<T>,
-    query: string
-  ): DocspotSearchResult[] {
+  function run(miniSearch: MiniSearch<T>, query: string): DocspotLinkItem[] {
     return search(miniSearch, query)
       .slice(0, limit)
       .map(hit => {

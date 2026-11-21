@@ -1,13 +1,17 @@
-import type { DocspotPage, DocspotSearchResult } from '../types';
+import type { DocspotPage } from '../types';
 
 const VERSION = 1;
 export const RECENT_PAGE_LIMIT = 5;
 export const CONVERSATION_LIMIT = 20;
 
-export type StoredPage = Pick<
-  DocspotSearchResult,
-  'url' | 'title' | 'pageTitle' | 'breadcrumb' | 'group' | 'type'
->;
+export type StoredPage = {
+  url: string;
+  title: string;
+  pageTitle?: string;
+  breadcrumb?: string[];
+  group?: string;
+  type?: 'page' | 'section';
+};
 
 /** A message in the AI SDK's UI message format. */
 export type StoredMessage = {
