@@ -1,11 +1,12 @@
 import type { StoredConversation, StoredPage } from '../core/storage';
 import type {
-  DocspotCommand,
   DocspotHandoff,
+  DocspotItem,
+  DocspotLinkItem,
   DocspotSearchResponse,
-  DocspotSearchResult,
   HighlightedText,
 } from '../types';
+import { isLinkItem, recentItems } from './items';
 
 export type SearchItem = {
   id: string;
@@ -13,7 +14,13 @@ export type SearchItem = {
   query: string;
   sourceLabel: string;
 } & (
-  | { kind: 'page'; result: DocspotSearchResult; recent: boolean }
+  | {
+      kind: 'item';
+      item: DocspotItem;
+      /** The title as drawn, with the query's matches marked. */
+      title: HighlightedText;
+      recent: boolean;
+    }
   | {
       kind: 'ask';
       title: string;
@@ -22,46 +29,67 @@ export type SearchItem = {
       prompt?: string;
     }
   | { kind: 'handoff'; handoff: DocspotHandoff; url: string }
-  | { kind: 'command'; command: DocspotCommand; title: HighlightedText }
 );
 
-export type PageItem = Extract<SearchItem, { kind: 'page' }>;
+export type ListItem = Extract<SearchItem, { kind: 'item' }>;
 export type AskItem = Extract<SearchItem, { kind: 'ask' }>;
 export type HandoffItem = Extract<SearchItem, { kind: 'handoff' }>;
-export type CommandItem = Extract<SearchItem, { kind: 'command' }>;
 
 /** The URL an item opens, if it opens one. */
 export function getItemUrl(item: SearchItem) {
-  if (item.kind === 'page') return item.result.url;
+  if (item.kind === 'item')
+    return isLinkItem(item.item) ? item.item.action : undefined;
   if (item.kind === 'handoff') return item.url;
   return undefined;
 }
 
-export type ResultGroup = { label: string; results: DocspotSearchResult[] };
+/** A group of items, or the place of the reader's recent pages. */
+export type ItemSection =
+  | { kind: 'group'; label: string; items: DocspotItem[] }
+  | { kind: 'recent' };
 
 export function normalizeResponse(response: DocspotSearchResponse) {
   return Array.isArray(response)
-    ? { results: response, prioritizeChat: false }
+    ? { items: response, prioritizeChat: false }
     : {
-        results: response.results,
+        items: response.items,
         prioritizeChat: response.prioritizeChat ?? false,
       };
 }
 
-/** Groups results in first-appearance order, dropping repeated URLs. */
-export function groupResults(
-  results: DocspotSearchResult[],
-  fallbackLabel: string
-): ResultGroup[] {
-  const groups = new Map<string, DocspotSearchResult[]>();
+/**
+ * Groups items in first-appearance order, dropping repeated pages (by URL,
+ * whatever their id) and repeated actions (by id). Items
+ * without a group fall back by action: pages to `pageLabel`, the rest to
+ * `actionLabel`. `recentItems` keeps its place among the groups.
+ */
+export function groupItems(
+  items: ReadonlyArray<DocspotItem | typeof recentItems>,
+  labels: { page: string; action: string }
+): ItemSection[] {
+  const sections: ItemSection[] = [];
+  const groups = new Map<string, DocspotItem[]>();
   const seen = new Set<string>();
-  for (const result of results) {
-    if (seen.has(result.url)) continue;
-    seen.add(result.url);
-    const label = result.group ?? fallbackLabel;
-    groups.set(label, [...(groups.get(label) ?? []), result]);
+  for (const item of items) {
+    if (item === recentItems) {
+      if (!sections.some(section => section.kind === 'recent'))
+        sections.push({ kind: 'recent' });
+      continue;
+    }
+    const key = isLinkItem(item) ? `url:${item.action}` : `id:${item.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const label =
+      item.group ?? (isLinkItem(item) ? labels.page : labels.action);
+    let group = groups.get(label);
+    if (!group) {
+      group = [];
+      groups.set(label, group);
+      sections.push({ kind: 'group', label, items: group });
+    }
+    group.push(item);
   }
-  return [...groups].map(([label, items]) => ({ label, results: items }));
+  return sections;
 }
 
 /** Lowercase, without accents, so "Theme" finds "Thème" and the other way around. */
@@ -75,47 +103,31 @@ const words = (text: string) =>
     .filter(Boolean);
 
 /**
- * The commands every word of the query starts a word of, in their title or
+ * The items every word of the query starts a word of, in their title or
  * keywords, in the order given; none for an empty query.
  */
-export function matchCommands(
-  commands: DocspotCommand[],
-  query: string
-): DocspotCommand[] {
+export function matchItems(items: DocspotItem[], query: string): DocspotItem[] {
   const terms = words(query);
   if (!terms.length) return [];
-  return commands.filter(command => {
-    const known = [command.title, ...(command.keywords ?? [])].flatMap(words);
+  return items.filter(item => {
+    const known = [item.title, ...(item.keywords ?? [])].flatMap(words);
     return terms.every(term => known.some(word => word.startsWith(term)));
   });
 }
 
-/** Groups commands in first-appearance order. */
-export function groupCommands(
-  commands: DocspotCommand[],
-  fallbackLabel: string
-): Array<{ label: string; commands: DocspotCommand[] }> {
-  const groups = new Map<string, DocspotCommand[]>();
-  for (const command of commands) {
-    const label = command.group ?? fallbackLabel;
-    groups.set(label, [...(groups.get(label) ?? []), command]);
-  }
-  return [...groups].map(([label, items]) => ({ label, commands: items }));
-}
-
-export function toStoredPage(result: DocspotSearchResult): StoredPage {
+export function toStoredPage(item: DocspotLinkItem): StoredPage {
   return {
-    url: result.url,
-    title: result.title,
-    pageTitle: result.pageTitle,
-    breadcrumb: result.breadcrumb,
-    group: result.group,
-    type: result.type,
+    url: item.action,
+    title: item.title,
+    pageTitle: item.pageTitle,
+    breadcrumb: item.breadcrumb,
+    group: item.group,
+    type: item.type,
   };
 }
 
-export function getResultId(result: DocspotSearchResult) {
-  return result.id ?? result.url;
+export function fromStoredPage({ url, ...page }: StoredPage): DocspotLinkItem {
+  return { ...page, action: url };
 }
 
 export function plain(text: string | undefined): HighlightedText {

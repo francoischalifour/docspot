@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotSearch, type DocspotSearchResult } from '../src';
+import { Docspot, type DocspotItem, type DocspotSearch } from '../src';
 import { chatGptHandoff, claudeHandoff } from '../src/handoffs';
 import { createChatServer, lastQuestion, results, wait } from './fixtures';
 
@@ -90,8 +90,8 @@ it('cancels outdated requests and never shows or opens a stale result', async ()
     signals[query] = signal;
     if (query === 'slow') await wait(400);
     return query === 'slow'
-      ? [{ url: '/stale', title: 'Stale result' }]
-      : [{ url: '/fresh', title: `Fresh ${query}` }];
+      ? [{ action: '/stale', title: 'Stale result' }]
+      : [{ action: '/fresh', title: `Fresh ${query}` }];
   };
   await render(<Docspot search={search} navigate={navigate} />);
   await openSearch();
@@ -271,16 +271,16 @@ it('toggles with the shortcut, once while held, and opens with slash', async () 
 });
 
 it('shows default results and recent pages before typing, with separate clearing', async () => {
-  const defaults: DocspotSearchResult[] = [
-    { url: '/docs/start', title: 'Getting started' },
-    { url: '/docs/query/http-api', title: 'HTTP API' },
+  const defaults: DocspotItem[] = [
+    { action: '/docs/start', title: 'Getting started' },
+    { action: '/docs/query/http-api', title: 'HTTP API' },
   ];
   await render(
     <Docspot
       search={({ query }) =>
         results.filter(result => result.title.toLowerCase().includes(query))
       }
-      defaultResults={defaults}
+      defaultItems={defaults}
       navigate={() => {}}
       history
     />
@@ -333,15 +333,15 @@ it('copies the selected link with Mod+C but keeps copying selected query text', 
 
 it('renders slots for previews, page actions, and branding', async () => {
   function Preview({
-    result,
+    item,
     navigate,
   }: {
-    result: DocspotSearchResult;
+    item: DocspotItem;
     navigate: (url: string) => void;
   }) {
     return (
       <div>
-        <p>Preview of {result.title}</p>
+        <p>Preview of {item.title}</p>
         <button type="button" onClick={() => navigate('/docs/related')}>
           Related
         </button>
@@ -355,8 +355,8 @@ it('renders slots for previews, page actions, and branding', async () => {
       navigate={navigate}
       slots={{
         preview: Preview,
-        pageActions: ({ result }) => (
-          <button type="button">Share {result.title}</button>
+        pageActions: ({ item }) => (
+          <button type="button">Share {item.title}</button>
         ),
         branding: () => <span>Search by Example</span>,
       }}
@@ -408,7 +408,7 @@ it('opens results on other sites in a new tab', async () => {
     <Docspot
       search={({ query }) => [
         {
-          url: `https://chat.example/?q=${encodeURIComponent(query)}`,
+          action: `https://chat.example/?q=${encodeURIComponent(query)}`,
           title: 'Ask Example',
           group: 'Open in chat',
         },
@@ -455,7 +455,7 @@ it('hands the query to other sites after the results, without recording it', asy
       handoffs={[
         chatGptHandoff({
           prompt: (query, context) =>
-            `${query}\n\nRead ${context.results[0]!.url}`,
+            `${query}\n\nRead ${context.items[0]!.action}`,
         }),
         claudeHandoff(),
       ]}
@@ -471,7 +471,7 @@ it('hands the query to other sites after the results, without recording it', asy
     .element(chatGpt)
     .toHaveAttribute(
       'href',
-      `https://chatgpt.com/?q=${encodeURIComponent(`product\n\nRead ${results[0]!.url}`).replaceAll('%20', '+')}`
+      `https://chatgpt.com/?q=${encodeURIComponent(`product\n\nRead ${results[0]!.action}`).replaceAll('%20', '+')}`
     );
   await expect
     .element(page.getByRole('option', { name: /Ask Claude/ }))

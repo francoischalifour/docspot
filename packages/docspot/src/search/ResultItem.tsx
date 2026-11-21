@@ -55,7 +55,7 @@ const shortcutKeys: Record<string, string> = {
   arrowdown: 'down',
 };
 
-/** A command's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
+/** An item's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
 function Shortcut({ shortcut }: { shortcut: string }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const Slot = config.slots.shortcut;
@@ -79,7 +79,7 @@ export function ResultItem({
   item: SearchItem;
   itemProps: HTMLAttributes<HTMLElement>;
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
-  /** Chooses an item that opens no URL: asking AI, or a command. */
+  /** Chooses an item that opens no URL: asking AI, or a function action. */
   onSelect: () => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
@@ -90,21 +90,23 @@ export function ResultItem({
     itemProps['aria-selected'] === 'true';
 
   const url = getItemUrl(item);
+  const listed = item.kind === 'item' ? item.item : undefined;
   // The group heading already names the leading breadcrumb parts.
-  const breadcrumb = item.kind === 'page' ? (item.result.breadcrumb ?? []) : [];
+  const breadcrumb = listed?.breadcrumb ?? [];
   let skipped = 0;
   while (breadcrumb[skipped] === item.sourceLabel) skipped++;
   const isExternal = item.kind === 'handoff' || (url && isExternalUrl(url));
 
   let icon;
   if (item.kind === 'ask') icon = <QuestionIcon />;
-  else if (item.kind === 'command') icon = item.command.icon ?? <CommandIcon />;
   else if (item.kind === 'handoff')
     icon = item.handoff.icon ?? <QuestionIcon />;
+  else if (item.item.icon) icon = item.item.icon;
   else if (ResultIcon)
-    icon = <ResultIcon result={item.result} recent={item.recent} />;
+    icon = <ResultIcon item={item.item} recent={item.recent} />;
   else if (item.recent) icon = <HistoryIcon />;
-  else if (item.result.type === 'section') icon = <SectionIcon />;
+  else if (!url) icon = <CommandIcon />;
+  else if (item.item.type === 'section') icon = <SectionIcon />;
   else icon = <PageIcon />;
 
   const content = (
@@ -113,40 +115,35 @@ export function ResultItem({
       <span className="docspot-result-icon">{icon}</span>
       <div
         className="docspot-result-title"
-        data-command={item.kind === 'command' || undefined}
+        data-shortcut={listed?.shortcut ? '' : undefined}
       >
-        {item.kind === 'command' ? (
+        {item.kind === 'item' ? (
           <>
             <span>
               <Highlight value={item.title} />
             </span>
-            {item.command.shortcut && (
+            {item.item.shortcut && (
               <span className="docspot-result-shortcut">
-                <Shortcut shortcut={item.command.shortcut} />
+                <Shortcut shortcut={item.item.shortcut} />
               </span>
             )}
           </>
-        ) : item.kind === 'page' ? (
-          <Highlight
-            value={item.result.highlights?.title ?? plain(item.result.title)}
-          />
         ) : item.kind === 'handoff' ? (
           item.handoff.title
         ) : (
           item.title
         )}
       </div>
-      {item.kind === 'page' ? (
+      {listed ? (
         skipped < breadcrumb.length && (
           <p className="docspot-result-path">
             <BreadcrumbHighlight
               parts={breadcrumb.slice(skipped)}
-              highlights={item.result.highlights?.breadcrumb?.slice(skipped)}
+              highlights={listed.highlights?.breadcrumb?.slice(skipped)}
             />
           </p>
         )
-      ) : item.kind === 'command' ? null : item.kind === 'ask' &&
-        item.prompt ? null : (
+      ) : item.kind === 'ask' && item.prompt ? null : (
         <p className="docspot-result-path" data-ask="">
           {item.query
             ? messages.quotedQuery(item.query)
@@ -155,12 +152,10 @@ export function ResultItem({
               : messages.askDescription}
         </p>
       )}
-      {item.kind === 'page' && item.query && item.result.excerpt && (
+      {listed && item.query && listed.excerpt && (
         <p className="docspot-result-excerpt">
           <Highlight
-            value={
-              item.result.highlights?.excerpt ?? plain(item.result.excerpt)
-            }
+            value={listed.highlights?.excerpt ?? plain(listed.excerpt)}
           />
         </p>
       )}

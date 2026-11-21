@@ -56,5 +56,6 @@ export type {
 export { defaultMessages } from './messages';
 export type { DocspotMessages, DocspotMessagesInput } from './messages';
 export { highlightTerms, parseHighlightedString } from './search/model';
+export { defineItem, recentItems } from './search/items';
 export type * from './types';
 export { isQuestion, shouldPrioritizeChat } from './search/intent';

@@ -12,8 +12,8 @@ import {
 import type { ChatRuntime, ChatSession } from '../chat/contract';
 import { getChatInternals } from '../chat/contract';
 import { type DocspotMessages, resolveMessages } from '../messages';
+import type { recentItems } from '../search/items';
 import type {
-  DocspotCommand,
   DocspotEvent,
   DocspotHandoff,
   DocspotNavigate,
@@ -21,7 +21,7 @@ import type {
   DocspotQuestionSource,
   DocspotRootProps,
   DocspotSearch,
-  DocspotSearchResult,
+  DocspotItem,
   DocspotSlots,
   DocspotUrlAdapter,
 } from '../types';
@@ -75,9 +75,9 @@ export type DocspotConfig = {
   canChat: boolean;
   currentPage: DocspotPage | undefined;
   prompts: string[];
-  defaultResults: DocspotSearchResult[];
+  defaultItems: Array<DocspotItem | typeof recentItems>;
   handoffs: DocspotHandoff[];
-  commands: DocspotCommand[];
+  items: DocspotItem[];
   navigate: DocspotNavigate;
   /** Resolves a URL against the canonical origin. */
   toSiteUrl: (url: string) => string;
@@ -166,9 +166,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     id,
     context,
     loadPage,
-    defaultResults,
+    defaultItems,
     handoffs,
-    commands,
+    items,
     navigate,
     siteUrl,
     history = false,
@@ -208,9 +208,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     canChat,
     currentPage,
     prompts: context?.prompts ?? [],
-    defaultResults: defaultResults ?? [],
+    defaultItems: defaultItems ?? [],
     handoffs: handoffs ?? [],
-    commands: commands ?? [],
+    items: items ?? [],
     navigate: navigate ?? defaultNavigate,
     toSiteUrl: url => new URL(url, siteUrl ?? window.location.href).href,
     toInternalUrl(url) {

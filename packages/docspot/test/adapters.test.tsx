@@ -102,7 +102,7 @@ async function searchAlgolia(query: string) {
 
 it('normalizes Algolia records into grouped, highlighted, deduplicated results', async () => {
   const requests = stubAlgolia([]);
-  const { results, prioritizeChat } = await searchAlgolia('example');
+  const { items: results, prioritizeChat } = await searchAlgolia('example');
   expect(requests[0]?.url).toBe(
     'https://APP-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=APP&x-algolia-api-key=KEY'
   );
@@ -115,7 +115,7 @@ it('normalizes Algolia records into grouped, highlighted, deduplicated results',
     query: 'example',
     hitsPerPage: 7,
   });
-  expect(results.map(result => result.url)).toEqual([
+  expect(results.map(result => result.action)).toEqual([
     '/docs/lakehouse/query/sql-explorer#example',
     '/docs/lakehouse/query/http-api',
   ]);
@@ -179,7 +179,7 @@ it('retries other hosts on server errors but not on client errors', async () => 
     new TypeError('network'),
     new Response('', { status: 503 }),
   ]);
-  expect((await searchAlgolia('example')).results).toHaveLength(2);
+  expect((await searchAlgolia('example')).items).toHaveLength(2);
   expect(requests.map(request => new URL(request.url).host)).toEqual([
     'app-dsn.algolia.net',
     'app-1.algolianet.com',
@@ -288,7 +288,7 @@ function createIndex() {
 }
 
 const getDocument = (hit: Record<string, any>) => ({
-  url: hit.id,
+  action: hit.id as string,
   title: hit.title,
   breadcrumb: [hit.section],
   group: hit.section,
@@ -303,7 +303,7 @@ it('searches a MiniSearch index synchronously with highlights and excerpts', () 
   });
   if (!Array.isArray(results)) throw new Error('Expected synchronous results');
   expect(results[0]).toMatchObject({
-    url: '/docs/options#margin',
+    action: '/docs/options#margin',
     group: 'Options',
     excerpt: 'The space outside the zoomed image.',
   });
@@ -346,7 +346,7 @@ it('loads a MiniSearch index ahead of the first search when preloaded', async ()
     query: 'margin',
     signal: new AbortController().signal,
   });
-  expect(Array.isArray(results) && results[0]?.url).toBe(
+  expect(Array.isArray(results) && results[0]?.action).toBe(
     '/docs/options#margin'
   );
 });
