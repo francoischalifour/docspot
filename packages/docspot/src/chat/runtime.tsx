@@ -7,6 +7,7 @@ import {
   ask,
   createSession,
   discard,
+  stop,
   toConversation,
 } from '@/chat/session';
 
@@ -23,7 +24,7 @@ export function createRuntime(
     createSession: (saved, options) => createSession(transport, saved, options),
     ask: (session, question, page, source) =>
       ask(session as Session, question, page, source),
-    stop: session => void (session as Session).stop(),
+    stop: session => stop(session as Session),
     discard: session => discard(session as Session),
     toConversation: session =>
       toConversation(session.id, (session as Session).messages),

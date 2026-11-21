@@ -108,6 +108,47 @@ it('ignores invalid or outdated records', async () => {
     .not.toBeInTheDocument();
 });
 
+it('ignores malformed page metadata when retrying a restored conversation', async () => {
+  localStorage.setItem(
+    'docspot:conversations',
+    JSON.stringify({
+      version: 1,
+      value: [
+        {
+          id: 'restored',
+          title: 'Previous question',
+          messages: [
+            {
+              id: 'question',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Previous question' }],
+              metadata: { question: 'Previous question', page: { url: 42 } },
+            },
+            {
+              id: 'answer',
+              role: 'assistant',
+              parts: [{ type: 'text', text: 'Previous answer.' }],
+            },
+          ],
+        },
+      ],
+    })
+  );
+  localStorage.setItem(
+    'docspot:panel',
+    JSON.stringify({
+      version: 1,
+      value: { open: true, conversationId: 'restored', draft: '' },
+    })
+  );
+  const loadPage = vi.fn();
+  const { chat } = createChatServer(() => ({ text: 'Retried answer.' }));
+  await render(<Docspot chat={chat} history loadPage={loadPage} />);
+  await page.getByRole('button', { name: 'Retry answer' }).click();
+  await expect.element(page.getByText('Retried answer.')).toBeVisible();
+  expect(loadPage).not.toHaveBeenCalled();
+});
+
 it('keeps working when storage is unavailable or full', async () => {
   const setItem = vi
     .spyOn(Storage.prototype, 'setItem')
@@ -140,6 +181,29 @@ it('refreshes when another tab changes history', async () => {
   );
   await expect
     .element(recent().getByRole('option', { name: /Visited elsewhere/ }))
+    .toBeVisible();
+});
+
+it('updates the open conversation menu when another tab saves a chat', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer' }));
+  await render(<Docspot chat={chat} history />);
+  await page.getByRole('button', { name: 'Ask AI', exact: true }).click();
+  await page.getByRole('button', { name: /Switch chat/ }).click();
+  const value = JSON.stringify({
+    version: 1,
+    value: [{ id: 'other', title: 'From another tab', messages: [] }],
+  });
+  localStorage.setItem('docspot:conversations', value);
+  dispatchEvent(
+    new StorageEvent('storage', {
+      key: 'docspot:conversations',
+      newValue: value,
+    })
+  );
+  await expect
+    .element(
+      page.getByRole('menuitem', { name: 'From another tab', exact: true })
+    )
     .toBeVisible();
 });
 
@@ -185,4 +249,32 @@ it('imports history from a previous implementation once', async () => {
   await expect
     .element(recent().getByRole('option', { name: /Imported page/ }))
     .toBeVisible();
+});
+
+it('starts a fresh session when the history instance changes', async () => {
+  const { chat } = createChatServer(question => ({
+    text: `About ${question}.`,
+  }));
+  const screen = await render(<Docspot id="first" chat={chat} history />);
+  await page.getByRole('button', { name: 'Ask AI' }).first().click();
+  await userEvent.keyboard('First question{Enter}');
+  await expect.element(page.getByText('About First question.')).toBeVisible();
+
+  await screen.rerender(<Docspot id="second" chat={chat} history />);
+  await expect
+    .element(page.getByRole('complementary', { name: 'Ask AI' }))
+    .not.toBeInTheDocument();
+  await page.getByRole('button', { name: 'Ask AI' }).first().click();
+  await userEvent.keyboard('Second question{Enter}');
+  await expect.element(page.getByText('About Second question.')).toBeVisible();
+
+  expect(localStorage.getItem('docspot:first:conversations')).toContain(
+    'First question'
+  );
+  expect(localStorage.getItem('docspot:first:conversations')).not.toContain(
+    'Second question'
+  );
+  expect(localStorage.getItem('docspot:second:conversations')).toContain(
+    'Second question'
+  );
 });

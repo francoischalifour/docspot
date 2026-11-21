@@ -24,7 +24,7 @@ import {
 } from '@/core/platform';
 import { addRecentPage } from '@/core/storage';
 import { LoadingIcon, SearchIcon } from '@/ui/icons';
-import { Kbd, cx } from '@/ui/primitives';
+import { Kbd, Shimmer, cx } from '@/ui/primitives';
 import { getPrompts } from '@/ui/Suggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import { PreviewPanel } from '@/search/PreviewPanel';
@@ -161,25 +161,23 @@ export function SearchDialog() {
         setErrorQuery(trimmed);
         config.emit({ type: 'search.error', query: trimmed, error });
       }
+      const seen = { urls: new Set<string>(), itemIds: new Set<string>() };
       sections = [
-        ...groupEntries([...matched, ...results], labels),
+        ...groupEntries([...matched, ...results], labels, seen),
         // Handoffs follow the results they can link to.
         ...groupEntries(
           config.handoffs.map(handoff => handoff({ query: trimmed, results })),
-          { result: labels.result, item: messages.search.handoffs }
+          { result: labels.result, item: messages.search.handoffs },
+          seen
         ),
       ];
     } else {
       const recentUrls = new Set(recentPages.map(page => page.url));
-      const defaults = config.defaultItems.filter(
-        entry =>
-          entry === recentItems ||
-          !isResult(entry) ||
-          !recentUrls.has(entry.url)
-      );
+      const defaults = config.defaultItems;
       sections = groupEntries(
         defaults.includes(recentItems) ? defaults : [recentItems, ...defaults],
-        labels
+        labels,
+        { urls: recentUrls, itemIds: new Set() }
       );
     }
     const select = ({ item }: { item: SearchItem }) =>
@@ -219,7 +217,9 @@ export function SearchDialog() {
                       id: `result:${entry.url}`,
                       kind: 'result',
                       result: entry,
-                      title: entry.highlights?.title ?? plain(entry.title),
+                      title:
+                        entry.highlights?.title ??
+                        highlightTerms(entry.title, terms),
                       recent: false,
                       query: trimmed,
                       sourceLabel: section.label,
@@ -228,7 +228,6 @@ export function SearchDialog() {
                       id: `item:${entry.id}`,
                       kind: 'item',
                       item: entry,
-                      // Providers mark results; items are marked here.
                       title: highlightTerms(entry.title, terms),
                       query: trimmed,
                       sourceLabel: section.label,
@@ -477,7 +476,15 @@ export function SearchDialog() {
   }
 
   const BrandingSlot = config.slots.branding;
-  // Without a preview slot, results take the whole dialog.
+  const emptyHint = isLoading
+    ? messages.loadingHint
+    : hasError
+      ? messages.errorHint
+      : query
+        ? canChat
+          ? messages.noResultsHintWithAsk
+          : messages.noResultsHint
+        : undefined;
   const hasPreview = Boolean(config.slots.preview);
 
   return (
@@ -569,12 +576,10 @@ export function SearchDialog() {
               onFocus={() => autocomplete.setIsOpen(true)}
               onChange={event => {
                 inputProps.onChange(event);
-                if (
-                  !(
-                    'isComposing' in event.nativeEvent &&
-                    event.nativeEvent.isComposing
-                  )
-                )
+                if (!(
+                  'isComposing' in event.nativeEvent &&
+                  event.nativeEvent.isComposing
+                ))
                   search.setQuery(event.currentTarget.value);
               }}
               onCompositionEnd={event => {
@@ -650,28 +655,24 @@ export function SearchDialog() {
             >
               {!hasVisiblePages && (
                 <div className="docspot-search-empty">
-                  <SearchIcon size={20} className="docspot-subtle" />
-                  <p className="docspot-search-empty-title">
-                    {isLoading
-                      ? messages.loading
-                      : hasError
-                        ? messages.error
-                        : query
-                          ? messages.noResults(state.query)
-                          : messages.emptyTitle}
-                  </p>
-                  {(hasError || isLoading || query) && (
-                    <p className="docspot-search-empty-hint">
-                      {hasError
-                        ? messages.errorHint
-                        : isLoading
-                          ? messages.loadingHint
-                          : canChat
-                            ? messages.noResultsHintWithAsk
-                            : messages.noResultsHint}
-                    </p>
+                  {!isLoading && (
+                    <SearchIcon size={20} className="docspot-subtle" />
                   )}
-                  {hasError && (
+                  <p className="docspot-search-empty-title">
+                    {isLoading ? (
+                      <Shimmer>{messages.loading}</Shimmer>
+                    ) : hasError ? (
+                      messages.error
+                    ) : query ? (
+                      messages.noResults(state.query)
+                    ) : (
+                      messages.emptyTitle
+                    )}
+                  </p>
+                  {emptyHint && (
+                    <p className="docspot-search-empty-hint">{emptyHint}</p>
+                  )}
+                  {!isLoading && hasError && (
                     <button
                       type="button"
                       className="docspot-button"
@@ -787,8 +788,19 @@ export function SearchDialog() {
               </span>
               {messages.toNavigate}
             </span>
-            <span>
-              <Kbd keys={['enter']} /> {messages.toOpen}
+            <span
+              title={
+                activeItem?.kind === 'ask' && !activeItem.conversation
+                  ? messages.enterToAsk
+                  : undefined
+              }
+            >
+              <Kbd keys={['enter']} />{' '}
+              {activeItem?.kind === 'ask'
+                ? activeItem.conversation
+                  ? messages.continueChat
+                  : messages.askAi
+                : messages.toOpen}
             </span>
           </div>
           <span

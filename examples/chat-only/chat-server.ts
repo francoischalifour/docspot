@@ -13,10 +13,13 @@ import type { Plugin } from 'vite';
 
 import { findPage, pages } from './src/pages';
 
-type Body = { messages: UIMessage[]; docspot?: DocspotRequestContext };
+type Body = {
+  trigger: 'submit-message' | 'regenerate-message';
+  messages: UIMessage[];
+  docspot?: DocspotRequestContext;
+};
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const failedQuestions = new Set<string>();
 
 function getQuestion(body: Body) {
   return (
@@ -48,7 +51,8 @@ function findRelevantPages(question: string, attachedUrl: string | undefined) {
 function answer(body: Body) {
   const question = getQuestion(body);
   const attached = body.docspot?.page;
-  const [best, ...others] = findRelevantPages(question, attached?.url);
+  const sources = findRelevantPages(question, attached?.url).slice(0, 2);
+  const best = sources[0];
   const lines = best
     ? best.markdown
         .split('\n\n')
@@ -68,18 +72,18 @@ function answer(body: Body) {
     ]
       .filter(Boolean)
       .join('\n\n'),
-    sources: [best, ...others.slice(0, 1)].filter(Boolean),
+    sources,
   };
 }
 
 async function handle(request: IncomingMessage, response: ServerResponse) {
+  request.setEncoding('utf8');
   let raw = '';
   for await (const chunk of request) raw += chunk;
   const body = JSON.parse(raw) as Body;
   const question = getQuestion(body);
   // Questions mentioning "flaky" fail once, to demonstrate retrying.
-  if (/flaky/i.test(question) && !failedQuestions.has(question)) {
-    failedQuestions.add(question);
+  if (/flaky/i.test(question) && body.trigger !== 'regenerate-message') {
     response.statusCode = 503;
     response.end('The assistant is busy. Try again.');
     return;
@@ -116,9 +120,9 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
       for (const page of sources)
         writer.write({
           type: 'source-url',
-          sourceId: page!.url,
-          url: page!.url,
-          title: page!.title,
+          sourceId: page.url,
+          url: page.url,
+          title: page.title,
         });
       writer.write({ type: 'finish-step' });
       writer.write({ type: 'finish' });

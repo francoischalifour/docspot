@@ -36,7 +36,7 @@ export function PreviewPanel({
   onNotify: (message: string) => void;
   onStartChat: (request?: ChatRequest) => void;
   /** Chooses an item from its preview: runs it, or records the link opened. */
-  onSelect: (item: ItemEntry) => void;
+  onSelect: (item: SearchItem) => void;
 }) {
   const deferredItem = useDeferredValue(activeItem);
   const isStale = Boolean(
@@ -59,6 +59,7 @@ export function PreviewPanel({
               onClose={onClose}
               onLeave={onLeave}
               onNotify={onNotify}
+              onSelect={() => onSelect(deferredItem)}
             />
           ) : deferredItem?.kind === 'item' ? (
             <ItemPreview
@@ -68,9 +69,9 @@ export function PreviewPanel({
             />
           ) : deferredItem ? (
             <AskPreview item={deferredItem} onStartChat={onStartChat} />
-          ) : (
+          ) : isLoading ? (
             <PreviewLoading />
-          )}
+          ) : null}
         </Suspense>
       </div>
     </div>
@@ -97,12 +98,14 @@ function ResultPreview({
   onClose,
   onLeave,
   onNotify,
+  onSelect,
 }: {
   result: DocspotResult;
   query: string;
   onClose: () => void;
   onLeave: () => void;
   onNotify: (message: string) => void;
+  onSelect: () => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages.search;
@@ -216,30 +219,7 @@ function ResultPreview({
           canScrollDown && 'docspot-fade-above'
         )}
       >
-        {isExternalUrl(result.url) ? (
-          <a
-            href={result.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="docspot-button docspot-button-ghost"
-          >
-            {messages.openLink}
-            <ExternalIcon size={12} />
-          </a>
-        ) : (
-          <a
-            href={result.url}
-            className="docspot-button docspot-button-ghost"
-            onClick={event => {
-              if (event.button !== 0 || hasModifierKey(event)) return;
-              event.preventDefault();
-              onLeave();
-              config.navigate(result.url, { event });
-            }}
-          >
-            {messages.openPage}
-          </a>
-        )}
+        <PreviewLink url={result.url} onSelect={onSelect} onLeave={onLeave} />
         {PageActions && (
           <PageActions
             result={result}
@@ -250,6 +230,40 @@ function ResultPreview({
         )}
       </div>
     </section>
+  );
+}
+
+/** Records the selection and leaves modified clicks to the browser. */
+function PreviewLink({
+  url,
+  onSelect,
+  onLeave,
+}: {
+  url: string;
+  onSelect: () => void;
+  onLeave: () => void;
+}) {
+  const { config } = useDocspotInternal('Docspot.SearchDialog');
+  const external = isExternalUrl(url);
+  return (
+    <a
+      href={url}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      className="docspot-button docspot-button-ghost"
+      onClick={event => {
+        onSelect();
+        if (external || event.button !== 0 || hasModifierKey(event)) return;
+        event.preventDefault();
+        onLeave();
+        config.navigate(url, { event });
+      }}
+    >
+      {external
+        ? config.messages.search.openLink
+        : config.messages.search.openPage}
+      {external && <ExternalIcon size={12} />}
+    </a>
   );
 }
 
@@ -299,31 +313,12 @@ function ItemPreview({
           >
             {messages.run}
           </button>
-        ) : isExternalUrl(action) ? (
-          <a
-            href={action}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="docspot-button docspot-button-ghost"
-            onClick={() => onSelect(entry)}
-          >
-            {messages.openLink}
-            <ExternalIcon size={12} />
-          </a>
         ) : (
-          <a
-            href={action}
-            className="docspot-button docspot-button-ghost"
-            onClick={event => {
-              if (event.button !== 0 || hasModifierKey(event)) return;
-              event.preventDefault();
-              onSelect(entry);
-              onLeave();
-              config.navigate(action, { event });
-            }}
-          >
-            {messages.openPage}
-          </a>
+          <PreviewLink
+            url={action}
+            onSelect={() => onSelect(entry)}
+            onLeave={onLeave}
+          />
         )}
       </div>
     </section>
@@ -358,23 +353,14 @@ function AskPreview({
           <div>
             <p className="docspot-ask-preview-text">{text}</p>
             {page && (
-              <span className="docspot-context-chip">
-                <span className="docspot-context-chip-label">
-                  <PageIcon size={12} className="docspot-muted" />
-                  <span className="docspot-truncate">
-                    <span className="docspot-sr-only">
-                      {messages.chat.pageContext}
-                    </span>
-                    {page.title ?? page.url}
-                  </span>
+              <p className="docspot-ask-context">
+                <PageIcon size={14} />
+                <span>
+                  {messages.chat.pageContext}
+                  {page.title ?? page.url}
                 </span>
-              </span>
+              </p>
             )}
-            <p className="docspot-preview-hint">
-              {asked
-                ? messages.search.enterToAsk
-                : messages.search.continueChat}
-            </p>
           </div>
         ) : (
           <Welcome

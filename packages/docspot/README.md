@@ -12,7 +12,7 @@ Documentation search and AI chat for React. Use search, chat, or both: Docspot p
 npm install docspot
 ```
 
-Docspot requires React 19.2 or later. Chat also requires the AI SDK (`ai` 5 to 7, with the matching `@ai-sdk/react` 2 to 4), and the MiniSearch integration requires `minisearch` 6 or 7:
+Docspot requires React 19.2 or later within React 19. Chat also requires the AI SDK (`ai` 5 to 7, with the matching `@ai-sdk/react` 2 to 4), and the MiniSearch integration requires `minisearch` 6 or 7:
 
 ```sh
 npm install ai @ai-sdk/react       # for chat
@@ -42,7 +42,7 @@ const search: DocspotSearch = async ({ query, signal }) => {
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
     signal,
   });
-  return response.json(); // DocspotItem[]
+  return response.json(); // DocspotResult[]
 };
 
 export function Header() {
@@ -91,7 +91,7 @@ type Body = {
 };
 ```
 
-`page.url` is absolute, and `page.content` is what `loadPage` returned for it. The [chat-only example](../../examples/chat-only) includes a streaming endpoint.
+`page.url` is absolute, and `page.content` is what `loadPage` returned for it. The [chat-only example](https://github.com/francoischalifour/docspot/tree/main/examples/chat-only) includes a streaming endpoint.
 
 ### Search and chat
 
@@ -130,6 +130,27 @@ function AskAboutThisPage() {
     <button onClick={() => docspot.setDraft('Summarize this page')}>
       Ask about this page
     </button>
+  );
+}
+```
+
+For several Docspot instances, use `owner` to scope shortcuts and the fixed
+chat panel's layout variables to a section. The default owner is the document.
+An instance responds while focus is inside its owner, so nested owners let the
+closest instance handle the shortcut.
+
+```tsx
+import { useRef } from 'react';
+
+function SupportPane() {
+  const owner = useRef<HTMLElement>(null);
+  return (
+    <section ref={owner}>
+      <Docspot.Root owner={owner} chat={chat}>
+        <Docspot.ChatTrigger />
+        <Docspot.ChatPanel />
+      </Docspot.Root>
+    </section>
   );
 }
 ```
@@ -174,6 +195,7 @@ Triggers accept button props. Their `onClick` runs first, and calling `event.pre
 | `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
 | `history`      | Persists history. Without it, history lasts until the page reloads                                                                   |
 | `id`           | Scopes persisted history, for several instances on one origin                                                                        |
+| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                              |
 | `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
 | `slots`        | Components that replace parts of the interface                                                                                       |
 | `messages`     | Interface text overrides                                                                                                             |
@@ -346,6 +368,8 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 
 `createChat` accepts any AI SDK `ChatTransport`, or a function that loads one when chat is first used. Set `holdFirstStep` for agents that narrate before they search, so only the answer streams.
 
+When chat opens, a failed runtime or transport load retries once after a short delay. If that attempt also fails, the panel offers **Try again**. A question waiting to be sent, including one from a `?prompt=` link, is sent once startup succeeds. Closing the panel cancels that pending question.
+
 ## Customization
 
 ### Slots
@@ -362,13 +386,13 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 />
 ```
 
-| Slot          | Props                                                                                                                                                                                                                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preview`     | `{ result, query, navigate, notify }`. Renders the active page beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the URL's hash. Without it, search has no preview pane and shows results in one column with two-line excerpts |
-| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                      |
-| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                      |
-| `resultIcon`  | `{ result, recent }`. Replaces the icons of results                                                                                                                                                                                                                                   |
-| `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                      |
+| Slot          | Props                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preview`     | `{ result, query, navigate, notify }`. Renders the active page beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the URL's hash. The two panes stay visible while searching. Without a preview, results use one column with two-line excerpts and a 640 px maximum floating width |
+| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                                                                         |
+| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                                                                         |
+| `resultIcon`  | `{ result, recent }`. Replaces the icons of results                                                                                                                                                                                                                                                                                      |
+| `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                                                                         |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
 
@@ -395,7 +419,7 @@ Override CSS variables on `:root` or any ancestor:
 }
 ```
 
-Docspot's defaults have no specificity, so any rule overrides them. Dark values apply under `prefers-color-scheme: dark`, `[data-theme='dark']`, or `.dark` on the root element. See [`styles.css`](src/styles.css) for every variable.
+Docspot's defaults have no specificity, so any rule overrides them. Dark values apply under `prefers-color-scheme: dark`, `[data-theme='dark']`, or `.dark` on the root element. See [`styles.css`](https://github.com/francoischalifour/docspot/blob/main/packages/docspot/src/styles.css) for every variable.
 
 These optional variables go further, and fall back to the ones above when unset:
 
@@ -436,8 +460,8 @@ Every other class name is internal and may change in any release.
 
 The panel fills the screen on phones, floats over the page from 768 px, and docks beside the page from 1280 px. Its width is resizable there and persists with `history`.
 
-- `dock="fixed"` (default) pins the docked panel to the window's right edge and sets `--docspot-chat-inset` on the root element while it is open, for the page to pad by.
-- The root element carries `--docspot-chat-width`, the panel's resized width, for layouts that make room for it.
+- `dock="fixed"` (default) pins the docked panel to the window's right edge and sets `--docspot-chat-inset` on the owner element (the document root by default) while it is open, for the page to pad by.
+- The owner element carries `--docspot-chat-width`, the panel's resized width, for layouts that make room for it.
 - `dock="inline"` docks it as a flex item where it is rendered, so the page beside it shrinks.
 
 ## History
@@ -450,9 +474,9 @@ With `history`, Docspot stores versioned, bounded records in `localStorage` unde
 | `conversations` | The 20 most recent conversations                                                |
 | `panel`         | Whether chat was open, its active conversation, the unsent draft, and its width |
 
-Invalid or outdated records are ignored. When storage is full, the oldest conversations are dropped; when it is unavailable, history lasts until the page reloads. Changes in other tabs apply immediately. Recent pages and conversations are cleared separately, and conversations can be deleted one by one.
+Invalid or outdated records are ignored. When storage is full, the oldest conversations are dropped; when it is unavailable, history lasts until the page reloads. Recent pages, saved conversation lists, draft text, and panel width update across tabs. Each tab keeps its active conversation and controls when its panel opens. Recent pages and conversations are cleared separately, and conversations can be deleted one by one.
 
-A reload reopens chat where it docks beside the page; on phones it starts closed.
+A reload restores an open panel on screens at least 768 px wide. On smaller screens it starts closed.
 
 `importDocspotHistory({ id, recentPages, conversations, panel })` seeds history from a previous implementation. It writes only records that do not exist yet.
 
@@ -492,7 +516,7 @@ syncUrl={{
 
 ## Loading and server rendering
 
-`docspot` loads React and the triggers only. The search dialog and its dependencies load when search opens, and chat, the AI SDK, and the Markdown renderer load when chat opens. Search-only pages never load chat code, and chat-only pages never load search code. Every entry point is tree-shakeable and free of import side effects.
+`docspot` loads React and the triggers only. The search dialog, chat runtime, and their dependencies load on demand or during preloading. Search-only pages never load chat code, and chat-only pages never load search code. Every entry point is tree-shakeable and free of import side effects.
 
 Docspot gets ready before it's needed, so the first open and the first query don't wait:
 

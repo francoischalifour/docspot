@@ -1,6 +1,6 @@
 // Bundles single named imports from the built package, as an application
 // would, and verifies that unused code is dropped.
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { build } from 'rolldown';
@@ -50,8 +50,9 @@ const cases = [
 ];
 
 // Inside the package, so `docspot` resolves to itself through its exports.
-const directory = join(packageRoot, '.tree-shaking');
-mkdirSync(directory, { recursive: true });
+const directory = mkdtempSync(
+  join(packageRoot, 'node_modules', '.tree-shaking-')
+);
 let failed = false;
 try {
   for (const { name, source, excludes } of cases) {
@@ -73,15 +74,30 @@ try {
       output: { format: 'esm', codeSplitting: true },
     });
     const entry = output.find(chunk => chunk.type === 'chunk' && chunk.isEntry);
-    const code = entry && 'code' in entry ? entry.code : '';
+    if (!entry || entry.type !== 'chunk')
+      throw new Error(`Missing entry chunk for ${name}`);
+    // A dependency in a shared static chunk still loads with the entry.
+    const chunks = new Map(
+      output.flatMap(chunk =>
+        chunk.type === 'chunk' ? [[chunk.fileName, chunk] as const] : []
+      )
+    );
+    const loaded = new Set([entry]);
+    for (const chunk of loaded) {
+      for (const specifier of chunk.imports) {
+        const dependency = chunks.get(specifier);
+        if (dependency) loaded.add(dependency);
+      }
+    }
+    const code = [...loaded].map(chunk => chunk.code).join('\n');
     const leaked = excludes.filter(text => code.includes(text));
     if (leaked.length) {
       failed = true;
       if (process.env.DEBUG) console.log(code);
-      console.error(`✗ ${name}: entry chunk includes ${leaked.join(', ')}`);
+      console.error(`✗ ${name}: statically includes ${leaked.join(', ')}`);
     } else
       console.log(
-        `✓ ${name}: ${(code.length / 1024).toFixed(1)} kB entry chunk`
+        `✓ ${name}: ${(code.length / 1024).toFixed(1)} kB eagerly loaded`
       );
   }
 } finally {

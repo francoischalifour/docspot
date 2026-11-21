@@ -46,6 +46,7 @@ export type ChatPanelProps = {
   prompts: string[];
   conversations: {
     list: () => StoredConversation[];
+    subscribe: (listener: () => void) => () => void;
     remove: (id: string) => void;
     clear: () => void;
   };

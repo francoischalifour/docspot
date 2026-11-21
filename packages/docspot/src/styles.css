@@ -23,7 +23,7 @@
   /* Matched text: a tint and weight by default, or an underline. */
   --docspot-mark: color-mix(
     in oklab,
-    var(--docspot-foreground) 8%,
+    var(--docspot-foreground) 15%,
     transparent
   );
   --docspot-mark-weight: 600;
@@ -375,14 +375,16 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .docspot-shimmer {
     background-image: none;
     color: var(--docspot-muted);
     -webkit-text-fill-color: currentColor;
     animation: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
   .docspot-spin {
     animation: none;
   }
@@ -491,7 +493,6 @@
   /* Clipping without becoming a scroll container, so wheel gestures never
      latch onto the dialog instead of the results. */
   overflow: clip;
-  container: docspot-search / inline-size;
 }
 
 .docspot-search::backdrop {
@@ -506,7 +507,7 @@
   .docspot-search:not([data-viewport-compressed]) {
     top: 8vh;
     left: 50%;
-    width: min(720px, calc(100vw - 2rem));
+    width: min(960px, calc(100vw - 2rem));
     height: min(85dvh, 820px);
     max-height: calc(100dvh - 2rem);
     translate: -50% 0;
@@ -514,6 +515,10 @@
     border: 1px solid var(--docspot-border-strong);
     border-radius: var(--docspot-radius-floating);
     box-shadow: var(--docspot-shadow-floating);
+  }
+
+  .docspot-search:not([data-preview], [data-viewport-compressed]) {
+    width: min(640px, calc(100vw - 2rem));
   }
 }
 
@@ -651,34 +656,14 @@
 }
 
 .docspot-search-preview {
-  display: none;
   flex: 1;
   min-width: 0;
   background: var(--docspot-background);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  @container docspot-search (width >= 640px) {
-    .docspot-search-preview {
-      display: block;
-    }
-
-    .docspot-search[data-preview] .docspot-search-results {
-      flex: 0 0 clamp(340px, 40cqw, 400px);
-      border-right: 1px solid var(--docspot-border);
-    }
-  }
-}
-
-@container docspot-search (width >= 900px) {
-  .docspot-search[data-preview] .docspot-search-results {
-    flex: 0 0 clamp(340px, 40cqw, 400px);
-    border-right: 1px solid var(--docspot-border);
-  }
-
-  .docspot-search-preview {
-    display: block;
-  }
+.docspot-search[data-preview] .docspot-search-results {
+  flex: 0 0 min(48%, clamp(340px, 40%, 400px));
+  border-inline-end: 1px solid var(--docspot-border);
 }
 
 .docspot-search-empty {
@@ -1087,6 +1072,44 @@
   overflow-wrap: anywhere;
 }
 
+.docspot-ask-context {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  margin: 0;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.docspot-ask-context svg {
+  align-self: flex-start;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+@media (width < 640px) {
+  .docspot-search[data-preview] .docspot-result {
+    grid-template-columns: 1rem minmax(0, 1fr) auto;
+    column-gap: 0.375rem;
+    padding-inline: 0.375rem;
+  }
+
+  .docspot-preview-scroll,
+  .docspot-preview-skeleton,
+  .docspot-preview-footer {
+    padding-inline: 0.75rem;
+  }
+
+  .docspot-preview-scroll {
+    overflow-wrap: anywhere;
+  }
+
+  .docspot-preview-footer {
+    flex-wrap: wrap;
+  }
+}
+
 /* ── Suggestions ─────────────────────────────────────────────────────── */
 
 .docspot-welcome {
@@ -1187,7 +1210,7 @@
   }
 
   /* Pages beside a fixed panel can pad by this much to stay readable. */
-  :root[data-docspot-chat-open='fixed'] {
+  [data-docspot-chat-open='fixed'] {
     --docspot-chat-inset: var(--docspot-chat-width, 25rem);
   }
 }
@@ -1261,6 +1284,20 @@
   height: 3rem;
   padding: 0 0.5rem;
   border-bottom: 1px solid var(--docspot-border);
+}
+
+.docspot-startup-title {
+  margin-inline: 0.5rem auto;
+  font-weight: 500;
+}
+
+.docspot-chat-startup {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  flex: 1;
+  gap: 0.75rem;
+  color: var(--docspot-muted);
 }
 
 .docspot-switcher {

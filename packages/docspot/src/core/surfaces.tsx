@@ -11,8 +11,8 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 
-import { SearchIcon } from '@/ui/icons';
-import { Kbd, cx } from '@/ui/primitives';
+import { CloseIcon, SearchIcon } from '@/ui/icons';
+import { IconButton, Kbd, Shimmer, cx } from '@/ui/primitives';
 import { searchDialogLoader, useDocspotInternal } from '@/core/Root';
 import {
   isChatBesidePage,
@@ -21,7 +21,6 @@ import {
   useVisualViewport,
 } from '@/core/platform';
 
-const CHAT_PANEL_ID = 'docspot-chat-panel';
 /** Matches the 25rem width the stylesheet docks the panel at. */
 const PANEL_DEFAULT_WIDTH = 400;
 const PANEL_MIN_WIDTH = 320;
@@ -102,7 +101,7 @@ export function ChatTrigger({
     <button
       type="button"
       aria-expanded={chat.isOpen}
-      aria-controls={CHAT_PANEL_ID}
+      aria-controls={config.chatPanelId}
       aria-keyshortcuts="Meta+J Control+J"
       className={cx('docspot-trigger docspot-chat-trigger', className)}
       onPointerEnter={chat.preload}
@@ -165,7 +164,7 @@ function ChatLauncher({ hidden }: { hidden: boolean }) {
         ref={chat.registerLauncher}
         type="button"
         aria-expanded={false}
-        aria-controls={CHAT_PANEL_ID}
+        aria-controls={config.chatPanelId}
         aria-keyshortcuts="Meta+J Control+J"
         onPointerEnter={chat.preload}
         onFocus={chat.preload}
@@ -264,16 +263,20 @@ function ChatPanelFrame({
 
   // Pages beside the docked panel read these to make room for it.
   useLayoutEffect(() => {
-    const root = document.documentElement;
-    if (width) root.style.setProperty('--docspot-chat-width', `${width}px`);
-    else root.style.removeProperty('--docspot-chat-width');
-    if (isOpen) root.setAttribute('data-docspot-chat-open', dock);
-    else root.removeAttribute('data-docspot-chat-open');
+    if (!config.owner) return;
+    const owner =
+      'documentElement' in config.owner
+        ? config.owner.documentElement
+        : config.owner;
+    if (width) owner.style.setProperty('--docspot-chat-width', `${width}px`);
+    else owner.style.removeProperty('--docspot-chat-width');
+    if (isOpen) owner.setAttribute('data-docspot-chat-open', dock);
+    else owner.removeAttribute('data-docspot-chat-open');
     return () => {
-      root.style.removeProperty('--docspot-chat-width');
-      root.removeAttribute('data-docspot-chat-open');
+      owner.style.removeProperty('--docspot-chat-width');
+      owner.removeAttribute('data-docspot-chat-open');
     };
-  }, [width, isOpen, dock]);
+  }, [config.owner, width, isOpen, dock]);
 
   const Panel = runtime?.Panel;
 
@@ -281,7 +284,7 @@ function ChatPanelFrame({
     <>
       {launcher && <ChatLauncher hidden={isOpen} />}
       <aside
-        id={CHAT_PANEL_ID}
+        id={config.chatPanelId}
         ref={setElement}
         data-docspot-chat=""
         data-dock={dock}
@@ -337,6 +340,41 @@ function ChatPanelFrame({
             });
           }}
         />
+        {isOpen && !session && (
+          <div className="docspot-chat-body">
+            <div className="docspot-chat-header">
+              <span className="docspot-startup-title">
+                {messages.chat.title}
+              </span>
+              <IconButton
+                side="left"
+                autoFocus={chat.focusStartup}
+                label={messages.chat.hide}
+                onClick={chat.close}
+              >
+                <CloseIcon size={16} />
+              </IconButton>
+            </div>
+            <div className="docspot-chat-startup">
+              <span role="status">
+                {chat.retryStartup ? (
+                  messages.chat.startupFailed
+                ) : (
+                  <Shimmer>{messages.chat.opening}</Shimmer>
+                )}
+              </span>
+              {chat.retryStartup && (
+                <button
+                  type="button"
+                  className="docspot-button"
+                  onClick={chat.retryStartup}
+                >
+                  {messages.chat.retry}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         {session && Panel && (
           <Panel
             key={session.id}
@@ -349,6 +387,7 @@ function ChatPanelFrame({
             prompts={config.prompts}
             conversations={{
               list: config.stores.conversations.get,
+              subscribe: config.stores.conversations.subscribe,
               remove(id) {
                 config.stores.conversations.set(list =>
                   list.filter(item => item.id !== id)
@@ -445,7 +484,7 @@ function ResizeHandle({
       role="separator"
       aria-orientation="vertical"
       aria-label={messages.resize}
-      aria-controls={CHAT_PANEL_ID}
+      aria-controls={config.chatPanelId}
       aria-valuemin={PANEL_MIN_WIDTH}
       aria-valuemax={PANEL_MAX_WIDTH}
       aria-valuenow={Math.round(currentWidth)}

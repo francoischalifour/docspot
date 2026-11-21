@@ -159,6 +159,55 @@ it('prioritizes chat for questions the results do not answer', async () => {
   );
 });
 
+it('uses the returned result order for chat priority and hierarchy', async () => {
+  const search = createAlgoliaSearch({
+    appId: 'APP',
+    apiKey: 'KEY',
+    indices: ['Docs'],
+    transformResult: (result, { hit }) =>
+      hit.objectID === 'filtered' ? null : { ...result, url: '/guide' },
+  });
+  stubAlgolia([
+    Response.json({
+      results: [
+        {
+          hits: [
+            {
+              objectID: 'filtered',
+              url: 'https://example.com/filtered',
+              type: 'lvl1',
+              hierarchy: { lvl0: 'Guides', lvl1: 'Complete answer' },
+              _rankingInfo: { words: 2, nbTypos: 0 },
+            },
+            {
+              objectID: 'shown',
+              url: 'https://example.com/guide',
+              type: 'content',
+              hierarchy: {
+                lvl2: 'Details',
+                lvl0: 'Guides',
+                lvl1: 'Setup',
+              },
+              _rankingInfo: { words: 1, nbTypos: 0 },
+            },
+          ],
+        },
+      ],
+    }),
+  ]);
+  const response = await search({
+    query: 'how do I configure agents?',
+    signal: new AbortController().signal,
+  });
+  if (Array.isArray(response)) throw new Error('Expected a response object');
+  expect(response.results[0]).toMatchObject({
+    title: 'Details',
+    group: 'Guides',
+    breadcrumb: ['Guides', 'Setup'],
+  });
+  expect(response.prioritizeChat).toBe(true);
+});
+
 it('opens the Algolia connection when preloaded', () => {
   algolia.preload?.();
   algolia.preload?.();
@@ -329,6 +378,25 @@ it('loads a MiniSearch index on the first search', async () => {
   expect(load).toHaveBeenCalledTimes(1);
 });
 
+it('skips a superseded query while the MiniSearch index loads', async () => {
+  const index = createIndex();
+  const runQuery = vi.spyOn(index, 'search');
+  const search = createMiniSearchSearch({
+    index: async () => index,
+    getDocument,
+  });
+  const first = new AbortController();
+  const stale = search({ query: 'old', signal: first.signal });
+  first.abort();
+  const latest = search({
+    query: 'zoom',
+    signal: new AbortController().signal,
+  });
+  await expect(stale).rejects.toMatchObject({ name: 'AbortError' });
+  await latest;
+  expect(runQuery.mock.calls.map(([query]) => query)).toEqual(['zoom']);
+});
+
 it('loads a MiniSearch index ahead of the first search when preloaded', async () => {
   let index: ReturnType<typeof createIndex> | undefined;
   const search = createMiniSearchSearch({
@@ -361,6 +429,12 @@ it('builds links that open search or chat, keeping other parameters', () => {
   );
   expect(createDocspotUrl('?q=old', { draft: 'Edit me' })).toBe(
     '?draft=Edit+me'
+  );
+  expect(
+    createDocspotUrl('../guide?lang=en#topic?q=old', { search: 'x' })
+  ).toBe('../guide?lang=en&q=x#topic?q=old');
+  expect(createDocspotUrl('//docs.example/guide', { search: 'x' })).toBe(
+    '//docs.example/guide?q=x'
   );
   expect(createDocspotUrl('guide', { search: 'x' })).toBe('guide?q=x');
 });

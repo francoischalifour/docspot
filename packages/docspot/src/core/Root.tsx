@@ -3,6 +3,8 @@ import {
   use,
   useEffect,
   useEffectEvent,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -39,6 +41,7 @@ import {
   type StoredConversation,
   addConversation,
   createStores,
+  defaultPanelState,
 } from '@/core/storage';
 import {
   browserUrlAdapter,
@@ -72,6 +75,8 @@ export type ChatRequest =
 type PageContext = { follow: true } | { page: DocspotPage | undefined };
 
 export type DocspotConfig = {
+  chatPanelId: string;
+  owner: HTMLElement | Document | null;
   search: DocspotSearch | undefined;
   canSearch: boolean;
   canChat: boolean;
@@ -112,6 +117,8 @@ export type SearchController = {
 
 export type ChatController = {
   isOpen: boolean;
+  retryStartup?: () => void;
+  focusStartup: boolean;
   runtime: ChatRuntime | undefined;
   session: ChatSession | null;
   draft: string;
@@ -158,6 +165,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     search,
     chat,
     id,
+    owner: ownerRef,
     context,
     loadPage,
     defaultItems,
@@ -182,13 +190,14 @@ export function DocspotRoot(props: DocspotRootProps) {
     () => createStores({ id, persist: history }),
     [id, history]
   );
+  useEffect(stores.sync, [stores]);
   const messages = useMemo(
     () => resolveMessages(messageOverrides),
     [messageOverrides]
   );
   const chatLoader = useMemo(
     () => (chat ? createModuleLoader(getChatInternals(chat).load) : null),
-    [chat]
+    [chat, stores]
   );
   const url: DocspotUrlAdapter | null =
     syncUrl === true ? browserUrlAdapter : syncUrl || null;
@@ -196,7 +205,16 @@ export function DocspotRoot(props: DocspotRootProps) {
   const resolvePage = context?.resolvePage;
 
   const emit = useEffectEvent((event: DocspotEvent) => onEvent?.(event));
+  // Read refs after the whole tree commits, including an enclosing owner.
+  const [owner, setOwner] = useState<HTMLElement | Document | null>(null);
+  useEffect(() => {
+    const next = ownerRef ? ownerRef.current : document;
+    if (next !== owner) setOwner(next);
+  });
+  const chatPanelId = useId();
   const config: DocspotConfig = {
+    chatPanelId,
+    owner,
     search,
     canSearch,
     canChat,
@@ -267,7 +285,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     setSearchState(state => ({
       isOpen: true,
       query,
-      version: query ? state.version + 1 : state.version,
+      version: state.version + 1,
     }));
     if (!searchOpenRef.current) emit({ type: 'search.open' });
     writeQuery(query, searchOpenRef.current);
@@ -314,12 +332,16 @@ export function DocspotRoot(props: DocspotRootProps) {
   const panel = useSyncExternalStore(
     stores.panel.subscribe,
     stores.panel.get,
-    () => stores.panel.get()
+    () => defaultPanelState
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [runtime, setRuntime] = useState<ChatRuntime | undefined>(() =>
-    chatLoader?.get()
-  );
+  const runtime = chatLoader?.get();
+  const pendingOpen = useRef<{
+    request?: ChatRequest;
+    focus: boolean;
+    linkKey?: string;
+  } | null>(null);
+  const [startupFailed, setStartupFailed] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [pageContext, setPageContext] = useState<PageContext>({
     follow: true,
@@ -365,17 +387,10 @@ export function DocspotRoot(props: DocspotRootProps) {
   function setChatOpen(open: boolean) {
     if (open !== chatOpenRef.current)
       emit({ type: open ? 'chat.open' : 'chat.close' });
+    chatOpenRef.current = open;
     setIsChatOpen(open);
     // A full-screen panel would cover the page on the next visit.
     stores.panel.set(state => ({ ...state, open: open && isChatBesidePage() }));
-  }
-
-  function loadRuntime() {
-    if (!chatLoader) return Promise.reject(new Error('Chat is not configured'));
-    return chatLoader.load().then(loaded => {
-      setRuntime(() => loaded);
-      return loaded;
-    });
   }
 
   function saveConversation(conversation: StoredConversation) {
@@ -463,21 +478,58 @@ export function DocspotRoot(props: DocspotRootProps) {
     );
   }
 
-  function askChat(request?: ChatRequest, { focus = true } = {}) {
+  function consumeLink(key?: string) {
+    if (!key || !url || JSON.stringify(readChatLink(url.read())) !== key)
+      return;
+    url.write(removeChatLink(url.read()), { replace: true });
+    if (!readChatLink(url.read())) pendingLinkRef.current = null;
+  }
+
+  function askChat(
+    request?: ChatRequest,
+    { focus = true, linkKey }: { focus?: boolean; linkKey?: string } = {}
+  ) {
     if (!chatLoader) return warnMissing('chat', 'ask');
+    const previous = pendingOpen.current;
+    const intent = { request, focus, linkKey };
+    pendingOpen.current = intent;
+    if (previous?.linkKey !== linkKey) consumeLink(previous?.linkKey);
     showChat();
+    setStartupFailed(false);
+
     function settle(loaded: ChatRuntime) {
+      if (pendingOpen.current !== intent) return;
+      pendingOpen.current = null;
+      consumeLink(linkKey);
       applyRequest(loaded, request);
-      // After the request, so a replaced conversation's composer gets focus.
       if (focus) setFocusRequest(count => count + 1);
     }
-    // Usually preloaded, so the panel opens with its conversation at once.
+
     const loaded = chatLoader.get();
-    if (loaded) settle(loaded);
-    else void loadRuntime().then(settle);
+    if (loaded) return settle(loaded);
+    const loader = chatLoader;
+    async function loadWithRetry() {
+      try {
+        return await loader.load();
+      } catch {
+        await new Promise(resolve => setTimeout(resolve, 350));
+        if (pendingOpen.current === intent) return loader.load();
+      }
+    }
+    void loadWithRetry().then(
+      loaded => {
+        if (loaded) settle(loaded);
+      },
+      () => {
+        if (pendingOpen.current === intent) setStartupFailed(true);
+      }
+    );
   }
 
   function closeChat() {
+    const pending = pendingOpen.current;
+    pendingOpen.current = null;
+    consumeLink(pending?.linkKey);
     if (!chatOpenRef.current) return;
     setChatOpen(false);
     // After the launcher reappears, so focus can return to it.
@@ -518,15 +570,23 @@ export function DocspotRoot(props: DocspotRootProps) {
   });
   useEffect(() => {
     if (canChat) restorePanel();
-  }, [canChat]);
+  }, [canChat, stores]);
 
-  useEffect(
-    () => () => {
+  // A pending load and its session belong to the same transport and history namespace.
+  useLayoutEffect(() => {
+    setStartupFailed(false);
+    setSession(null);
+    setIsChatOpen(false);
+    setPageContext({ follow: true });
+    return () => {
+      pendingOpen.current = null;
       const current = sessionRef.current;
       if (current) chatLoader?.get()?.stop(current);
-    },
-    [chatLoader]
-  );
+      sessionRef.current = null;
+      focusPendingRef.current = false;
+      pendingLinkRef.current = null;
+    };
+  }, [chatLoader]);
 
   // ── URL ───────────────────────────────────────────────────────────────
   const pendingLinkRef = useRef<string | null>(null);
@@ -548,6 +608,7 @@ export function DocspotRoot(props: DocspotRootProps) {
         emit({ type: 'search.open' });
       } else if (query !== writtenQueryRef.current) {
         // A query from history or a link replaces what was typed.
+        clearTimeout(queryWriteRef.current);
         writtenQueryRef.current = query;
         setSearchState(state => ({
           ...state,
@@ -562,23 +623,23 @@ export function DocspotRoot(props: DocspotRootProps) {
     const linkKey = link && JSON.stringify(link);
     if (linkKey === pendingLinkRef.current) return;
     pendingLinkRef.current = linkKey;
-    if (link) {
-      void loadRuntime().then(() => {
-        url.write(removeChatLink(url.read()), { replace: true });
-        askChat({
+    if (link && linkKey) {
+      askChat(
+        {
           action: link.action,
           text: link.text,
           page: link.pageUrl ? resolveLinkPage(link.pageUrl) : undefined,
           source: 'url',
-        });
-      });
-    }
+        },
+        { linkKey }
+      );
+    } else if (pendingOpen.current?.linkKey) closeChat();
   });
   useEffect(() => {
     if (!url) return;
     syncFromUrl();
     return url.subscribe(syncFromUrl);
-  }, [url]);
+  }, [url, canSearch, chatLoader]);
 
   // ── Shortcuts and preloading ──────────────────────────────────────────
   const onGlobalKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -608,9 +669,11 @@ export function DocspotRoot(props: DocspotRootProps) {
     }
   });
   useEffect(() => {
-    window.addEventListener('keydown', onGlobalKeyDown);
-    return () => window.removeEventListener('keydown', onGlobalKeyDown);
-  }, []);
+    if (!owner) return;
+    const onKeyDown = (event: Event) => onGlobalKeyDown(event as KeyboardEvent);
+    owner.addEventListener('keydown', onKeyDown);
+    return () => owner.removeEventListener('keydown', onKeyDown);
+  }, [owner]);
 
   const preloadSearch = useMemo(
     () =>
@@ -625,11 +688,9 @@ export function DocspotRoot(props: DocspotRootProps) {
   const preloadChat = useMemo(
     () =>
       chatLoader
-        ? () =>
-            void chatLoader.load().then(
-              loaded => setRuntime(() => loaded),
-              () => {}
-            )
+        ? () => {
+            if (!pendingOpen.current) void chatLoader.load().catch(() => {});
+          }
         : undefined,
     [chatLoader]
   );
@@ -641,7 +702,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     query: searchState.query,
     queryVersion: searchState.version,
     setQuery: setSearchQuery,
-    open: (opener, query) => openSearch(opener, query),
+    open: openSearch,
     close: () => closeSearch(),
     leave: leaveSearch,
     ask(request) {
@@ -661,6 +722,13 @@ export function DocspotRoot(props: DocspotRootProps) {
 
   const chatController: ChatController = {
     isOpen: isChatOpen,
+    focusStartup: pendingOpen.current?.focus ?? false,
+    retryStartup: startupFailed
+      ? () => {
+          const pending = pendingOpen.current;
+          if (pending) askChat(pending.request, pending);
+        }
+      : undefined,
     runtime,
     session,
     draft: panel.draft,
@@ -670,7 +738,10 @@ export function DocspotRoot(props: DocspotRootProps) {
     composerRef: attachComposer,
     width: panel.width,
     setWidth: width => stores.panel.set(state => ({ ...state, width })),
-    ask: askChat,
+    ask(request, options) {
+      if (!request && pendingOpen.current) return;
+      askChat(request, options);
+    },
     close: closeChat,
     toggle: toggleChat,
     getActiveConversation: () =>
@@ -724,7 +795,6 @@ export function useDocspot(): DocspotApi {
     isSearchOpen: search.isOpen,
     isChatOpen: chat.isOpen,
     openSearch(query) {
-      if (!config.canSearch) return warnMissing('search', 'openSearch');
       search.open(undefined, query);
     },
     closeSearch: search.close,
@@ -743,7 +813,7 @@ export function useDocspot(): DocspotApi {
     startConversation: () => chat.ask({ action: 'reset' }),
     close() {
       if (search.isOpen) search.close();
-      if (chat.isOpen) chat.close();
+      chat.close();
     },
   };
 }

@@ -305,6 +305,88 @@ it('lists a URL once when `items` and the search results both have it', async ()
     .toHaveLength(1);
 });
 
+it('lists an item id once even when its action changes', async () => {
+  await render(
+    <Docspot
+      search={() => []}
+      items={[
+        {
+          id: 'account',
+          action: '/account',
+          title: 'Open account',
+          keywords: ['profile'],
+        },
+        {
+          id: 'account',
+          action: () => {},
+          title: 'Sign out',
+          keywords: ['profile'],
+        },
+      ]}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('profile');
+  await expect.element(page.getByRole('option')).toHaveLength(1);
+  await expect
+    .element(page.getByRole('option', { name: /Open account/ }))
+    .toBeVisible();
+});
+
+it('does not repeat item links as handoffs', async () => {
+  await render(
+    <Docspot
+      search={() => []}
+      items={[
+        {
+          id: 'account',
+          action: '/account',
+          title: 'Open account',
+          keywords: ['profile'],
+        },
+      ]}
+      handoffs={[
+        () => ({
+          id: 'account-help',
+          action: '/account',
+          title: 'Get account help',
+        }),
+      ]}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('profile');
+  await expect.element(page.getByRole('option')).toHaveLength(1);
+  await expect
+    .element(page.getByRole('option', { name: /Open account/ }))
+    .toBeVisible();
+});
+
+it('does not repeat recent pages as default URL items', async () => {
+  await render(
+    <Docspot
+      search={({ query }) =>
+        query ? [{ url: '/account', title: 'Account' }] : []
+      }
+      defaultItems={[
+        { id: 'account-link', action: '/account', title: 'Open account' },
+      ]}
+      history
+      navigate={() => {}}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('account{Enter}');
+  await openSearch();
+  await expect
+    .element(page.getByRole('region', { name: 'Recent' }))
+    .toBeVisible();
+  await expect.element(page.getByRole('option')).toHaveLength(1);
+  await expect
+    .element(page.getByRole('option', { name: /Open account/ }))
+    .not.toBeInTheDocument();
+});
+
 it('previews a link to another site with its description, not the preview slot', async () => {
   await render(
     <Docspot

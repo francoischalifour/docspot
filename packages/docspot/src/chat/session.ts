@@ -6,7 +6,11 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-import type { StoredConversation, StoredMessage } from '@/core/storage';
+import {
+  parsePage,
+  type StoredConversation,
+  type StoredMessage,
+} from '@/core/storage';
 import { stripHash } from '@/core/url';
 import type {
   DocspotEvent,
@@ -31,14 +35,18 @@ export type DocspotQuestionMetadata = {
 export type Session = Chat<UIMessage>;
 
 const pendingResponses = new WeakMap<Session, Promise<void>>();
+const queuedQuestions = new WeakMap<Session, symbol>();
 const discardedSessions = new WeakSet<Session>();
 const sessionEvents = new WeakMap<Session, (event: DocspotEvent) => void>();
 
 /** The page attached to the latest question, if any. */
 export function getQuestionPage(messages: UIMessage[]) {
-  const metadata = messages.findLast(message => message.role === 'user')
-    ?.metadata as Partial<DocspotQuestionMetadata> | undefined;
-  return metadata?.page;
+  const metadata = messages.findLast(
+    message => message.role === 'user'
+  )?.metadata;
+  return metadata && typeof metadata === 'object' && 'page' in metadata
+    ? parsePage(metadata.page)
+    : undefined;
 }
 
 export function toConversation(
@@ -148,9 +156,10 @@ export function createSession(
 
 function track(chat: Session, response: Promise<void>) {
   pendingResponses.set(chat, response);
-  void response.finally(() => {
+  function clear() {
     if (pendingResponses.get(chat) === response) pendingResponses.delete(chat);
-  });
+  }
+  void response.then(clear, clear);
   return response;
 }
 
@@ -161,8 +170,17 @@ export async function ask(
   page: DocspotPage | undefined,
   source: DocspotQuestionSource
 ) {
-  await chat.stop();
-  await pendingResponses.get(chat)?.catch(() => {});
+  queuedQuestions.delete(chat);
+  const pending = pendingResponses.get(chat);
+  if (pending) {
+    // Only the newest replacement may start after the current answer stops.
+    const questionId = Symbol();
+    queuedQuestions.set(chat, questionId);
+    await chat.stop();
+    await pending.catch(() => {});
+    if (queuedQuestions.get(chat) !== questionId) return;
+    queuedQuestions.delete(chat);
+  }
   const text = question.trim();
   const attached = page && { url: page.url, title: page.title };
   const metadata: DocspotQuestionMetadata = {
@@ -180,7 +198,7 @@ export async function ask(
   return track(
     chat,
     chat.sendMessage(
-      { text, metadata },
+      { parts: [{ type: 'text', text }], metadata },
       { body: { [CONTEXT_FIELD]: { page: attached } } }
     )
   );
@@ -198,8 +216,13 @@ export function retry(chat: Session) {
   );
 }
 
+export function stop(chat: Session) {
+  queuedQuestions.delete(chat);
+  void chat.stop();
+}
+
 /** Stops a removed conversation without saving it again. */
 export function discard(chat: Session) {
   discardedSessions.add(chat);
-  void chat.stop();
+  stop(chat);
 }

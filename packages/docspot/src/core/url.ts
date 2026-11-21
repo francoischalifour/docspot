@@ -64,9 +64,16 @@ export type DocspotLinkOptions =
  * The page must render Docspot with `syncUrl`.
  */
 export function createDocspotUrl(url: string, options: DocspotLinkOptions) {
-  const base = 'https://docspot.invalid/__base__/';
-  const target = new URL(url, base);
-  const params = target.searchParams;
+  // Only the query changes. Resolving against a base would lose relative
+  // segments such as "../" before the caller knows the destination page.
+  const hashStart = url.indexOf('#');
+  const hash = hashStart < 0 ? '' : url.slice(hashStart);
+  const beforeHash = hashStart < 0 ? url : url.slice(0, hashStart);
+  const queryStart = beforeHash.indexOf('?');
+  const path = queryStart < 0 ? beforeHash : beforeHash.slice(0, queryStart);
+  const params = new URLSearchParams(
+    queryStart < 0 ? '' : beforeHash.slice(queryStart + 1)
+  );
   for (const name of [SEARCH_PARAM, ...CHAT_PARAMS]) params.delete(name);
   if ('search' in options) params.set(SEARCH_PARAM, options.search);
   else {
@@ -74,13 +81,7 @@ export function createDocspotUrl(url: string, options: DocspotLinkOptions) {
     else params.set('draft', options.draft);
     if (options.askPage) params.set('askPage', options.askPage);
   }
-  if (target.origin !== 'https://docspot.invalid') return target.href;
-  const path = url.startsWith('/')
-    ? target.pathname
-    : /^[?#]|^$/.test(url)
-      ? ''
-      : target.pathname.replace('/__base__/', '');
-  return `${path}${target.search}${target.hash}`;
+  return `${path}?${params}${hash}`;
 }
 
 /** The default adapter: the browser history, observing back and forward. */

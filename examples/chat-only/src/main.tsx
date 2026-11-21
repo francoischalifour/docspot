@@ -1,7 +1,7 @@
-import { DefaultChatTransport } from 'ai';
 import { Docspot, createDocspotUrl } from 'docspot';
 import { createChat } from 'docspot/chat';
 import { StrictMode, useEffect, useState } from 'react';
+import Markdown from 'react-markdown';
 import { createRoot } from 'react-dom/client';
 
 import 'docspot/styles.css';
@@ -9,7 +9,10 @@ import './style.css';
 import { findPage, pages } from './pages';
 
 const chat = createChat({
-  transport: new DefaultChatTransport({ api: '/api/chat' }),
+  async transport() {
+    const { DefaultChatTransport } = await import('ai');
+    return new DefaultChatTransport({ api: '/api/chat' });
+  },
 });
 
 function usePath() {
@@ -43,7 +46,15 @@ function App() {
               href={item.url}
               aria-current={item === page ? 'page' : undefined}
               onClick={event => {
-                if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+                if (
+                  event.defaultPrevented ||
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
                 event.preventDefault();
                 navigate(item.url);
               }}
@@ -56,7 +67,7 @@ function App() {
           chat={chat}
           history
           syncUrl
-          navigate={url => navigate(url)}
+          navigate={navigate}
           context={{
             page: { url: page.url, title: page.title, prompts: page.prompts },
             prompts: ['What can I build with Acme?'],
@@ -68,15 +79,7 @@ function App() {
       </header>
       <main className="content">
         <article>
-          {page.markdown
-            .split('\n\n')
-            .map((block, index) =>
-              index === 0 ? (
-                <h1 key={index}>{block.replace(/^# /, '')}</h1>
-              ) : (
-                <p key={index}>{block}</p>
-              )
-            )}
+          <Markdown>{page.markdown}</Markdown>
           <p>
             <a
               href={createDocspotUrl(page.url, {

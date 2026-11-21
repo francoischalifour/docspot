@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, useRef } from 'react';
 import { expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -24,6 +24,82 @@ async function openSearch() {
   await page.getByRole('button', { name: 'Search or ask docs' }).click();
   await expect.element(searchInput()).toHaveFocus();
 }
+
+it('scopes shortcuts and the fixed chat inset to its owner', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  function ScopedDocspot() {
+    const owner = useRef<HTMLDivElement>(null);
+    return (
+      <div ref={owner} data-testid="owner" tabIndex={-1}>
+        <Docspot.Root owner={owner} search={() => results} chat={chat}>
+          <Docspot.SearchTrigger />
+          <Docspot.ChatTrigger />
+          <Docspot.SearchDialog />
+          <Docspot.ChatPanel launcher={false} />
+        </Docspot.Root>
+      </div>
+    );
+  }
+  await render(<ScopedDocspot />);
+  const owner = page.getByTestId('owner');
+  owner.element().focus();
+  await userEvent.keyboard(
+    modifier === 'Meta' ? '{Meta>}k{/Meta}' : '{Control>}k{/Control}'
+  );
+  await expect.element(searchInput()).toHaveFocus();
+  await userEvent.keyboard('{Escape}{Escape}');
+
+  await owner.getByRole('button', { name: 'Ask AI' }).click();
+  await expect.element(panel()).toBeVisible();
+  expect(owner.element().getAttribute('data-docspot-chat-open')).toBe('fixed');
+  expect(document.documentElement.hasAttribute('data-docspot-chat-open')).toBe(
+    false
+  );
+});
+
+it('routes shortcuts to the closest owner that handles them', async () => {
+  function NestedOwners() {
+    const outer = useRef<HTMLElement>(null);
+    const inner = useRef<HTMLElement>(null);
+    return (
+      <>
+        <button>Outside</button>
+        <section ref={outer}>
+          <button>Outer content</button>
+          <Docspot
+            owner={outer}
+            search={() => []}
+            messages={{ search: { title: 'Outer search' } }}
+          />
+          <section ref={inner}>
+            <button>Inner content</button>
+            <Docspot
+              owner={inner}
+              search={() => []}
+              messages={{ search: { title: 'Inner search' } }}
+            />
+          </section>
+        </section>
+      </>
+    );
+  }
+  await render(<NestedOwners />);
+  await page.getByRole('button', { name: 'Outside' }).click();
+  await userEvent.keyboard('/');
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+  await page.getByRole('button', { name: 'Inner content' }).click();
+  await userEvent.keyboard('/');
+  await expect
+    .element(page.getByRole('dialog', { name: 'Inner search' }))
+    .toBeVisible();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+  await page.getByRole('button', { name: 'Outer content' }).click();
+  await userEvent.keyboard('/');
+  await expect
+    .element(page.getByRole('dialog', { name: 'Outer search' }))
+    .toBeVisible();
+});
 
 it('uses the messages written for asking when chat is available', async () => {
   const { chat } = createChatServer(() => ({ text: 'Answer.' }));
@@ -107,8 +183,9 @@ it('offers one way to ask from search, previewed without a second input', async 
   await expect
     .element(preview.getByText('“how do I join tables?”'))
     .toBeVisible();
-  await expect.element(preview.getByText('Query data')).toBeVisible();
-  await expect.element(preview.getByText('Enter to ask')).toBeVisible();
+  await expect
+    .element(preview.getByText('Page context: Query data'))
+    .toBeVisible();
   await expect.element(preview.getByRole('button')).not.toBeInTheDocument();
   expect(
     searchDialog().element().querySelectorAll('input, textarea')
@@ -214,6 +291,19 @@ it('opens search from a link', async () => {
   await expect
     .element(page.getByRole('option', { name: /HTTP API/ }))
     .toBeVisible();
+});
+
+it('keeps browser navigation from being overwritten by a pending query write', async () => {
+  history.replaceState(null, '', '/docs?q=earlier');
+  await render(<Docspot search={() => results} syncUrl />);
+  await expect.element(searchInput()).toHaveValue('earlier');
+  await userEvent.keyboard(' later');
+
+  history.replaceState(null, '', '/docs?q=history');
+  dispatchEvent(new PopStateEvent('popstate'));
+  await expect.element(searchInput()).toHaveValue('history');
+  await new Promise(resolve => setTimeout(resolve, 350));
+  expect(location.search).toBe('?q=history');
 });
 
 it('composes surfaces and controls them with useDocspot', async () => {
