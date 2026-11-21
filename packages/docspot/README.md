@@ -12,10 +12,10 @@ Documentation search and AI chat for React. Use search, chat, or both: Docspot p
 npm install docspot
 ```
 
-Docspot requires React 19.2 or later. Chat also requires the AI SDK (`ai` 5 and `@ai-sdk/react` 2), and the MiniSearch integration requires `minisearch` 7:
+Docspot requires React 19.2 or later. Chat also requires the AI SDK (`ai` 5 to 7, with the matching `@ai-sdk/react` 2 to 4), and the MiniSearch integration requires `minisearch` 6 or 7:
 
 ```sh
-npm install ai@5 @ai-sdk/react@2   # for chat
+npm install ai @ai-sdk/react       # for chat
 npm install minisearch             # for docspot/minisearch
 ```
 
