@@ -76,6 +76,7 @@ type PageContext = { follow: true } | { page: DocspotPage | undefined };
 
 export type DocspotConfig = {
   chatPanelId: string;
+  owner: HTMLElement | Document | null;
   search: DocspotSearch | undefined;
   canSearch: boolean;
   canChat: boolean;
@@ -162,6 +163,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     search,
     chat,
     id,
+    owner: ownerRef,
     context,
     loadPage,
     defaultItems,
@@ -202,9 +204,16 @@ export function DocspotRoot(props: DocspotRootProps) {
   const resolvePage = context?.resolvePage;
 
   const emit = useEffectEvent((event: DocspotEvent) => onEvent?.(event));
+  // Read refs after the whole tree commits, including an enclosing owner.
+  const [owner, setOwner] = useState<HTMLElement | Document | null>(null);
+  useEffect(() => {
+    const next = ownerRef ? ownerRef.current : document;
+    if (next !== owner) setOwner(next);
+  });
   const chatPanelId = useId();
   const config: DocspotConfig = {
     chatPanelId,
+    owner,
     search,
     canSearch,
     canChat,
@@ -636,9 +645,11 @@ export function DocspotRoot(props: DocspotRootProps) {
     }
   });
   useEffect(() => {
-    window.addEventListener('keydown', onGlobalKeyDown);
-    return () => window.removeEventListener('keydown', onGlobalKeyDown);
-  }, []);
+    if (!owner) return;
+    const onKeyDown = (event: Event) => onGlobalKeyDown(event as KeyboardEvent);
+    owner.addEventListener('keydown', onKeyDown);
+    return () => owner.removeEventListener('keydown', onKeyDown);
+  }, [owner]);
 
   const preloadSearch = useMemo(
     () =>

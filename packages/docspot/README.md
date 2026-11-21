@@ -134,6 +134,27 @@ function AskAboutThisPage() {
 }
 ```
 
+For several Docspot instances, use `owner` to scope shortcuts and the fixed
+chat panel's layout variables to a section. The default owner is the document.
+An instance responds while focus is inside its owner, so nested owners let the
+closest instance handle the shortcut.
+
+```tsx
+import { useRef } from 'react';
+
+function SupportPane() {
+  const owner = useRef<HTMLElement>(null);
+  return (
+    <section ref={owner}>
+      <Docspot.Root owner={owner} chat={chat}>
+        <Docspot.ChatTrigger />
+        <Docspot.ChatPanel />
+      </Docspot.Root>
+    </section>
+  );
+}
+```
+
 | Component               | Renders                                                                  |
 | ----------------------- | ------------------------------------------------------------------------ |
 | `Docspot.Trigger`       | The search trigger when search is configured, otherwise the chat trigger |
@@ -174,6 +195,7 @@ Triggers accept button props. Their `onClick` runs first, and calling `event.pre
 | `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
 | `history`      | Persists history. Without it, history lasts until the page reloads                                                                   |
 | `id`           | Scopes persisted history, for several instances on one origin                                                                        |
+| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                              |
 | `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
 | `slots`        | Components that replace parts of the interface                                                                                       |
 | `messages`     | Interface text overrides                                                                                                             |
@@ -436,8 +458,8 @@ Every other class name is internal and may change in any release.
 
 The panel fills the screen on phones, floats over the page from 768 px, and docks beside the page from 1280 px. Its width is resizable there and persists with `history`.
 
-- `dock="fixed"` (default) pins the docked panel to the window's right edge and sets `--docspot-chat-inset` on the root element while it is open, for the page to pad by.
-- The root element carries `--docspot-chat-width`, the panel's resized width, for layouts that make room for it.
+- `dock="fixed"` (default) pins the docked panel to the window's right edge and sets `--docspot-chat-inset` on the owner element (the document root by default) while it is open, for the page to pad by.
+- The owner element carries `--docspot-chat-width`, the panel's resized width, for layouts that make room for it.
 - `dock="inline"` docks it as a flex item where it is rendered, so the page beside it shrinks.
 
 ## History

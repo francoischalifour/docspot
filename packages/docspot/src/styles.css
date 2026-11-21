@@ -1187,7 +1187,7 @@
   }
 
   /* Pages beside a fixed panel can pad by this much to stay readable. */
-  :root[data-docspot-chat-open='fixed'] {
+  [data-docspot-chat-open='fixed'] {
     --docspot-chat-inset: var(--docspot-chat-width, 25rem);
   }
 }

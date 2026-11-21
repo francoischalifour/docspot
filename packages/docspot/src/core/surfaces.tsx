@@ -263,16 +263,20 @@ function ChatPanelFrame({
 
   // Pages beside the docked panel read these to make room for it.
   useLayoutEffect(() => {
-    const root = document.documentElement;
-    if (width) root.style.setProperty('--docspot-chat-width', `${width}px`);
-    else root.style.removeProperty('--docspot-chat-width');
-    if (isOpen) root.setAttribute('data-docspot-chat-open', dock);
-    else root.removeAttribute('data-docspot-chat-open');
+    if (!config.owner) return;
+    const owner =
+      'documentElement' in config.owner
+        ? config.owner.documentElement
+        : config.owner;
+    if (width) owner.style.setProperty('--docspot-chat-width', `${width}px`);
+    else owner.style.removeProperty('--docspot-chat-width');
+    if (isOpen) owner.setAttribute('data-docspot-chat-open', dock);
+    else owner.removeAttribute('data-docspot-chat-open');
     return () => {
-      root.style.removeProperty('--docspot-chat-width');
-      root.removeAttribute('data-docspot-chat-open');
+      owner.style.removeProperty('--docspot-chat-width');
+      owner.removeAttribute('data-docspot-chat-open');
     };
-  }, [width, isOpen, dock]);
+  }, [config.owner, width, isOpen, dock]);
 
   const Panel = runtime?.Panel;
 

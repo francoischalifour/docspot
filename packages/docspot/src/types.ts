@@ -1,4 +1,4 @@
-import type { ComponentType, MouseEvent, ReactNode } from 'react';
+import type { ComponentType, MouseEvent, ReactNode, RefObject } from 'react';
 
 import type { DocspotMessagesInput } from '@/messages';
 import type { recentItems } from '@/search/items';
@@ -239,6 +239,12 @@ export type DocspotChat = { readonly [chatBrand]: true };
 type DocspotSharedProps = {
   /** Scopes persisted history, for several Docspot instances on one origin. */
   id?: string;
+  /**
+   * Limits keyboard shortcuts and the docked chat inset to this element.
+   * Defaults to the document. Focus an element inside the owner before using
+   * a shortcut.
+   */
+  owner?: RefObject<HTMLElement | null>;
   context?: DocspotContextInput;
   /** Loads a page's content when a question uses it as context. */
   loadPage?: DocspotLoadPage;
