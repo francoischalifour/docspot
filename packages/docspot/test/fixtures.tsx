@@ -5,8 +5,8 @@ import {
   createUIMessageStreamResponse,
 } from 'ai';
 
-import { createChat } from '../src/chat';
-import type { DocspotLinkItem } from '../src';
+import { createChat } from '@/chat';
+import type { DocspotLinkItem } from '@/index';
 
 export const results: DocspotLinkItem[] = [
   {

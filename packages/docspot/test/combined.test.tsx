@@ -8,8 +8,8 @@ import {
   type DocspotPage,
   type DocspotSearch,
   useDocspot,
-} from '../src';
-import { createChatServer, lastQuestion, results } from './fixtures';
+} from '@/index';
+import { createChatServer, lastQuestion, results } from '@test/fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>

@@ -1,4 +1,4 @@
-import type { DocspotPage } from '../types';
+import type { DocspotPage } from '@/types';
 
 const VERSION = 1;
 export const RECENT_PAGE_LIMIT = 5;

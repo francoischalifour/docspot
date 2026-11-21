@@ -4,6 +4,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@/': new URL('src/', import.meta.url).pathname,
+      '@test/': new URL('test/', import.meta.url).pathname,
+    },
+  },
   // Prebundled up front, so a lazily imported module never reloads a test
   // with a second copy of React.
   optimizeDeps: {

@@ -6,20 +6,20 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-import type { StoredConversation, StoredMessage } from '../core/storage';
+import type { StoredConversation, StoredMessage } from '@/core/storage';
 import type {
   DocspotEvent,
   DocspotLoadPage,
   DocspotPage,
   DocspotPageContent,
   DocspotQuestionSource,
-} from '../types';
+} from '@/types';
 import {
   CONTEXT_FIELD,
   type ChatSessionOptions,
   type DocspotRequestContext,
-} from './contract';
-import { getMessageText } from './messages';
+} from '@/chat/contract';
+import { getMessageText } from '@/chat/messages';
 
 export type DocspotQuestionMetadata = {
   question: string;

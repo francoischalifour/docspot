@@ -12,9 +12,9 @@ import {
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import type { StoredConversation } from '../core/storage';
-import type { DocspotMessages } from '../messages';
-import type { DocspotPage } from '../types';
+import type { StoredConversation } from '@/core/storage';
+import type { DocspotMessages } from '@/messages';
+import type { DocspotPage } from '@/types';
 import {
   ArrowUpRightIcon,
   ChatIcon,
@@ -28,18 +28,18 @@ import {
   RetryIcon,
   SendIcon,
   StopIcon,
-} from '../ui/icons';
-import { CopyButton, IconButton, Menu, Shimmer } from '../ui/primitives';
-import { Suggestions, Welcome, getPrompts } from '../ui/Suggestions';
-import type { ChatPanelProps } from './contract';
+} from '@/ui/icons';
+import { CopyButton, IconButton, Menu, Shimmer } from '@/ui/primitives';
+import { Suggestions, Welcome, getPrompts } from '@/ui/Suggestions';
+import type { ChatPanelProps } from '@/chat/contract';
 import {
   completeStreamingMarkdown,
   getAnswerProgress,
   getMessageText,
   getMetadataTime,
   hasMessageContent,
-} from './messages';
-import { ReadingAnchor, Scroller } from './Scroller';
+} from '@/chat/messages';
+import { ReadingAnchor, Scroller } from '@/chat/Scroller';
 import {
   type Session,
   ask as askSession,
@@ -47,7 +47,7 @@ import {
   getQuestionPage,
   retry,
   toConversation,
-} from './session';
+} from '@/chat/session';
 
 function samePage(a: DocspotPage | undefined, b: DocspotPage | undefined) {
   return (a?.url.split('#')[0] ?? null) === (b?.url.split('#')[0] ?? null);

@@ -9,9 +9,9 @@ import {
   useState,
 } from 'react';
 
-import { prefersReducedMotion } from '../core/platform';
-import { ArrowDownIcon } from '../ui/icons';
-import { cx } from '../ui/primitives';
+import { prefersReducedMotion } from '@/core/platform';
+import { ArrowDownIcon } from '@/ui/icons';
+import { cx } from '@/ui/primitives';
 
 const END_TOLERANCE = 8;
 

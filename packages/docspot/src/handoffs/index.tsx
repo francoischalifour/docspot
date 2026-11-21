@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { DocspotHandoff, DocspotHandoffContext } from '../types';
+import type { DocspotHandoff, DocspotHandoffContext } from '@/types';
 
 export type ChatHandoffOptions = {
   /**

@@ -9,10 +9,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import type { ChatRuntime, ChatSession } from '../chat/contract';
-import { getChatInternals } from '../chat/contract';
-import { type DocspotMessages, resolveMessages } from '../messages';
-import type { recentItems } from '../search/items';
+import type { ChatRuntime, ChatSession } from '@/chat/contract';
+import { getChatInternals } from '@/chat/contract';
+import { type DocspotMessages, resolveMessages } from '@/messages';
+import type { recentItems } from '@/search/items';
 import type {
   DocspotEvent,
   DocspotHandoff,
@@ -24,7 +24,7 @@ import type {
   DocspotItem,
   DocspotSlots,
   DocspotUrlAdapter,
-} from '../types';
+} from '@/types';
 import {
   createModuleLoader,
   isChatBesidePage,
@@ -32,26 +32,26 @@ import {
   isElementVisible,
   isTypingTarget,
   useIdlePreload,
-} from './platform';
+} from '@/core/platform';
 import {
   type DocspotStores,
   type StoredConversation,
   addConversation,
   createStores,
-} from './storage';
+} from '@/core/storage';
 import {
   browserUrlAdapter,
   readChatLink,
   readSearchQuery,
   removeChatLink,
   writeSearchQuery,
-} from './url';
+} from '@/core/url';
 
 // The URL follows the typed query once typing pauses.
 const QUERY_URL_DELAY_MS = 300;
 
 export const searchDialogLoader = /* @__PURE__ */ createModuleLoader(
-  () => import('../search/SearchDialog')
+  () => import('@/search/SearchDialog')
 );
 
 /** What another surface, such as search, hands to chat. */
