@@ -43,6 +43,17 @@ it('groups highlighted results, previews the active one, and opens it with Enter
   await expect.element(searchDialog()).not.toBeInTheDocument();
 });
 
+it('marks matching text in titles from a search provider without highlights', async () => {
+  await render(
+    <Docspot search={() => [{ title: 'Configuration', url: '/config' }]} />
+  );
+  await openSearch();
+  await userEvent.keyboard('config');
+  await expect
+    .element(page.getByRole('option').getByText('Config', { exact: true }))
+    .toHaveProperty('tagName', 'MARK');
+});
+
 it('keeps the preview beside search on small screens while a query loads', async () => {
   await page.viewport(390, 800);
   try {

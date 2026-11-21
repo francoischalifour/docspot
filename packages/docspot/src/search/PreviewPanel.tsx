@@ -353,23 +353,14 @@ function AskPreview({
           <div>
             <p className="docspot-ask-preview-text">{text}</p>
             {page && (
-              <span className="docspot-context-chip">
-                <span className="docspot-context-chip-label">
-                  <PageIcon size={12} className="docspot-muted" />
-                  <span className="docspot-truncate">
-                    <span className="docspot-sr-only">
-                      {messages.chat.pageContext}
-                    </span>
-                    {page.title ?? page.url}
-                  </span>
+              <p className="docspot-ask-context">
+                <PageIcon size={14} />
+                <span>
+                  {messages.chat.pageContext}
+                  {page.title ?? page.url}
                 </span>
-              </span>
+              </p>
             )}
-            <p className="docspot-preview-hint">
-              {asked
-                ? messages.search.enterToAsk
-                : messages.search.continueChat}
-            </p>
           </div>
         ) : (
           <Welcome

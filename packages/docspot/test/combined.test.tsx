@@ -183,8 +183,9 @@ it('offers one way to ask from search, previewed without a second input', async 
   await expect
     .element(preview.getByText('“how do I join tables?”'))
     .toBeVisible();
-  await expect.element(preview.getByText('Query data')).toBeVisible();
-  await expect.element(preview.getByText('Enter to ask')).toBeVisible();
+  await expect
+    .element(preview.getByText('Page context: Query data'))
+    .toBeVisible();
   await expect.element(preview.getByRole('button')).not.toBeInTheDocument();
   expect(
     searchDialog().element().querySelectorAll('input, textarea')

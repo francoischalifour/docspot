@@ -217,7 +217,9 @@ export function SearchDialog() {
                       id: `result:${entry.url}`,
                       kind: 'result',
                       result: entry,
-                      title: entry.highlights?.title ?? plain(entry.title),
+                      title:
+                        entry.highlights?.title ??
+                        highlightTerms(entry.title, terms),
                       recent: false,
                       query: trimmed,
                       sourceLabel: section.label,
@@ -226,7 +228,6 @@ export function SearchDialog() {
                       id: `item:${entry.id}`,
                       kind: 'item',
                       item: entry,
-                      // Providers mark results; items are marked here.
                       title: highlightTerms(entry.title, terms),
                       query: trimmed,
                       sourceLabel: section.label,
@@ -787,8 +788,19 @@ export function SearchDialog() {
               </span>
               {messages.toNavigate}
             </span>
-            <span>
-              <Kbd keys={['enter']} /> {messages.toOpen}
+            <span
+              title={
+                activeItem?.kind === 'ask' && !activeItem.conversation
+                  ? messages.enterToAsk
+                  : undefined
+              }
+            >
+              <Kbd keys={['enter']} />{' '}
+              {activeItem?.kind === 'ask'
+                ? activeItem.conversation
+                  ? messages.continueChat
+                  : messages.askAi
+                : messages.toOpen}
             </span>
           </div>
           <span
