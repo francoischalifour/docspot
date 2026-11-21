@@ -59,7 +59,7 @@ export const defaultMessages = {
   chat: {
     title: 'Ask AI',
     launcher: 'Ask AI',
-    opening: 'Opening chat…',
+    opening: 'Opening chat',
     startupFailed: 'Couldn’t open chat.',
     welcome: 'Ask AI about these docs',
     newChat: 'New chat',

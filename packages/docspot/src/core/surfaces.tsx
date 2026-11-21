@@ -12,7 +12,7 @@ import {
 import { flushSync } from 'react-dom';
 
 import { CloseIcon, SearchIcon } from '@/ui/icons';
-import { IconButton, Kbd, cx } from '@/ui/primitives';
+import { IconButton, Kbd, Shimmer, cx } from '@/ui/primitives';
 import { searchDialogLoader, useDocspotInternal } from '@/core/Root';
 import {
   isChatBesidePage,
@@ -357,9 +357,11 @@ function ChatPanelFrame({
             </div>
             <div className="docspot-chat-startup">
               <span role="status">
-                {chat.retryStartup
-                  ? messages.chat.startupFailed
-                  : messages.chat.opening}
+                {chat.retryStartup ? (
+                  messages.chat.startupFailed
+                ) : (
+                  <Shimmer>{messages.chat.opening}</Shimmer>
+                )}
               </span>
               {chat.retryStartup && (
                 <button

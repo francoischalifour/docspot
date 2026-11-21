@@ -24,7 +24,7 @@ import {
 } from '@/core/platform';
 import { addRecentPage } from '@/core/storage';
 import { LoadingIcon, SearchIcon } from '@/ui/icons';
-import { Kbd, cx } from '@/ui/primitives';
+import { Kbd, Shimmer, cx } from '@/ui/primitives';
 import { getPrompts } from '@/ui/Suggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import { PreviewPanel } from '@/search/PreviewPanel';
@@ -648,13 +648,15 @@ export function SearchDialog() {
                 <div className="docspot-search-empty">
                   <SearchIcon size={20} className="docspot-subtle" />
                   <p className="docspot-search-empty-title">
-                    {isLoading
-                      ? messages.loading
-                      : hasError
-                        ? messages.error
-                        : query
-                          ? messages.noResults(state.query)
-                          : messages.emptyTitle}
+                    {isLoading ? (
+                      <Shimmer>{messages.loading}</Shimmer>
+                    ) : hasError ? (
+                      messages.error
+                    ) : query ? (
+                      messages.noResults(state.query)
+                    ) : (
+                      messages.emptyTitle
+                    )}
                   </p>
                   {(hasError || isLoading || query) && (
                     <p className="docspot-search-empty-hint">

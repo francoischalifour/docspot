@@ -375,14 +375,16 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .docspot-shimmer {
     background-image: none;
     color: var(--docspot-muted);
     -webkit-text-fill-color: currentColor;
     animation: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
   .docspot-spin {
     animation: none;
   }

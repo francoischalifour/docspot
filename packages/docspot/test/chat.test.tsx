@@ -424,7 +424,7 @@ it('retries startup once and keeps a linked question for a manual retry', async 
     .mockRejectedValueOnce(new Error('Offline'));
   history.replaceState(null, '', '?prompt=Pending&lang=en');
   await render(<Docspot chat={createChat({ transport: load })} syncUrl />);
-  await expect.element(panel().getByText('Opening chat…')).toBeVisible();
+  await expect.element(panel().getByText('Opening chat')).toBeVisible();
   await expect.element(panel().getByText('Couldn’t open chat.')).toBeVisible();
   expect(load).toHaveBeenCalledTimes(2);
   expect(requests).toHaveLength(0);
@@ -468,7 +468,7 @@ it('drops a pending linked question when chat closes during startup', async () =
       syncUrl
     />
   );
-  await expect.element(panel().getByText('Opening chat…')).toBeVisible();
+  await expect.element(panel().getByText('Opening chat')).toBeVisible();
   await panel().getByRole('button', { name: 'Hide Ask AI' }).click();
   release();
   expect(location.search).toBe('?lang=en');
