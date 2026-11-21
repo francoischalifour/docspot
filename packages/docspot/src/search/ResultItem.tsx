@@ -140,7 +140,7 @@ export function ResultItem({
         : item.kind === 'ask' &&
           !item.prompt && (
             <p className="docspot-result-path" data-ask="">
-              {item.query
+              {item.query && !config.slots.preview
                 ? messages.quotedQuery(item.query)
                 : item.conversation
                   ? messages.continueChat

@@ -11,7 +11,7 @@ import { type ChatRequest, useDocspotInternal } from '@/core/Root';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { stripHash } from '@/core/url';
 import type { DocspotResult } from '@/types';
-import { ExternalIcon, PageIcon } from '@/ui/icons';
+import { ExternalIcon, PageIcon, QuestionIcon, SendIcon } from '@/ui/icons';
 import { cx } from '@/ui/primitives';
 import { Welcome, getPrompts } from '@/ui/Suggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
@@ -68,7 +68,11 @@ export function PreviewPanel({
               onSelect={onSelect}
             />
           ) : deferredItem ? (
-            <AskPreview item={deferredItem} onStartChat={onStartChat} />
+            <AskPreview
+              item={deferredItem}
+              onStartChat={onStartChat}
+              onSelect={() => onSelect(deferredItem)}
+            />
           ) : isLoading ? (
             <PreviewLoading />
           ) : null}
@@ -325,46 +329,62 @@ function ItemPreview({
   );
 }
 
-/**
- * Shows what asking sends: the question and the page attached to it. The
- * search input stays the only place to edit the question.
- */
 function AskPreview({
   item,
   onStartChat,
+  onSelect,
 }: {
   item: AskEntry;
   onStartChat: (request?: ChatRequest) => void;
+  onSelect: () => void;
 }) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
-  const messages = config.messages;
-  const { query, conversation } = item;
-  // A suggested question previews like a typed one.
-  const asked = query || item.prompt;
-  const page = asked ? config.currentPage : undefined;
-  const text = asked ? messages.search.quotedQuery(asked) : conversation?.title;
+  const { search, chat } = config.messages;
+  const page = config.currentPage;
   return (
-    <section
-      aria-label={messages.search.askPreview}
-      className="docspot-ask-preview"
-    >
+    <section aria-label={search.askPreview} className="docspot-ask-preview">
       <div className="docspot-ask-preview-inner">
-        {text ? (
-          <div>
-            <p className="docspot-ask-preview-text">{text}</p>
-            {page && (
-              <p className="docspot-ask-context">
-                <PageIcon size={14} />
-                <span>
-                  {messages.chat.pageContext}
-                  {page.title ?? page.url}
-                </span>
+        {item.query || item.prompt ? (
+          <div className="docspot-ask-ready">
+            <span className="docspot-ask-preview-icon">
+              <QuestionIcon size={22} />
+            </span>
+            <div>
+              <h3 className="docspot-ask-preview-title">{chat.welcome}</h3>
+              <p className="docspot-ask-preview-description">
+                {search.askPreviewDescription}
               </p>
+            </div>
+            {page && (
+              <div className="docspot-ask-context">
+                <PageIcon size={16} />
+                <div>
+                  <div className="docspot-ask-context-label">
+                    {search.askContextLabel}
+                  </div>
+                  <div className="docspot-ask-context-title">
+                    {page.title ?? page.url}
+                  </div>
+                  <div className="docspot-ask-context-hint">
+                    {search.askContextHint}
+                  </div>
+                </div>
+              </div>
             )}
+            <button
+              type="button"
+              className="docspot-button docspot-ask-send"
+              onClick={onSelect}
+            >
+              <SendIcon size={16} />
+              {chat.send}
+            </button>
           </div>
+        ) : item.conversation?.title ? (
+          <p className="docspot-ask-preview-title">{item.conversation.title}</p>
         ) : (
           <Welcome
-            title={messages.chat.welcome}
+            title={chat.welcome}
             questions={getPrompts(config.currentPage, config.prompts)}
             onChoose={question =>
               onStartChat({

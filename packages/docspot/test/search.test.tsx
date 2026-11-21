@@ -54,7 +54,7 @@ it('marks matching text in titles from a search provider without highlights', as
     .toHaveProperty('tagName', 'MARK');
 });
 
-it('keeps the preview beside search on small screens while a query loads', async () => {
+it('shows previews only when the search viewport is at least 640px wide', async () => {
   await page.viewport(390, 800);
   try {
     let finish!: (results: DocspotResult[]) => void;
@@ -69,16 +69,23 @@ it('keeps the preview beside search on small screens while a query loads', async
     );
     await openSearch();
     await userEvent.keyboard('http');
-    const searching = page
-      .getByRole('paragraph')
-      .filter({ hasText: /^Searching$/ });
-    const preview = page.getByRole('status', { name: 'Loading preview' });
-    await expect.element(preview).toBeVisible();
-    expect(
-      searching.element().getBoundingClientRect().right
-    ).toBeLessThanOrEqual(preview.element().getBoundingClientRect().left);
+    await expect
+      .element(page.getByRole('paragraph').filter({ hasText: /^Searching$/ }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('status', { name: 'Loading preview' }))
+      .not.toBeInTheDocument();
+
+    await page.viewport(640, 800);
+    await expect
+      .element(page.getByRole('status', { name: 'Loading preview' }))
+      .toBeVisible();
     finish(results);
     await expect.element(page.getByText('Example preview')).toBeVisible();
+
+    await page.viewport(639, 800);
+    await expect.element(page.getByText('Example preview')).not.toBeVisible();
+    await expect.element(page.getByRole('option').first()).toBeVisible();
   } finally {
     await page.viewport(1440, 900);
   }

@@ -155,7 +155,7 @@ it('hands the query to chat with Tab, with the page being read attached', async 
   await expect.element(first).toHaveTextContent(/Continue chat/);
 });
 
-it('offers one way to ask from search, previewed without a second input', async () => {
+it('sends the search query from the Ask AI preview with the current page', async () => {
   const { chat, requests } = createChatServer(question => ({
     text: `About ${question}.`,
   }));
@@ -177,25 +177,23 @@ it('offers one way to ask from search, previewed without a second input', async 
     .not.toBeInTheDocument();
 
   await userEvent.keyboard('how do I join tables?');
-  const ask = page.getByRole('option', { name: /“how do I join tables\?”/ });
+  const ask = page.getByRole('option', { name: /Ask AI/ });
   await ask.hover();
   const preview = page.getByRole('region', { name: 'Ask AI' });
-  await expect
-    .element(preview.getByText('“how do I join tables?”'))
-    .toBeVisible();
-  await expect
-    .element(preview.getByText('Page context: Query data'))
-    .toBeVisible();
-  await expect.element(preview.getByRole('button')).not.toBeInTheDocument();
+  await expect.element(preview.getByText('Current page')).toBeVisible();
+  await expect.element(preview.getByText('Query data')).toBeVisible();
   expect(
     searchDialog().element().querySelectorAll('input, textarea')
   ).toHaveLength(1);
 
-  await userEvent.keyboard('{Tab}');
+  await preview.getByRole('button', { name: 'Send question' }).click();
   await expect
     .element(answers().getByText('About how do I join tables?.'))
     .toBeVisible();
   expect(requests).toHaveLength(1);
+  expect(requests[0]?.body.docspot?.page).toMatchObject({
+    url: `${location.origin}/docs/query`,
+  });
 });
 
 it('leads with Ask AI only when the search response prioritizes chat', async () => {

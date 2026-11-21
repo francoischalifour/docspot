@@ -661,9 +661,17 @@
   background: var(--docspot-background);
 }
 
-.docspot-search[data-preview] .docspot-search-results {
-  flex: 0 0 min(48%, clamp(340px, 40%, 400px));
-  border-inline-end: 1px solid var(--docspot-border);
+@media (width >= 640px) {
+  .docspot-search[data-preview] .docspot-search-results {
+    flex: 0 0 min(48%, clamp(340px, 40%, 400px));
+    border-inline-end: 1px solid var(--docspot-border);
+  }
+}
+
+@media (width < 640px) {
+  .docspot-search-preview {
+    display: none;
+  }
 }
 
 .docspot-search-empty {
@@ -838,15 +846,18 @@
 .docspot-result-excerpt {
   grid-row: 3;
   margin-top: 0.3125rem;
-}
-
-/* Without a preview pane, the list has room for two lines of excerpt. */
-.docspot-search:not([data-preview]) .docspot-result-excerpt {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   white-space: normal;
+}
+
+@media (width >= 640px) {
+  .docspot-search[data-preview] .docspot-result-excerpt {
+    display: block;
+    white-space: nowrap;
+  }
 }
 
 .docspot-result-excerpt .docspot-mark {
@@ -1064,50 +1075,91 @@
   padding: 3rem 1.25rem 2rem;
 }
 
-.docspot-ask-preview-text {
-  margin: 0 0 0.75rem;
-  font-size: var(--docspot-text-xl);
-  font-weight: 500;
-  line-height: 1.75rem;
+.docspot-ask-ready {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  max-width: 24rem;
   overflow-wrap: anywhere;
+}
+
+.docspot-ask-preview-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-surface);
+  background: var(--docspot-surface);
+}
+
+.docspot-ask-preview-title {
+  margin: 0;
+  font-size: var(--docspot-text-xl);
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.docspot-ask-preview-description {
+  margin: 0.375rem 0 0;
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-md);
 }
 
 .docspot-ask-context {
   display: flex;
-  align-items: baseline;
-  gap: 0.375rem;
-  margin: 0;
-  color: var(--docspot-muted);
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: var(--docspot-radius-item);
+  background: var(--docspot-surface);
   font-size: var(--docspot-text-sm);
-  overflow-wrap: anywhere;
 }
 
 .docspot-ask-context svg {
-  align-self: flex-start;
   flex-shrink: 0;
   margin-top: 0.125rem;
+  color: var(--docspot-muted);
 }
 
-@media (width < 640px) {
-  .docspot-search[data-preview] .docspot-result {
-    grid-template-columns: 1rem minmax(0, 1fr) auto;
-    column-gap: 0.375rem;
-    padding-inline: 0.375rem;
-  }
+.docspot-ask-context > div {
+  min-width: 0;
+}
 
-  .docspot-preview-scroll,
-  .docspot-preview-skeleton,
-  .docspot-preview-footer {
-    padding-inline: 0.75rem;
-  }
+.docspot-ask-context-label,
+.docspot-ask-context-hint {
+  color: var(--docspot-muted);
+  font-size: var(--docspot-text-xs);
+}
 
-  .docspot-preview-scroll {
-    overflow-wrap: anywhere;
-  }
+.docspot-ask-context-title {
+  margin-block: 0.125rem;
+  font-weight: 600;
+}
 
-  .docspot-preview-footer {
-    flex-wrap: wrap;
-  }
+.docspot-ask-send {
+  height: auto;
+  min-height: 2.25rem;
+  padding-block: 0.375rem;
+  border-color: transparent;
+  background: var(--docspot-primary);
+  color: var(--docspot-primary-foreground);
+}
+
+.docspot-ask-send svg {
+  flex-shrink: 0;
+}
+
+.docspot-ask-send:hover {
+  background: color-mix(
+    in oklab,
+    var(--docspot-primary) 88%,
+    var(--docspot-background)
+  );
 }
 
 /* ── Suggestions ─────────────────────────────────────────────────────── */

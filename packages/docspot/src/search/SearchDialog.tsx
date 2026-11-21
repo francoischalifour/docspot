@@ -266,9 +266,10 @@ export function SearchDialog() {
                   ? conversation.title
                   : messages.search.askAi,
                 query: trimmed,
-                sourceLabel: trimmed
-                  ? messages.search.askAbout(trimmed)
-                  : messages.search.askQuestion,
+                sourceLabel:
+                  trimmed && !config.slots.preview
+                    ? messages.search.askAbout(trimmed)
+                    : messages.search.askQuestion,
                 conversation: conversation ?? undefined,
               },
             ],
@@ -287,7 +288,9 @@ export function SearchDialog() {
       ...item,
       title: messages.askAi,
       query,
-      sourceLabel: messages.askAbout(query),
+      sourceLabel: config.slots.preview
+        ? messages.askQuestion
+        : messages.askAbout(query),
       conversation: undefined,
       prompt: undefined,
     };
