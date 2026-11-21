@@ -1,7 +1,7 @@
 import { afterEach } from 'vitest';
 import { cleanup } from 'vitest-browser-react';
 
-import '../src/styles.css';
+import '@/styles.css';
 
 afterEach(async () => {
   await cleanup();

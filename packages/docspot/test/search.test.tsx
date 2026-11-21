@@ -2,9 +2,9 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotItem, type DocspotSearch } from '../src';
-import { chatGptHandoff, claudeHandoff } from '../src/handoffs';
-import { createChatServer, lastQuestion, results, wait } from './fixtures';
+import { Docspot, type DocspotItem, type DocspotSearch } from '@/index';
+import { chatGptHandoff, claudeHandoff } from '@/handoffs';
+import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>

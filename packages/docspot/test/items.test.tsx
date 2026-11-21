@@ -8,8 +8,8 @@ import {
   type DocspotItem,
   defineItem,
   recentItems,
-} from '../src';
-import { results } from './fixtures';
+} from '@/index';
+import { results } from '@test/fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>

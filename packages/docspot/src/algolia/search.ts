@@ -1,11 +1,11 @@
-import { parseHighlightedString, plain } from '../search/model';
+import { parseHighlightedString, plain } from '@/search/model';
 import {
   countContentWords,
   getWords,
   isQuestion,
   shouldPrioritizeChat,
-} from '../search/intent';
-import type { DocspotSearch, DocspotLinkItem, HighlightedText } from '../types';
+} from '@/search/intent';
+import type { DocspotSearch, DocspotLinkItem, HighlightedText } from '@/types';
 
 const HIGHLIGHT_START = '__docspot_highlight__';
 const HIGHLIGHT_END = '__/docspot_highlight__';

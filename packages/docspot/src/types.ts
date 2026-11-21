@@ -1,7 +1,7 @@
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
-import type { DocspotMessagesInput } from './messages';
-import type { recentItems } from './search/items';
+import type { DocspotMessagesInput } from '@/messages';
+import type { recentItems } from '@/search/items';
 
 /** A run of text, marked when it matched the query. */
 export type HighlightSegment = { text: string; highlighted: boolean };

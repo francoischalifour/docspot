@@ -7,15 +7,20 @@ import {
   useLayoutEffect,
 } from 'react';
 
-import { type ChatRequest, useDocspotInternal } from '../core/Root';
-import { hasModifierKey, isExternalUrl } from '../core/platform';
-import type { DocspotLinkItem } from '../types';
-import { isLinkItem } from './items';
-import { ExternalIcon, PageIcon } from '../ui/icons';
-import { cx } from '../ui/primitives';
-import { Welcome, getPrompts } from '../ui/Suggestions';
-import { useScrollEdges } from '../ui/useScrollEdges';
-import type { AskItem, HandoffItem, ListItem, SearchItem } from './model';
+import { type ChatRequest, useDocspotInternal } from '@/core/Root';
+import { hasModifierKey, isExternalUrl } from '@/core/platform';
+import type { DocspotLinkItem } from '@/types';
+import { isLinkItem } from '@/search/items';
+import { ExternalIcon, PageIcon } from '@/ui/icons';
+import { cx } from '@/ui/primitives';
+import { Welcome, getPrompts } from '@/ui/Suggestions';
+import { useScrollEdges } from '@/ui/useScrollEdges';
+import type {
+  AskItem,
+  HandoffItem,
+  ListItem,
+  SearchItem,
+} from '@/search/model';
 
 export function PreviewPanel({
   activeItem,

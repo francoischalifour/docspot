@@ -1,6 +1,6 @@
 import type { DynamicToolUIPart, ToolUIPart, UIMessage } from 'ai';
 
-import type { DocspotMessages } from '../messages';
+import type { DocspotMessages } from '@/messages';
 
 export function isToolPart(
   part: UIMessage['parts'][number]

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { isQuestion, shouldPrioritizeChat } from '../src';
+import { isQuestion, shouldPrioritizeChat } from '@/index';
 
 it.each([
   'how to share a data app',
