@@ -8,6 +8,7 @@ import {
   type DocspotPage,
   useDocspot,
 } from '@/index';
+import { createChat } from '@/chat';
 import type { DocspotUrlAdapter } from '@/types';
 import { createChatServer, lastQuestion, wait } from '@test/fixtures';
 
@@ -411,4 +412,69 @@ it('starts a fresh session when the chat transport changes', async () => {
   await openChat();
   await userEvent.keyboard('Second question{Enter}');
   await expect.element(answers().getByText('Second answer.')).toBeVisible();
+});
+
+it('retries startup once and keeps a linked question for a manual retry', async () => {
+  const { transport, requests } = createChatServer(() => ({
+    text: 'Recovered.',
+  }));
+  const load = vi
+    .fn(async () => transport)
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockRejectedValueOnce(new Error('Offline'));
+  history.replaceState(null, '', '?prompt=Pending&lang=en');
+  await render(<Docspot chat={createChat({ transport: load })} syncUrl />);
+  await expect.element(panel().getByText('Opening chat…')).toBeVisible();
+  await expect.element(panel().getByText('Couldn’t open chat.')).toBeVisible();
+  expect(load).toHaveBeenCalledTimes(2);
+  expect(requests).toHaveLength(0);
+  await panel().getByRole('button', { name: 'Try again' }).click();
+  await expect.element(answers().getByText('Recovered.')).toBeVisible();
+  expect(requests.map(lastQuestion)).toEqual(['Pending']);
+  expect(location.search).toBe('?lang=en');
+});
+
+it('opens after a transient startup failure without asking the reader to retry', async () => {
+  const { transport, requests } = createChatServer(() => ({
+    text: 'Recovered.',
+  }));
+  const load = vi
+    .fn(async () => transport)
+    .mockRejectedValueOnce(new Error('Offline'));
+  history.replaceState(null, '', '?prompt=Pending');
+  await render(<Docspot chat={createChat({ transport: load })} syncUrl />);
+  await expect.element(answers().getByText('Recovered.')).toBeVisible();
+  expect(load).toHaveBeenCalledTimes(2);
+  expect(requests.map(lastQuestion)).toEqual(['Pending']);
+});
+
+it('drops a pending linked question when chat closes during startup', async () => {
+  const { transport, requests } = createChatServer(() => ({
+    text: 'Unexpected.',
+  }));
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  history.replaceState(null, '', '?prompt=Cancelled&lang=en');
+  await render(
+    <Docspot
+      chat={createChat({
+        transport: async () => {
+          await ready;
+          return transport;
+        },
+      })}
+      syncUrl
+    />
+  );
+  await expect.element(panel().getByText('Opening chat…')).toBeVisible();
+  await panel().getByRole('button', { name: 'Hide Ask AI' }).click();
+  release();
+  expect(location.search).toBe('?lang=en');
+  await openChat();
+  await expect
+    .element(panel().getByText('Ask AI about these docs'))
+    .toBeVisible();
+  expect(requests).toHaveLength(0);
 });

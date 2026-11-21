@@ -147,11 +147,9 @@ export function createChatServer(
     });
     return createUIMessageStreamResponse({ stream });
   };
-  const chat = createChat({
-    transport: new DefaultChatTransport({ api: '/api/chat', fetch }),
-    holdFirstStep,
-  });
-  return { chat, requests };
+  const transport = new DefaultChatTransport({ api: '/api/chat', fetch });
+  const chat = createChat({ transport, holdFirstStep });
+  return { chat, requests, transport };
 }
 
 export function lastQuestion(request: ChatRequestRecord | undefined) {

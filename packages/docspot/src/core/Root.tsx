@@ -117,6 +117,8 @@ export type SearchController = {
 
 export type ChatController = {
   isOpen: boolean;
+  retryStartup?: () => void;
+  focusStartup: boolean;
   runtime: ChatRuntime | undefined;
   session: ChatSession | null;
   draft: string;
@@ -197,7 +199,6 @@ export function DocspotRoot(props: DocspotRootProps) {
     () => (chat ? createModuleLoader(getChatInternals(chat).load) : null),
     [chat, stores]
   );
-  const activeLoader = useRef(chatLoader);
   const url: DocspotUrlAdapter | null =
     syncUrl === true ? browserUrlAdapter : syncUrl || null;
   const currentPage = context?.page;
@@ -334,9 +335,13 @@ export function DocspotRoot(props: DocspotRootProps) {
     () => defaultPanelState
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [runtime, setRuntime] = useState<ChatRuntime | undefined>(() =>
-    chatLoader?.get()
-  );
+  const runtime = chatLoader?.get();
+  const pendingOpen = useRef<{
+    request?: ChatRequest;
+    focus: boolean;
+    linkKey?: string;
+  } | null>(null);
+  const [startupFailed, setStartupFailed] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [pageContext, setPageContext] = useState<PageContext>({
     follow: true,
@@ -382,18 +387,10 @@ export function DocspotRoot(props: DocspotRootProps) {
   function setChatOpen(open: boolean) {
     if (open !== chatOpenRef.current)
       emit({ type: open ? 'chat.open' : 'chat.close' });
+    chatOpenRef.current = open;
     setIsChatOpen(open);
     // A full-screen panel would cover the page on the next visit.
     stores.panel.set(state => ({ ...state, open: open && isChatBesidePage() }));
-  }
-
-  function loadRuntime() {
-    return chatLoader?.load().then(loaded => {
-      if (activeLoader.current !== chatLoader) return;
-
-      setRuntime(() => loaded);
-      return loaded;
-    });
   }
 
   function saveConversation(conversation: StoredConversation) {
@@ -481,24 +478,58 @@ export function DocspotRoot(props: DocspotRootProps) {
     );
   }
 
-  function askChat(request?: ChatRequest, { focus = true } = {}) {
+  function consumeLink(key?: string) {
+    if (!key || !url || JSON.stringify(readChatLink(url.read())) !== key)
+      return;
+    url.write(removeChatLink(url.read()), { replace: true });
+    if (!readChatLink(url.read())) pendingLinkRef.current = null;
+  }
+
+  function askChat(
+    request?: ChatRequest,
+    { focus = true, linkKey }: { focus?: boolean; linkKey?: string } = {}
+  ) {
     if (!chatLoader) return warnMissing('chat', 'ask');
+    const previous = pendingOpen.current;
+    const intent = { request, focus, linkKey };
+    pendingOpen.current = intent;
+    if (previous?.linkKey !== linkKey) consumeLink(previous?.linkKey);
     showChat();
+    setStartupFailed(false);
+
     function settle(loaded: ChatRuntime) {
+      if (pendingOpen.current !== intent) return;
+      pendingOpen.current = null;
+      consumeLink(linkKey);
       applyRequest(loaded, request);
-      // After the request, so a replaced conversation's composer gets focus.
       if (focus) setFocusRequest(count => count + 1);
     }
-    // Usually preloaded, so the panel opens with its conversation at once.
+
     const loaded = chatLoader.get();
-    if (loaded) settle(loaded);
-    else
-      void loadRuntime()?.then(loaded => {
+    if (loaded) return settle(loaded);
+    const loader = chatLoader;
+    async function loadWithRetry() {
+      try {
+        return await loader.load();
+      } catch {
+        await new Promise(resolve => setTimeout(resolve, 350));
+        if (pendingOpen.current === intent) return loader.load();
+      }
+    }
+    void loadWithRetry().then(
+      loaded => {
         if (loaded) settle(loaded);
-      });
+      },
+      () => {
+        if (pendingOpen.current === intent) setStartupFailed(true);
+      }
+    );
   }
 
   function closeChat() {
+    const pending = pendingOpen.current;
+    pendingOpen.current = null;
+    consumeLink(pending?.linkKey);
     if (!chatOpenRef.current) return;
     setChatOpen(false);
     // After the launcher reappears, so focus can return to it.
@@ -543,13 +574,12 @@ export function DocspotRoot(props: DocspotRootProps) {
 
   // A pending load and its session belong to the same transport and history namespace.
   useLayoutEffect(() => {
-    activeLoader.current = chatLoader;
-    setRuntime(chatLoader?.get());
+    setStartupFailed(false);
     setSession(null);
     setIsChatOpen(false);
     setPageContext({ follow: true });
     return () => {
-      activeLoader.current = null;
+      pendingOpen.current = null;
       const current = sessionRef.current;
       if (current) chatLoader?.get()?.stop(current);
       sessionRef.current = null;
@@ -593,23 +623,17 @@ export function DocspotRoot(props: DocspotRootProps) {
     const linkKey = link && JSON.stringify(link);
     if (linkKey === pendingLinkRef.current) return;
     pendingLinkRef.current = linkKey;
-    if (link) {
-      void loadRuntime()?.then(loaded => {
-        if (!loaded) return;
-        // A newer location changed while the chat module was loading.
-        if (pendingLinkRef.current !== linkKey) return;
-        url.write(removeChatLink(url.read()), { replace: true });
-        // Browser history writes do not notify subscribers. Leave the same
-        // link eligible when a router later navigates to it again.
-        if (!readChatLink(url.read())) pendingLinkRef.current = null;
-        askChat({
+    if (link && linkKey) {
+      askChat(
+        {
           action: link.action,
           text: link.text,
           page: link.pageUrl ? resolveLinkPage(link.pageUrl) : undefined,
           source: 'url',
-        });
-      });
-    }
+        },
+        { linkKey }
+      );
+    } else if (pendingOpen.current?.linkKey) closeChat();
   });
   useEffect(() => {
     if (!url) return;
@@ -662,7 +686,12 @@ export function DocspotRoot(props: DocspotRootProps) {
     [search]
   );
   const preloadChat = useMemo(
-    () => (chatLoader ? () => void loadRuntime()?.catch(() => {}) : undefined),
+    () =>
+      chatLoader
+        ? () => {
+            if (!pendingOpen.current) void chatLoader.load().catch(() => {});
+          }
+        : undefined,
     [chatLoader]
   );
   useIdlePreload(preloadSearch);
@@ -693,6 +722,13 @@ export function DocspotRoot(props: DocspotRootProps) {
 
   const chatController: ChatController = {
     isOpen: isChatOpen,
+    focusStartup: pendingOpen.current?.focus ?? false,
+    retryStartup: startupFailed
+      ? () => {
+          const pending = pendingOpen.current;
+          if (pending) askChat(pending.request, pending);
+        }
+      : undefined,
     runtime,
     session,
     draft: panel.draft,
@@ -702,7 +738,10 @@ export function DocspotRoot(props: DocspotRootProps) {
     composerRef: attachComposer,
     width: panel.width,
     setWidth: width => stores.panel.set(state => ({ ...state, width })),
-    ask: askChat,
+    ask(request, options) {
+      if (!request && pendingOpen.current) return;
+      askChat(request, options);
+    },
     close: closeChat,
     toggle: toggleChat,
     getActiveConversation: () =>
@@ -774,7 +813,7 @@ export function useDocspot(): DocspotApi {
     startConversation: () => chat.ask({ action: 'reset' }),
     close() {
       if (search.isOpen) search.close();
-      if (chat.isOpen) chat.close();
+      chat.close();
     },
   };
 }

@@ -11,8 +11,8 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 
-import { SearchIcon } from '@/ui/icons';
-import { Kbd, cx } from '@/ui/primitives';
+import { CloseIcon, SearchIcon } from '@/ui/icons';
+import { IconButton, Kbd, cx } from '@/ui/primitives';
 import { searchDialogLoader, useDocspotInternal } from '@/core/Root';
 import {
   isChatBesidePage,
@@ -340,6 +340,39 @@ function ChatPanelFrame({
             });
           }}
         />
+        {isOpen && !session && (
+          <div className="docspot-chat-body">
+            <div className="docspot-chat-header">
+              <span className="docspot-startup-title">
+                {messages.chat.title}
+              </span>
+              <IconButton
+                side="left"
+                autoFocus={chat.focusStartup}
+                label={messages.chat.hide}
+                onClick={chat.close}
+              >
+                <CloseIcon size={16} />
+              </IconButton>
+            </div>
+            <div className="docspot-chat-startup">
+              <span role="status">
+                {chat.retryStartup
+                  ? messages.chat.startupFailed
+                  : messages.chat.opening}
+              </span>
+              {chat.retryStartup && (
+                <button
+                  type="button"
+                  className="docspot-button"
+                  onClick={chat.retryStartup}
+                >
+                  {messages.chat.retry}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         {session && Panel && (
           <Panel
             key={session.id}

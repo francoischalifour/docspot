@@ -1263,6 +1263,20 @@
   border-bottom: 1px solid var(--docspot-border);
 }
 
+.docspot-startup-title {
+  margin-inline: 0.5rem auto;
+  font-weight: 500;
+}
+
+.docspot-chat-startup {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  flex: 1;
+  gap: 0.75rem;
+  color: var(--docspot-muted);
+}
+
 .docspot-switcher {
   margin-right: auto;
   min-width: 0;

@@ -368,6 +368,8 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 
 `createChat` accepts any AI SDK `ChatTransport`, or a function that loads one when chat is first used. Set `holdFirstStep` for agents that narrate before they search, so only the answer streams.
 
+When chat opens, a failed runtime or transport load retries once after a short delay. If that attempt also fails, the panel offers **Try again**. A question waiting to be sent, including one from a `?prompt=` link, is sent once startup succeeds. Closing the panel cancels that pending question.
+
 ## Customization
 
 ### Slots
