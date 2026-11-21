@@ -53,6 +53,10 @@ export const defaultMessages = {
     run: 'Run',
     handoffDescription: 'Opens a new tab with your question.',
     askPreview: 'Ask AI',
+    askPreviewDescription:
+      'Send this question to chat, where you can ask follow-ups.',
+    askContextLabel: 'Current page',
+    askContextHint: 'Included with your question',
     enterToAsk: 'Enter to ask',
     continueChat: 'Continue chat',
   },
