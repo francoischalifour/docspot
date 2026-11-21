@@ -3,14 +3,14 @@ import type { SearchResult } from 'minisearch';
 
 import { highlightTerms } from '@/search/model';
 import type {
-  DocspotLinkItem,
+  DocspotResult,
   DocspotSearch,
   DocspotSearchParams,
 } from '@/types';
 
 /** What a MiniSearch document becomes in results: a page. */
 export type MiniSearchDocument = Omit<
-  DocspotLinkItem,
+  DocspotResult,
   'highlights' | 'excerpt'
 > & {
   /** Text to take the excerpt from: the passage that best matches. */
@@ -23,7 +23,7 @@ export type MiniSearchSearchOptions<T> = {
   /** Maps a hit, with its stored fields, to a result. */
   getDocument: (hit: SearchResult) => MiniSearchDocument;
   /** Runs the query. Defaults to `index.search(query)`. */
-  search?: (index: MiniSearch<T>, query: string) => SearchResult[];
+  search?: (params: { index: MiniSearch<T>; query: string }) => SearchResult[];
   /** Maximum results. Defaults to 10. */
   limit?: number;
   /** Maximum excerpt length in characters. Defaults to 180. */
@@ -75,15 +75,15 @@ function createExcerpt(text: string, terms: string[], maxLength = 180) {
 export function createMiniSearchSearch<T>({
   index,
   getDocument,
-  search = (miniSearch, query) => miniSearch.search(query),
+  search = ({ index, query }) => index.search(query),
   limit = 10,
   excerptLength = 180,
 }: MiniSearchSearchOptions<T>): DocspotSearch {
   let loaded: MiniSearch<T> | undefined;
   let loading: Promise<MiniSearch<T>> | undefined;
 
-  function run(miniSearch: MiniSearch<T>, query: string): DocspotLinkItem[] {
-    return search(miniSearch, query)
+  function run(miniSearch: MiniSearch<T>, query: string): DocspotResult[] {
+    return search({ index: miniSearch, query })
       .slice(0, limit)
       .map(hit => {
         const { content, ...document } = getDocument(hit);

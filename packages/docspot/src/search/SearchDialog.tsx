@@ -29,14 +29,13 @@ import { getPrompts } from '@/ui/Suggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import { PreviewPanel } from '@/search/PreviewPanel';
 import { ResultItem } from '@/search/ResultItem';
-import type { DocspotItem, DocspotLinkItem } from '@/types';
-import { getItemId, isLinkItem, recentItems } from '@/search/items';
+import type { DocspotResult } from '@/types';
+import { isResult, recentItems } from '@/search/items';
 import {
   type ItemSection,
   type SearchItem,
-  fromStoredPage,
-  getItemUrl,
-  groupItems,
+  getEntryUrl,
+  groupEntries,
   highlightTerms,
   matchItems,
   normalizeResponse,
@@ -129,11 +128,13 @@ export function SearchDialog() {
       ? []
       : stores.recentPages.get().filter(page => !isExternalUrl(page.url));
     let sections: ItemSection[];
-    let results: DocspotItem[] = [];
+    let results: DocspotResult[] = [];
     let prioritizeChat = false;
     const labels = {
-      page: trimmed ? messages.search.documentation : messages.search.suggested,
-      action: messages.search.actions,
+      result: trimmed
+        ? messages.search.documentation
+        : messages.search.suggested,
+      item: messages.search.actions,
     };
     if (trimmed) {
       // Items found by name come first: few, and named by what is typed.
@@ -147,7 +148,7 @@ export function SearchDialog() {
         );
         // A search that ignores the signal may still resolve.
         if (controller.signal.aborted) return supersede(controller);
-        results = response.items;
+        results = response.results;
         prioritizeChat = response.prioritizeChat;
         setErrorQuery(current => (current === trimmed ? null : current));
         config.emit({
@@ -160,16 +161,23 @@ export function SearchDialog() {
         setErrorQuery(trimmed);
         config.emit({ type: 'search.error', query: trimmed, error });
       }
-      sections = groupItems([...matched, ...results], labels);
+      sections = [
+        ...groupEntries([...matched, ...results], labels),
+        // Handoffs follow the results they can link to.
+        ...groupEntries(
+          config.handoffs.map(handoff => handoff({ query: trimmed, results })),
+          { result: labels.result, item: messages.search.handoffs }
+        ),
+      ];
     } else {
       const recentUrls = new Set(recentPages.map(page => page.url));
       const defaults = config.defaultItems.filter(
-        item =>
-          item === recentItems ||
-          !isLinkItem(item) ||
-          !recentUrls.has(item.action)
+        entry =>
+          entry === recentItems ||
+          !isResult(entry) ||
+          !recentUrls.has(entry.url)
       );
-      sections = groupItems(
+      sections = groupEntries(
         defaults.includes(recentItems) ? defaults : [recentItems, ...defaults],
         labels
       );
@@ -177,77 +185,61 @@ export function SearchDialog() {
     const select = ({ item }: { item: SearchItem }) =>
       latest.current.selectItem(item);
     const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
-      getItemUrl(item);
-    // Matches in local items are marked here; providers mark their own.
+      getEntryUrl(item);
     const terms = trimmed.split(/\s+/);
-    const resultSources: AutocompleteSource<SearchItem>[] = [
-      ...sections.flatMap(
-        (section, index): AutocompleteSource<SearchItem>[] => {
-          if (section.kind === 'recent')
-            return recentPages.length
-              ? [
-                  {
-                    sourceId: 'recent',
-                    getItems: () =>
-                      recentPages.map((page): SearchItem => {
-                        const item = fromStoredPage(page);
-                        return {
-                          id: `recent:${page.url}`,
-                          kind: 'item',
-                          item,
-                          title: plain(item.title),
-                          recent: true,
-                          query: '',
-                          sourceLabel: messages.search.recent,
-                        };
-                      }),
-                    getItemUrl: getSourceItemUrl,
-                    onSelect: select,
-                  },
-                ]
-              : [];
-          return [
-            {
-              sourceId: `group-${index}`,
-              getItems: () =>
-                section.items.map((item): SearchItem => ({
-                  id: getItemId(item),
-                  kind: 'item',
-                  item,
-                  title:
-                    item.highlights?.title ??
-                    (trimmed && !results.includes(item)
-                      ? highlightTerms(item.title, terms)
-                      : plain(item.title)),
-                  recent: false,
-                  query: trimmed,
-                  sourceLabel: section.label,
-                })),
-              getItemUrl: getSourceItemUrl,
-              onSelect: select,
-            },
-          ];
-        }
-      ),
-      ...(trimmed && config.handoffs.length
-        ? [
-            {
-              sourceId: 'handoffs',
-              getItems: () =>
-                config.handoffs.map((handoff): SearchItem => ({
-                  id: `handoff:${handoff.id}`,
-                  kind: 'handoff',
-                  handoff,
-                  url: handoff.getUrl(trimmed, { items: results }),
-                  query: trimmed,
-                  sourceLabel: messages.search.handoffs,
-                })),
-              getItemUrl: getSourceItemUrl,
-              onSelect: select,
-            },
-          ]
-        : []),
-    ];
+    const resultSources = sections.flatMap(
+      (section, index): AutocompleteSource<SearchItem>[] => {
+        if (section.kind === 'recent')
+          return recentPages.length
+            ? [
+                {
+                  sourceId: 'recent',
+                  getItems: () =>
+                    recentPages.map((result): SearchItem => ({
+                      id: `recent:${result.url}`,
+                      kind: 'result',
+                      result,
+                      title: plain(result.title),
+                      recent: true,
+                      query: '',
+                      sourceLabel: messages.search.recent,
+                    })),
+                  getItemUrl: getSourceItemUrl,
+                  onSelect: select,
+                },
+              ]
+            : [];
+        return [
+          {
+            sourceId: `group-${index}`,
+            getItems: () =>
+              section.entries.map((entry): SearchItem =>
+                isResult(entry)
+                  ? {
+                      id: `result:${entry.url}`,
+                      kind: 'result',
+                      result: entry,
+                      title: entry.highlights?.title ?? plain(entry.title),
+                      recent: false,
+                      query: trimmed,
+                      sourceLabel: section.label,
+                    }
+                  : {
+                      id: `item:${entry.id}`,
+                      kind: 'item',
+                      item: entry,
+                      // Providers mark results; items are marked here.
+                      title: highlightTerms(entry.title, terms),
+                      query: trimmed,
+                      sourceLabel: section.label,
+                    }
+              ),
+            getItemUrl: getSourceItemUrl,
+            onSelect: select,
+          },
+        ];
+      }
+    );
     if (!canChat) return resultSources;
     const conversation = trimmed ? null : chat.getActiveConversation();
     // With nothing else to list, the page's questions fill the list.
@@ -307,7 +299,7 @@ export function SearchDialog() {
   const activeItem =
     state.activeItemId === null ? undefined : items[state.activeItemId];
   const currentItems = items.filter(item => item.query === query);
-  const isListed = (item: SearchItem) => item.kind === 'item';
+  const isListed = (item: SearchItem) => item.kind !== 'ask';
   const pageItems = currentItems.filter(isListed);
   const isLoading = state.status === 'loading' || state.status === 'stalled';
   // While loading, the previous results stay until the new ones arrive.
@@ -360,7 +352,7 @@ export function SearchDialog() {
 
   function navigateItem(item: SearchItem, url: string) {
     if (item.kind === 'ask') return;
-    if (item.kind === 'handoff' || isExternalUrl(url)) {
+    if (isExternalUrl(url)) {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -370,33 +362,23 @@ export function SearchDialog() {
 
   function selectItem(selected: SearchItem) {
     const item = withLiveQuery(selected);
-    if (item.kind === 'item') {
-      const { item: chosen } = item;
-      config.emit({
-        type: 'search.select',
-        query: item.query,
-        item: chosen,
-        position: items.findIndex(entry => entry.id === selected.id),
-      });
-      if (isLinkItem(chosen)) {
-        // Recent pages are this site's pages, not links elsewhere.
-        if (!isExternalUrl(chosen.action))
-          stores.recentPages.set(pages =>
-            addRecentPage(pages, toStoredPage(chosen))
-          );
-        return;
-      }
+    const position = items.findIndex(entry => entry.id === selected.id);
+    if (item.kind === 'result') {
+      const { result, query } = item;
+      config.emit({ type: 'search.select', query, result, position });
+      // Recent pages are this site's pages, not links elsewhere.
+      if (!isExternalUrl(result.url))
+        stores.recentPages.set(pages =>
+          addRecentPage(pages, toStoredPage(result))
+        );
+    } else if (item.kind === 'item') {
+      const { item: chosen, query } = item;
+      config.emit({ type: 'search.select', query, item: chosen, position });
+      if (typeof chosen.action === 'string') return;
       // Closed first, so what the action opens, such as a dialog, takes the focus.
       close();
-      chosen.action({ query: item.query });
-    } else if (item.kind === 'handoff')
-      config.emit({
-        type: 'search.handoff',
-        query: item.query,
-        handoff: item.handoff.id,
-        url: item.url,
-      });
-    else if (item.conversation)
+      chosen.action({ query });
+    } else if (item.conversation)
       openChat({ action: 'resume', conversation: item.conversation });
     else if (item.prompt)
       openChat({ action: 'submit', text: item.prompt, source: 'prompt' });
@@ -442,10 +424,10 @@ export function SearchDialog() {
     statusTimeout.current = setTimeout(() => setStatus(null), 2000);
   }
 
-  async function copyLink(link: DocspotLinkItem) {
+  async function copyLink(result: DocspotResult) {
     try {
-      await navigator.clipboard.writeText(config.toSiteUrl(link.action));
-      announce(messages.linkCopied(link.title));
+      await navigator.clipboard.writeText(config.toSiteUrl(result.url));
+      announce(messages.linkCopied(result.title));
     } catch {
       // Clipboard access can be denied; the shortcut then does nothing.
     }
@@ -472,8 +454,8 @@ export function SearchDialog() {
       return;
     }
     const link =
-      canNavigate && activeItem.kind === 'item' && isLinkItem(activeItem.item)
-        ? activeItem.item
+      canNavigate && activeItem.kind === 'result'
+        ? activeItem.result
         : undefined;
     if (!isCommandKey(event, 'c') || event.repeat || !link) return;
     const target = event.target;
@@ -542,7 +524,7 @@ export function SearchDialog() {
               event.preventDefault();
               if (!canNavigate) return;
               selectItem(activeItem);
-              const url = getItemUrl(activeItem);
+              const url = getEntryUrl(activeItem);
               if (url) navigateItem(activeItem, url);
             }}
           >
@@ -784,8 +766,7 @@ export function SearchDialog() {
               onLeave={search.leave}
               onNotify={announce}
               onStartChat={openChat}
-              onHandoff={selectItem}
-              onRun={selectItem}
+              onSelect={selectItem}
             />
           )}
         </div>

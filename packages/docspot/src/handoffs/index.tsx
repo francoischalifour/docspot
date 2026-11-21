@@ -1,13 +1,18 @@
 import type { ReactNode } from 'react';
 
-import type { DocspotHandoff, DocspotHandoffContext } from '@/types';
+import { useDocspotInternal } from '@/core/Root';
+import type {
+  DocspotHandoff,
+  DocspotHandoffContext,
+  DocspotItemPreviewProps,
+} from '@/types';
 
 export type ChatHandoffOptions = {
   /**
    * The message the chat starts with. Defaults to the query; add a link to
    * the best result so the assistant reads your docs.
    */
-  prompt?: (query: string, context: DocspotHandoffContext) => string;
+  prompt?: (context: DocspotHandoffContext) => string;
   /** Item title. */
   title?: string;
   /** Explains the handoff in the preview. */
@@ -16,20 +21,41 @@ export type ChatHandoffOptions = {
   icon?: ReactNode;
 };
 
+/** Says what a handoff sends and where. */
+function HandoffPreview({ item, query }: DocspotItemPreviewProps) {
+  const { config } = useDocspotInternal('Docspot.SearchDialog');
+  const messages = config.messages.search;
+  return (
+    <>
+      <h2 className="docspot-preview-title">{item.title}</h2>
+      <p className="docspot-preview-text">{messages.quotedQuery(query)}</p>
+      <p className="docspot-preview-hint">
+        {item.description ?? messages.handoffDescription}
+      </p>
+    </>
+  );
+}
+
 function createChatHandoff(
-  defaults: Pick<DocspotHandoff, 'id' | 'title' | 'icon'> & { url: string },
-  { prompt = query => query, title, description, icon }: ChatHandoffOptions
-): DocspotHandoff {
-  return {
-    id: defaults.id,
-    title: title ?? defaults.title,
-    icon: icon ?? defaults.icon,
+  defaults: { id: string; title: string; icon: ReactNode; url: string },
+  {
+    prompt = ({ query }) => query,
+    title,
     description,
-    getUrl(query, context) {
-      const url = new URL(defaults.url);
-      url.searchParams.set('q', prompt(query, context));
-      return url.href;
-    },
+    icon,
+  }: ChatHandoffOptions
+): DocspotHandoff {
+  return context => {
+    const url = new URL(defaults.url);
+    url.searchParams.set('q', prompt(context));
+    return {
+      id: defaults.id,
+      title: title ?? defaults.title,
+      action: url.href,
+      icon: icon ?? defaults.icon,
+      description,
+      preview: HandoffPreview,
+    };
   };
 }
 

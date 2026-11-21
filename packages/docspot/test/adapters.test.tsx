@@ -78,17 +78,13 @@ const algolia = createAlgoliaSearch({
   appId: 'APP',
   apiKey: 'KEY',
   indices: ['Docs'],
-  mapUrl: url =>
-    url.startsWith('https://altertable.ai/')
-      ? url.slice('https://altertable.ai'.length)
-      : null,
-  getPage: url =>
-    url.startsWith('/docs/lakehouse/query/sql-explorer')
-      ? {
-          title: 'SQL Explorer',
-          hierarchy: ['Lakehouse', 'Query', 'SQL Explorer'],
-        }
-      : undefined,
+  transformResult: result => {
+    if (!result.url.startsWith('https://altertable.ai/')) return null;
+    const url = result.url.slice('https://altertable.ai'.length);
+    return url.startsWith('/docs/lakehouse/query/sql-explorer')
+      ? { ...result, url, breadcrumb: ['Lakehouse', 'Query', 'SQL Explorer'] }
+      : { ...result, url };
+  },
 });
 
 async function searchAlgolia(query: string) {
@@ -102,7 +98,7 @@ async function searchAlgolia(query: string) {
 
 it('normalizes Algolia records into grouped, highlighted, deduplicated results', async () => {
   const requests = stubAlgolia([]);
-  const { items: results, prioritizeChat } = await searchAlgolia('example');
+  const { results, prioritizeChat } = await searchAlgolia('example');
   expect(requests[0]?.url).toBe(
     'https://APP-dsn.algolia.net/1/indexes/*/queries?x-algolia-application-id=APP&x-algolia-api-key=KEY'
   );
@@ -115,7 +111,7 @@ it('normalizes Algolia records into grouped, highlighted, deduplicated results',
     query: 'example',
     hitsPerPage: 7,
   });
-  expect(results.map(result => result.action)).toEqual([
+  expect(results.map(result => result.url)).toEqual([
     '/docs/lakehouse/query/sql-explorer#example',
     '/docs/lakehouse/query/http-api',
   ]);
@@ -179,7 +175,7 @@ it('retries other hosts on server errors but not on client errors', async () => 
     new TypeError('network'),
     new Response('', { status: 503 }),
   ]);
-  expect((await searchAlgolia('example')).items).toHaveLength(2);
+  expect((await searchAlgolia('example')).results).toHaveLength(2);
   expect(requests.map(request => new URL(request.url).host)).toEqual([
     'app-dsn.algolia.net',
     'app-1.algolianet.com',
@@ -288,7 +284,7 @@ function createIndex() {
 }
 
 const getDocument = (hit: Record<string, any>) => ({
-  action: hit.id as string,
+  url: hit.id as string,
   title: hit.title,
   breadcrumb: [hit.section],
   group: hit.section,
@@ -303,7 +299,7 @@ it('searches a MiniSearch index synchronously with highlights and excerpts', () 
   });
   if (!Array.isArray(results)) throw new Error('Expected synchronous results');
   expect(results[0]).toMatchObject({
-    action: '/docs/options#margin',
+    url: '/docs/options#margin',
     group: 'Options',
     excerpt: 'The space outside the zoomed image.',
   });
@@ -321,7 +317,7 @@ it('loads a MiniSearch index on the first search', async () => {
   const search = createMiniSearchSearch({
     index: load,
     getDocument,
-    search: (index, query) => index.search(query, { prefix: true }),
+    search: ({ index, query }) => index.search(query, { prefix: true }),
   });
   const signal = new AbortController().signal;
   const first = await search({ query: 'backgr', signal });
@@ -346,7 +342,7 @@ it('loads a MiniSearch index ahead of the first search when preloaded', async ()
     query: 'margin',
     signal: new AbortController().signal,
   });
-  expect(Array.isArray(results) && results[0]?.action).toBe(
+  expect(Array.isArray(results) && results[0]?.url).toBe(
     '/docs/options#margin'
   );
 });

@@ -63,7 +63,7 @@ it('scopes persisted history by id', async () => {
 
 it('bounds recent pages to the five most recent', async () => {
   const many = Array.from({ length: 7 }, (_, index) => ({
-    action: `/docs/page-${index}`,
+    url: `/docs/page-${index}`,
     title: `Page ${index}`,
   }));
   await render(

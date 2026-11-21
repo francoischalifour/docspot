@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotItem, type DocspotSearch } from '@/index';
+import { Docspot, type DocspotResult, type DocspotSearch } from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
 import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
@@ -90,8 +90,8 @@ it('cancels outdated requests and never shows or opens a stale result', async ()
     signals[query] = signal;
     if (query === 'slow') await wait(400);
     return query === 'slow'
-      ? [{ action: '/stale', title: 'Stale result' }]
-      : [{ action: '/fresh', title: `Fresh ${query}` }];
+      ? [{ url: '/stale', title: 'Stale result' }]
+      : [{ url: '/fresh', title: `Fresh ${query}` }];
   };
   await render(<Docspot search={search} navigate={navigate} />);
   await openSearch();
@@ -201,19 +201,16 @@ it('offers the page questions as rows when there is nothing else to list', async
   expect(lastQuestion(requests[0])).toBe('Can I export results?');
 });
 
-it('leaves out breadcrumb parts the group heading already shows', async () => {
+it('shows the full breadcrumb, even the part the group heading names', async () => {
   await render(<Docspot search={() => results} />);
   await openSearch();
   await userEvent.keyboard('sql');
   const group = page.getByRole('region', { name: 'Lakehouse' });
   const section = group.getByRole('option', { name: /Example/ });
   await expect.element(section).toBeVisible();
-  // A section keeps its page; the group name is not repeated.
   expect(
     section.element().querySelector('.docspot-result-path')?.textContent
-  ).toBe('SQL Explorer');
-  const httpApi = group.getByRole('option', { name: /HTTP API/ });
-  expect(httpApi.element().querySelector('.docspot-result-path')).toBeNull();
+  ).toBe('Lakehouse › SQL Explorer');
 });
 
 it('reports failures, retries, and recovers from no matches', async () => {
@@ -271,9 +268,9 @@ it('toggles with the shortcut, once while held, and opens with slash', async () 
 });
 
 it('shows default results and recent pages before typing, with separate clearing', async () => {
-  const defaults: DocspotItem[] = [
-    { action: '/docs/start', title: 'Getting started' },
-    { action: '/docs/query/http-api', title: 'HTTP API' },
+  const defaults: DocspotResult[] = [
+    { url: '/docs/start', title: 'Getting started' },
+    { url: '/docs/query/http-api', title: 'HTTP API' },
   ];
   await render(
     <Docspot
@@ -333,15 +330,15 @@ it('copies the selected link with Mod+C but keeps copying selected query text', 
 
 it('renders slots for previews, page actions, and branding', async () => {
   function Preview({
-    item,
+    result,
     navigate,
   }: {
-    item: DocspotItem;
+    result: DocspotResult;
     navigate: (url: string) => void;
   }) {
     return (
       <div>
-        <p>Preview of {item.title}</p>
+        <p>Preview of {result.title}</p>
         <button type="button" onClick={() => navigate('/docs/related')}>
           Related
         </button>
@@ -355,8 +352,8 @@ it('renders slots for previews, page actions, and branding', async () => {
       navigate={navigate}
       slots={{
         preview: Preview,
-        pageActions: ({ item }) => (
-          <button type="button">Share {item.title}</button>
+        pageActions: ({ result }) => (
+          <button type="button">Share {result.title}</button>
         ),
         branding: () => <span>Search by Example</span>,
       }}
@@ -408,7 +405,7 @@ it('opens results on other sites in a new tab', async () => {
     <Docspot
       search={({ query }) => [
         {
-          action: `https://chat.example/?q=${encodeURIComponent(query)}`,
+          url: `https://chat.example/?q=${encodeURIComponent(query)}`,
           title: 'Ask Example',
           group: 'Open in chat',
         },
@@ -454,8 +451,7 @@ it('hands the query to other sites after the results, without recording it', asy
       search={() => results}
       handoffs={[
         chatGptHandoff({
-          prompt: (query, context) =>
-            `${query}\n\nRead ${context.items[0]!.action}`,
+          prompt: ({ query, results }) => `${query}\n\nRead ${results[0]!.url}`,
         }),
         claudeHandoff(),
       ]}
@@ -466,12 +462,11 @@ it('hands the query to other sites after the results, without recording it', asy
   await openSearch();
   await userEvent.keyboard('product');
   const chatGpt = page.getByRole('option', { name: /Ask ChatGPT/ });
-  await expect.element(chatGpt).toHaveTextContent('“product”');
   await expect
     .element(chatGpt)
     .toHaveAttribute(
       'href',
-      `https://chatgpt.com/?q=${encodeURIComponent(`product\n\nRead ${results[0]!.action}`).replaceAll('%20', '+')}`
+      `https://chatgpt.com/?q=${encodeURIComponent(`product\n\nRead ${results[0]!.url}`).replaceAll('%20', '+')}`
     );
   await expect
     .element(page.getByRole('option', { name: /Ask Claude/ }))
@@ -486,13 +481,37 @@ it('hands the query to other sites after the results, without recording it', asy
     'noopener,noreferrer'
   );
   expect(onEvent).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'search.handoff', handoff: 'chatgpt' })
+    expect.objectContaining({
+      type: 'search.select',
+      item: expect.objectContaining({ id: 'chatgpt' }),
+    })
   );
   await userEvent.keyboard('{Escape}');
   await expect.element(searchInput()).toHaveValue('');
   await expect
     .element(page.getByRole('region', { name: 'Recent' }))
     .not.toBeInTheDocument();
+});
+
+it('previews what a handoff sends', async () => {
+  await render(
+    <Docspot
+      search={() => []}
+      handoffs={[claudeHandoff()]}
+      slots={{ preview: () => <p>Page preview</p> }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('product');
+  await page.getByRole('option', { name: /Ask Claude/ }).hover();
+  const preview = page.getByRole('region', { name: 'Result preview' });
+  await expect.element(preview.getByText('“product”')).toBeVisible();
+  await expect
+    .element(preview.getByText('Opens a new tab with your question.'))
+    .toBeVisible();
+  await expect
+    .element(preview.getByRole('link', { name: 'Open in new tab' }))
+    .toHaveAttribute('href', 'https://claude.ai/new?q=product');
 });
 
 it('warms search when a reader shows intent to search', async () => {

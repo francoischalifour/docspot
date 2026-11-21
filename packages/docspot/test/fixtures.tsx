@@ -6,11 +6,11 @@ import {
 } from 'ai';
 
 import { createChat } from '@/chat';
-import type { DocspotLinkItem } from '@/index';
+import type { DocspotResult } from '@/index';
 
-export const results: DocspotLinkItem[] = [
+export const results: DocspotResult[] = [
   {
-    action: '/docs/query/sql-explorer#example',
+    url: '/docs/query/sql-explorer#example',
     title: 'Example',
     pageTitle: 'SQL Explorer',
     breadcrumb: ['Lakehouse', 'SQL Explorer'],
@@ -31,7 +31,7 @@ export const results: DocspotLinkItem[] = [
     },
   },
   {
-    action: '/docs/query/http-api',
+    url: '/docs/query/http-api',
     title: 'HTTP API',
     breadcrumb: ['Lakehouse'],
     group: 'Lakehouse',
@@ -39,7 +39,7 @@ export const results: DocspotLinkItem[] = [
     excerpt: 'Run a SQL query over HTTP.',
   },
   {
-    action: '/docs/agents/setup',
+    url: '/docs/agents/setup',
     title: 'Connect your agent',
     breadcrumb: ['Agents'],
     group: 'Agents',

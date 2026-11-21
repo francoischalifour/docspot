@@ -13,7 +13,7 @@ import {
 } from '@/ui/icons';
 import { isExternalUrl } from '@/core/platform';
 import { Kbd } from '@/ui/primitives';
-import { type SearchItem, getItemUrl, plain } from '@/search/model';
+import { type SearchItem, getEntryUrl, plain } from '@/search/model';
 
 export function Highlight({ value }: { value: HighlightedText }) {
   return value.map((segment, index) =>
@@ -89,24 +89,20 @@ export function ResultItem({
     itemProps['aria-selected'] === true ||
     itemProps['aria-selected'] === 'true';
 
-  const url = getItemUrl(item);
-  const listed = item.kind === 'item' ? item.item : undefined;
-  // The group heading already names the leading breadcrumb parts.
-  const breadcrumb = listed?.breadcrumb ?? [];
-  let skipped = 0;
-  while (breadcrumb[skipped] === item.sourceLabel) skipped++;
-  const isExternal = item.kind === 'handoff' || (url && isExternalUrl(url));
+  const url = getEntryUrl(item);
+  const result = item.kind === 'result' ? item.result : undefined;
+  const shortcut = item.kind === 'item' ? item.item.shortcut : undefined;
+  const breadcrumb = result?.breadcrumb ?? [];
+  const isExternal = url !== undefined && isExternalUrl(url);
 
   let icon;
   if (item.kind === 'ask') icon = <QuestionIcon />;
-  else if (item.kind === 'handoff')
-    icon = item.handoff.icon ?? <QuestionIcon />;
-  else if (item.item.icon) icon = item.item.icon;
+  else if (item.kind === 'item')
+    icon = item.item.icon ?? (url ? <PageIcon /> : <CommandIcon />);
   else if (ResultIcon)
-    icon = <ResultIcon item={item.item} recent={item.recent} />;
+    icon = <ResultIcon result={item.result} recent={item.recent} />;
   else if (item.recent) icon = <HistoryIcon />;
-  else if (!url) icon = <CommandIcon />;
-  else if (item.item.type === 'section') icon = <SectionIcon />;
+  else if (item.result.type === 'section') icon = <SectionIcon />;
   else icon = <PageIcon />;
 
   const content = (
@@ -115,47 +111,46 @@ export function ResultItem({
       <span className="docspot-result-icon">{icon}</span>
       <div
         className="docspot-result-title"
-        data-shortcut={listed?.shortcut ? '' : undefined}
+        data-shortcut={shortcut ? '' : undefined}
       >
-        {item.kind === 'item' ? (
+        {item.kind === 'ask' ? (
+          item.title
+        ) : (
           <>
             <span>
               <Highlight value={item.title} />
             </span>
-            {item.item.shortcut && (
+            {shortcut && (
               <span className="docspot-result-shortcut">
-                <Shortcut shortcut={item.item.shortcut} />
+                <Shortcut shortcut={shortcut} />
               </span>
             )}
           </>
-        ) : item.kind === 'handoff' ? (
-          item.handoff.title
-        ) : (
-          item.title
         )}
       </div>
-      {listed ? (
-        skipped < breadcrumb.length && (
-          <p className="docspot-result-path">
-            <BreadcrumbHighlight
-              parts={breadcrumb.slice(skipped)}
-              highlights={listed.highlights?.breadcrumb?.slice(skipped)}
-            />
-          </p>
-        )
-      ) : item.kind === 'ask' && item.prompt ? null : (
-        <p className="docspot-result-path" data-ask="">
-          {item.query
-            ? messages.quotedQuery(item.query)
-            : item.kind === 'ask' && item.conversation
-              ? messages.continueChat
-              : messages.askDescription}
-        </p>
-      )}
-      {listed && item.query && listed.excerpt && (
+      {result
+        ? breadcrumb.length > 0 && (
+            <p className="docspot-result-path">
+              <BreadcrumbHighlight
+                parts={breadcrumb}
+                highlights={result.highlights?.breadcrumb}
+              />
+            </p>
+          )
+        : item.kind === 'ask' &&
+          !item.prompt && (
+            <p className="docspot-result-path" data-ask="">
+              {item.query
+                ? messages.quotedQuery(item.query)
+                : item.conversation
+                  ? messages.continueChat
+                  : messages.askDescription}
+            </p>
+          )}
+      {result && item.query && result.excerpt && (
         <p className="docspot-result-excerpt">
           <Highlight
-            value={listed.highlights?.excerpt ?? plain(listed.excerpt)}
+            value={result.highlights?.excerpt ?? plain(result.excerpt)}
           />
         </p>
       )}
@@ -179,7 +174,7 @@ export function ResultItem({
         <a
           {...itemProps}
           href={url}
-          // Results on other sites, such as handoffs, open in a new tab.
+          // Links to other sites, such as handoffs, open in a new tab.
           target={isExternal ? '_blank' : undefined}
           rel={isExternal ? 'noopener noreferrer' : undefined}
           tabIndex={-1}

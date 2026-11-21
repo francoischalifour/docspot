@@ -1,4 +1,4 @@
-import type { DocspotItem, DocspotLinkItem } from '@/types';
+import type { DocspotItem, DocspotResult } from '@/types';
 
 /**
  * Marks where the reader's recent pages go in `defaultItems`. Without it,
@@ -9,17 +9,15 @@ export const recentItems: unique symbol = /* @__PURE__ */ Symbol.for(
 );
 
 /**
- * Declares an item for `items`, `defaultItems`, or search results, checking
- * its shape. Declare an item once to list it both before and after typing.
+ * Declares an item for `items` or `defaultItems`, checking its shape.
+ * Declare an item once to list it both before and after typing.
  */
 export function defineItem<const T extends DocspotItem>(item: T): T {
   return item;
 }
 
-export function isLinkItem(item: DocspotItem): item is DocspotLinkItem {
-  return typeof item.action === 'string';
-}
-
-export function getItemId(item: DocspotItem) {
-  return item.id ?? (item.action as string);
+export function isResult(
+  entry: DocspotResult | DocspotItem
+): entry is DocspotResult {
+  return 'url' in entry;
 }

@@ -6,6 +6,7 @@ import {
   Docspot,
   type DocspotEvent,
   type DocspotItem,
+  type DocspotResult,
   defineItem,
   recentItems,
 } from '@/index';
@@ -203,11 +204,11 @@ it('lists items before typing in the order given, actions among pages', async ()
       search={search}
       items={list}
       defaultItems={[
-        { action: '/docs/start', title: 'Introduction', group: 'Get started' },
+        { url: '/docs/start', title: 'Introduction', group: 'Get started' },
         theme!,
-        { action: '/docs/agents/setup', title: 'Connect', group: 'Popular' },
-        // Without a group, an action joins the actions; a page, the suggestions.
-        { action: '/docs/faq', title: 'FAQ' },
+        { url: '/docs/agents/setup', title: 'Connect', group: 'Popular' },
+        // Without a group, an item joins the actions; a page, the suggestions.
+        { url: '/docs/faq', title: 'FAQ' },
       ]}
       navigate={() => {}}
     />
@@ -223,13 +224,9 @@ it('lists items before typing in the order given, actions among pages', async ()
 });
 
 it('places recent pages where `recentItems` sits, or first without it', async () => {
-  const defaults = [
-    defineItem({
-      action: '/docs/start',
-      title: 'Introduction',
-      group: 'Get started',
-    }),
-    defineItem({ action: '/docs/faq', title: 'FAQ', group: 'Popular' }),
+  const defaults: DocspotResult[] = [
+    { url: '/docs/start', title: 'Introduction', group: 'Get started' },
+    { url: '/docs/faq', title: 'FAQ', group: 'Popular' },
   ];
   const screen = await render(
     <Docspot
@@ -260,13 +257,14 @@ it('places recent pages where `recentItems` sits, or first without it', async ()
   await expect.poll(regions).toEqual(['Recent', 'Get started', 'Popular']);
 });
 
-it('finds links among items by keyword, opening them as pages', async () => {
+it('finds links among items by keyword and opens them, outside recent pages', async () => {
   const navigate = vi.fn();
   await render(
     <Docspot
       search={search}
       items={[
         defineItem({
+          id: 'changelog',
           action: '/changelog',
           title: 'Changelog',
           keywords: ['releases'],
@@ -287,21 +285,17 @@ it('finds links among items by keyword, opening them as pages', async () => {
   expect(navigate).toHaveBeenCalledWith('/changelog', expect.anything());
   await openSearch();
   await expect
-    .element(
-      page.getByRole('region', { name: 'Recent' }).getByRole('option', {
-        name: /Changelog/,
-      })
-    )
-    .toBeVisible();
+    .element(page.getByRole('region', { name: 'Recent' }))
+    .not.toBeInTheDocument();
 });
 
-it('lists a page once when `items` and the search results both have it, whatever their ids', async () => {
+it('lists a URL once when `items` and the search results both have it', async () => {
   await render(
     <Docspot
-      search={() => [
-        { id: 'record-42', action: '/docs/query/http-api', title: 'HTTP API' },
+      search={() => [{ url: '/docs/query/http-api', title: 'HTTP API' }]}
+      items={[
+        { id: 'http-api', action: '/docs/query/http-api', title: 'HTTP API' },
       ]}
-      items={[{ action: '/docs/query/http-api', title: 'HTTP API' }]}
     />
   );
   await openSearch();
@@ -317,6 +311,7 @@ it('previews a link to another site with its description, not the preview slot',
       search={search}
       items={[
         {
+          id: 'github',
           action: 'https://github.com/example/repo',
           title: 'GitHub',
           description: 'Source code and issues.',
@@ -334,4 +329,32 @@ it('previews a link to another site with its description, not the preview slot',
   await expect
     .element(preview.getByText('Page preview'))
     .not.toBeInTheDocument();
+});
+
+it('previews an item with its own component, keeping the button that runs it', async () => {
+  const run = vi.fn();
+  await render(
+    <Docspot
+      search={search}
+      items={[
+        {
+          id: 'export',
+          title: 'Export',
+          action: run,
+          preview: ({ item, query }) => (
+            <p>
+              {item.title} for {query}
+            </p>
+          ),
+        },
+      ]}
+      slots={{ preview: () => <p>Page preview</p> }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('export');
+  const preview = page.getByRole('region', { name: 'Result preview' });
+  await expect.element(preview.getByText('Export for export')).toBeVisible();
+  await preview.getByRole('button', { name: 'Run' }).click();
+  expect(run).toHaveBeenCalledWith({ query: 'export' });
 });

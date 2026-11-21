@@ -5,13 +5,13 @@ import {
   isQuestion,
   shouldPrioritizeChat,
 } from '@/search/intent';
-import type { DocspotSearch, DocspotLinkItem, HighlightedText } from '@/types';
+import type { DocspotResult, DocspotSearch, HighlightedText } from '@/types';
 
 const HIGHLIGHT_START = '__docspot_highlight__';
 const HIGHLIGHT_END = '__/docspot_highlight__';
 
 /** A DocSearch-style record, as the Algolia Crawler produces. */
-type AlgoliaHit = {
+export type AlgoliaHit = {
   objectID: string;
   url: string;
   content?: string | null;
@@ -23,14 +23,6 @@ type AlgoliaHit = {
 };
 
 type AlgoliaResponse = { results: Array<{ hits: AlgoliaHit[] }> };
-
-/** What the site knows about a page, to title and place its results. */
-export type AlgoliaPageInfo = {
-  title: string;
-  /** Titles from the top level down, ending with the page's own title. */
-  hierarchy: string[];
-  description?: string;
-};
 
 export type AlgoliaSearchOptions = {
   appId: string;
@@ -45,14 +37,14 @@ export type AlgoliaSearchOptions = {
   /** Results per group. Defaults to 7. */
   maxPerGroup?: number;
   /**
-   * Turns a record's URL into the site's URL, for example to make it
-   * relative or to follow redirects. Returning null drops the record.
+   * Adjusts a result made from a record, for example to make its URL
+   * relative or to title and place it from the site's own pages. Returning
+   * null drops it. Highlights follow the returned text.
    */
-  mapUrl?: (url: string) => string | null;
-  /** Describes the page at a mapped URL, when the site knows it. */
-  getPage?: (url: string) => AlgoliaPageInfo | undefined;
-  /** Groups results without page information. Defaults to "Documentation". */
-  fallbackGroup?: string;
+  transformResult?: (
+    result: DocspotResult,
+    context: { hit: AlgoliaHit }
+  ) => DocspotResult | null;
 };
 
 function stripNumbering(title: string) {
@@ -66,6 +58,12 @@ function highlight(
   return value
     ? parseHighlightedString(value, HIGHLIGHT_START, HIGHLIGHT_END)
     : plain(fallback);
+}
+
+function unmark(value: string) {
+  return parseHighlightedString(value, HIGHLIGHT_START, HIGHLIGHT_END)
+    .map(segment => segment.text)
+    .join('');
 }
 
 function isCompleteMatch(hit: AlgoliaHit, contentWordCount: number) {
@@ -147,9 +145,7 @@ export function createAlgoliaSearch({
   indices,
   hitsPerPage = 7,
   maxPerGroup = 7,
-  mapUrl = url => url,
-  getPage,
-  fallbackGroup = 'Documentation',
+  transformResult = result => result,
 }: AlgoliaSearchOptions): DocspotSearch {
   const search: DocspotSearch = async ({ query, signal }) => {
     const question = isQuestion(query);
@@ -182,74 +178,60 @@ export function createAlgoliaSearch({
       signal
     );
     const hits = results.flatMap(result => result.hits);
-    const counts = new Map<string, number>();
+    const counts = new Map<string | undefined, number>();
     const seen = new Set<string>();
-    const normalized: DocspotLinkItem[] = [];
+    const normalized: DocspotResult[] = [];
     for (const hit of hits) {
-      const url = mapUrl(hit.url);
-      if (!url || seen.has(url)) continue;
-      const page = getPage?.(url);
       const hierarchy = Object.entries(hit.hierarchy).filter(
         (entry): entry is [string, string] => Boolean(entry[1])
       );
       const level = hit.type === 'content' ? hierarchy.at(-1)?.[0] : hit.type;
-      const title =
-        (level && hit.hierarchy[level]) || page?.title || hierarchy.at(-1)?.[1];
+      const title = (level && hit.hierarchy[level]) || hierarchy.at(-1)?.[1];
       if (!title) continue;
-      const parts =
-        page?.hierarchy ?? hierarchy.slice(0, 2).map(([, value]) => value);
-      const highlightedByText = new Map(
-        hierarchy.map(([key, text]) => [
-          text,
-          hit._highlightResult?.hierarchy?.[key]?.value,
-        ])
-      );
-      const breadcrumb = [
-        ...parts,
-        ...(title !== page?.title ? [title] : []),
-      ].slice(0, -1);
-      const group = parts[0] ?? fallbackGroup;
-      const count = counts.get(group) ?? 0;
-      if (count >= maxPerGroup) continue;
-      counts.set(group, count + 1);
-      seen.add(url);
+      // Marked text by its plain text, to highlight whatever a result shows.
+      const highlighted = new Map<string, string>();
+      for (const [key, text] of hierarchy) {
+        const value = hit._highlightResult?.hierarchy?.[key]?.value;
+        if (value) highlighted.set(stripNumbering(text), stripNumbering(value));
+      }
       const snippet = hit._snippetResult?.content?.value;
-      normalized.push({
-        id: hit.objectID,
-        action: url,
-        title: stripNumbering(title),
-        pageTitle: page?.title ?? hit.hierarchy.lvl1 ?? title,
-        breadcrumb,
-        excerpt: snippet
-          ? parseHighlightedString(snippet, HIGHLIGHT_START, HIGHLIGHT_END)
-              .map(segment => segment.text)
-              .join('')
-          : (hit.content ?? page?.description ?? undefined),
-        group,
-        type: hit.type === 'lvl0' || hit.type === 'lvl1' ? 'page' : 'section',
-        highlights: {
-          title: highlight(
-            level && hit._highlightResult?.hierarchy?.[level]?.value
-              ? stripNumbering(hit._highlightResult.hierarchy[level].value)
-              : undefined,
-            stripNumbering(title)
-          ),
-          breadcrumb: breadcrumb.map(part =>
-            highlight(highlightedByText.get(part), part)
-          ),
-          excerpt: snippet
-            ? parseHighlightedString(snippet, HIGHLIGHT_START, HIGHLIGHT_END)
-            : undefined,
+      const snippetText = snippet && unmark(snippet);
+      if (snippet && snippetText) highlighted.set(snippetText, snippet);
+      const result = transformResult(
+        {
+          url: hit.url,
+          title: stripNumbering(title),
+          pageTitle: hit.hierarchy.lvl1 ?? title,
+          breadcrumb: hierarchy.slice(0, 2).map(([, value]) => value),
+          excerpt: snippetText || (hit.content ?? undefined),
+          group: hierarchy[0]?.[1],
+          type: hit.type === 'lvl0' || hit.type === 'lvl1' ? 'page' : 'section',
+          data: hit,
         },
-        data: hit,
+        { hit }
+      );
+      if (!result || seen.has(result.url)) continue;
+      const count = counts.get(result.group) ?? 0;
+      if (count >= maxPerGroup) continue;
+      counts.set(result.group, count + 1);
+      seen.add(result.url);
+      const mark = (text: string) => highlight(highlighted.get(text), text);
+      const excerpt = result.excerpt && highlighted.get(result.excerpt);
+      normalized.push({
+        ...result,
+        highlights: {
+          title: mark(result.title),
+          breadcrumb: result.breadcrumb?.map(mark),
+          excerpt: excerpt ? highlight(excerpt, '') : undefined,
+        },
       });
     }
     const topHit = hits[0];
     return {
-      items: normalized,
+      results: normalized,
       prioritizeChat: shouldPrioritizeChat({
         query,
-        pageTitles: normalized.map(item => item.pageTitle ?? item.title),
+        pageTitles: normalized.map(result => result.pageTitle ?? result.title),
         hasResults: topHit !== undefined,
         hasCompleteMatch:
           topHit !== undefined &&
