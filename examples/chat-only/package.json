@@ -8,17 +8,17 @@
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@ai-sdk/react": "2.0.288",
-    "ai": "5.0.285",
+    "@ai-sdk/react": "4.0.180",
+    "ai": "7.0.176",
     "docspot": "workspace:*",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.2",
-    "vite": "7.3.1"
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "vite": "8.3.8"
   }
 }
