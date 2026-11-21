@@ -21,7 +21,6 @@ import {
   useVisualViewport,
 } from '@/core/platform';
 
-const CHAT_PANEL_ID = 'docspot-chat-panel';
 /** Matches the 25rem width the stylesheet docks the panel at. */
 const PANEL_DEFAULT_WIDTH = 400;
 const PANEL_MIN_WIDTH = 320;
@@ -102,7 +101,7 @@ export function ChatTrigger({
     <button
       type="button"
       aria-expanded={chat.isOpen}
-      aria-controls={CHAT_PANEL_ID}
+      aria-controls={config.chatPanelId}
       aria-keyshortcuts="Meta+J Control+J"
       className={cx('docspot-trigger docspot-chat-trigger', className)}
       onPointerEnter={chat.preload}
@@ -165,7 +164,7 @@ function ChatLauncher({ hidden }: { hidden: boolean }) {
         ref={chat.registerLauncher}
         type="button"
         aria-expanded={false}
-        aria-controls={CHAT_PANEL_ID}
+        aria-controls={config.chatPanelId}
         aria-keyshortcuts="Meta+J Control+J"
         onPointerEnter={chat.preload}
         onFocus={chat.preload}
@@ -281,7 +280,7 @@ function ChatPanelFrame({
     <>
       {launcher && <ChatLauncher hidden={isOpen} />}
       <aside
-        id={CHAT_PANEL_ID}
+        id={config.chatPanelId}
         ref={setElement}
         data-docspot-chat=""
         data-dock={dock}
@@ -349,6 +348,7 @@ function ChatPanelFrame({
             prompts={config.prompts}
             conversations={{
               list: config.stores.conversations.get,
+              subscribe: config.stores.conversations.subscribe,
               remove(id) {
                 config.stores.conversations.set(list =>
                   list.filter(item => item.id !== id)
@@ -445,7 +445,7 @@ function ResizeHandle({
       role="separator"
       aria-orientation="vertical"
       aria-label={messages.resize}
-      aria-controls={CHAT_PANEL_ID}
+      aria-controls={config.chatPanelId}
       aria-valuemin={PANEL_MIN_WIDTH}
       aria-valuemax={PANEL_MAX_WIDTH}
       aria-valuenow={Math.round(currentWidth)}

@@ -8,6 +8,7 @@ import {
   type DocspotPage,
   useDocspot,
 } from '@/index';
+import type { DocspotUrlAdapter } from '@/types';
 import { createChatServer, lastQuestion, wait } from '@test/fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
@@ -85,6 +86,19 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await userEvent.keyboard('{Enter}');
   await expect.element(answers()).toHaveLength(2);
   expect(requests[1]?.body.docspot?.page).toBeUndefined();
+});
+
+it('keeps completing inline Markdown after a streamed code block closes', async () => {
+  const { chat } = createChatServer(() => ({
+    chunks: ['```ts\nconst value = 1;\n```\n\nThis is **bold', ' text**.'],
+    chunkDelayMs: 500,
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('Show an example{Enter}');
+  await expect
+    .element(answers().getByText('bold', { exact: true }))
+    .toHaveProperty('tagName', 'STRONG');
 });
 
 it('shows tool progress, stops, and retries the latest answer in place', async () => {
@@ -171,6 +185,40 @@ it('replaces an in-flight answer when a new question arrives', async () => {
   await expect.element(answers().getByText('Second answer.')).toBeVisible();
   expect(requests[0]?.signal?.aborted).toBe(true);
   expect(lastQuestion(requests[1])).toBe('Second');
+});
+
+it('replaces the earlier question when submissions happen in one event', async () => {
+  const { chat, requests } = createChatServer(question =>
+    question === 'First'
+      ? { chunks: ['Slow first answer'], chunkDelayMs: 2000 }
+      : { text: 'Second answer.' }
+  );
+  function AskBothButton() {
+    const docspot = useDocspot();
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          docspot.submitQuestion('First');
+          docspot.submitQuestion('Second');
+        }}
+      >
+        Ask both
+      </button>
+    );
+  }
+  await render(
+    <Docspot.Root chat={chat}>
+      <Docspot.ChatTrigger />
+      <AskBothButton />
+      <Docspot.ChatPanel />
+    </Docspot.Root>
+  );
+  await page.getByRole('button', { name: 'Ask AI' }).first().click();
+  await page.getByRole('button', { name: 'Ask both' }).click();
+  await expect.element(answers().getByText('Second answer.')).toBeVisible();
+  expect(lastQuestion(requests.at(-1))).toBe('Second');
+  expect(requests[0]?.signal?.aborted).toBe(true);
 });
 
 it('restores the open panel, its conversation, and the draft after a reload', async () => {
@@ -268,6 +316,31 @@ it('opens from question links and removes them from the URL', async () => {
   expect(requests).toHaveLength(1);
 });
 
+it('opens the same question link again after router navigation', async () => {
+  let search = '?prompt=Ask%20again';
+  let notifyLocationChange: (() => void) | undefined;
+  const adapter: DocspotUrlAdapter = {
+    read: () => search,
+    write(next) {
+      search = next ? `?${next}` : '';
+    },
+    subscribe(listener) {
+      notifyLocationChange = listener;
+      return () => {
+        notifyLocationChange = undefined;
+      };
+    },
+  };
+  const { chat, requests } = createChatServer(() => ({ text: 'Again.' }));
+  await render(<Docspot chat={chat} syncUrl={adapter} />);
+  await expect.element(answers().getByText('Again.')).toBeVisible();
+  expect(search).toBe('');
+
+  search = '?prompt=Ask%20again';
+  notifyLocationChange?.();
+  await expect.poll(() => requests).toHaveLength(2);
+});
+
 it('closes with Escape and the shortcut, returning focus', async () => {
   const { chat } = createChatServer(() => ({ text: 'Hi.' }));
   await render(<Docspot chat={chat} />);
@@ -323,4 +396,19 @@ it('anchors a streamed answer at its start instead of following its end', async 
     },
     { timeout: 4000 }
   );
+});
+
+it('starts a fresh session when the chat transport changes', async () => {
+  const first = createChatServer(() => ({ text: 'First answer.' }));
+  const second = createChatServer(() => ({ text: 'Second answer.' }));
+  const screen = await render(<Docspot chat={first.chat} />);
+  await openChat();
+  await userEvent.keyboard('First question{Enter}');
+  await expect.element(answers().getByText('First answer.')).toBeVisible();
+
+  await screen.rerender(<Docspot chat={second.chat} />);
+  await expect.element(panel()).not.toBeInTheDocument();
+  await openChat();
+  await userEvent.keyboard('Second question{Enter}');
+  await expect.element(answers().getByText('Second answer.')).toBeVisible();
 });

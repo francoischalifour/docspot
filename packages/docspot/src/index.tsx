@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import { DocspotRoot } from '@/core/Root';
 import {
   ChatPanel,
@@ -10,20 +8,17 @@ import {
 } from '@/core/surfaces';
 import type { DocspotRootProps } from '@/types';
 
-export type DocspotProps = DocspotRootProps & {
-  /** Rendered after the default trigger, inside the Docspot context. */
-  children?: ReactNode;
-};
+export type DocspotProps = DocspotRootProps;
 
 /**
  * Documentation search and chat with a default trigger. For custom
  * placement, compose `Docspot.Root` with the individual surfaces instead.
  */
-function DocspotComponent({ children, ...props }: DocspotProps) {
+function DocspotComponent(props: DocspotProps) {
   return (
-    <DocspotRoot {...(props as DocspotRootProps)}>
+    <DocspotRoot {...props}>
       <Trigger />
-      {children}
+      {props.children}
       <SearchDialog />
       {/* The trigger opens search, which asks AI; add `Docspot.ChatTrigger`
           as a child for a separate way into chat. */}

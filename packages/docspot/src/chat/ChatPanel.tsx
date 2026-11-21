@@ -8,6 +8,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -48,6 +49,7 @@ import {
   discard,
   getQuestionPage,
   retry,
+  stop,
   toConversation,
 } from '@/chat/session';
 
@@ -74,7 +76,6 @@ export function ChatPanel({
     messages: chatMessages,
     status,
     error,
-    stop,
   } = useChat({ chat, experimental_throttle: 40 });
   const busy = status === 'submitted' || status === 'streaming';
   const { setFooter, footerHeight } = useFloatingFooter();
@@ -240,7 +241,7 @@ export function ChatPanel({
             onChange={onDraftChange}
             onSubmit={submitDraft}
             busy={busy}
-            onStop={() => void stop()}
+            onStop={() => stop(chat)}
             contextPage={contextPage}
             onRemoveContext={onRemoveContext}
             messages={messages}
@@ -272,8 +273,10 @@ function ConversationSwitcher({
   onSelect: (conversation: StoredConversation) => void;
   onDeleteCurrent: () => void;
 }) {
-  // Read on open, so the list includes conversations saved since.
-  const [saved, setSaved] = useState<StoredConversation[]>([]);
+  const saved = useSyncExternalStore(
+    conversations.subscribe,
+    conversations.list
+  );
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const list =
     current && !saved.some(item => item.id === current.id)
@@ -285,8 +288,7 @@ function ConversationSwitcher({
     <Menu
       className="docspot-switcher"
       onOpenChange={open => {
-        if (open) setSaved(conversations.list());
-        else setIsConfirmingClear(false);
+        if (!open) setIsConfirmingClear(false);
       }}
       trigger={props => (
         <button
@@ -317,7 +319,6 @@ function ConversationSwitcher({
                     icon: <DeleteIcon size={12} />,
                     onSelect: () => {
                       conversations.remove(conversation.id);
-                      setSaved(conversations.list());
                       if (isCurrent) onDeleteCurrent();
                     },
                   },
@@ -338,7 +339,6 @@ function ConversationSwitcher({
                     return;
                   }
                   conversations.clear();
-                  setSaved([]);
                   if (current) onDeleteCurrent();
                 },
               },

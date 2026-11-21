@@ -96,7 +96,7 @@ export function completeStreamingMarkdown(markdown: string): string {
 }
 
 function isInsideCodeFence(markdown: string) {
-  return countOf(markdown, '\n```') % 2 === 1 || markdown.startsWith('```');
+  return (markdown.match(/(?:^|\n)```/g)?.length ?? 0) % 2 === 1;
 }
 
 function countOf(text: string, token: string) {

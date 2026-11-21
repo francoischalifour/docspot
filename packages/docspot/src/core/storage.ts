@@ -1,8 +1,8 @@
 import type { DocspotPage } from '@/types';
 
 const VERSION = 1;
-export const RECENT_PAGE_LIMIT = 5;
-export const CONVERSATION_LIMIT = 20;
+const RECENT_PAGE_LIMIT = 5;
+const CONVERSATION_LIMIT = 20;
 
 export type StoredPage = {
   url: string;
@@ -41,7 +41,7 @@ export const defaultPanelState: PanelState = {
   draft: '',
 };
 
-export type Store<T> = {
+type Store<T> = {
   get: () => T;
   set: (update: T | ((current: T) => T)) => void;
   subscribe: (listener: () => void) => () => void;
@@ -65,12 +65,12 @@ function getStorage(): Storage | null {
   }
 }
 
-export function createStore<T>({
+function createStore<T>({
   key,
   fallback,
   parse,
   shrink,
-}: StoreOptions<T>): Store<T> {
+}: StoreOptions<T>): Store<T> & { onStorage: (event: StorageEvent) => void } {
   const listeners = new Set<() => void>();
   let value = fallback;
   let loaded = false;
@@ -134,6 +134,7 @@ export function createStore<T>({
 
   return {
     get,
+    onStorage,
     set(update) {
       const current = get();
       const next =
@@ -146,19 +147,13 @@ export function createStore<T>({
       notify();
     },
     subscribe(listener) {
-      if (listeners.size === 0 && key && typeof window !== 'undefined')
-        window.addEventListener('storage', onStorage);
       listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-        if (listeners.size === 0 && typeof window !== 'undefined')
-          window.removeEventListener('storage', onStorage);
-      };
+      return () => listeners.delete(listener);
     },
   };
 }
 
-export function getNamespace(id: string | undefined) {
+function getNamespace(id: string | undefined) {
   return id ? `docspot:${id}` : 'docspot';
 }
 
@@ -183,7 +178,7 @@ export function parsePage(value: unknown): DocspotPage | undefined {
   };
 }
 
-export function parseRecentPages(value: unknown): StoredPage[] | null {
+function parseRecentPages(value: unknown): StoredPage[] | null {
   if (!Array.isArray(value)) return null;
   return value
     .flatMap((entry): StoredPage[] => {
@@ -220,14 +215,14 @@ function isMessage(value: unknown): value is StoredMessage {
         isString(part.type) &&
         (part.type !== 'text' || isString(part.text)) &&
         (part.type !== 'source-url' ||
-          (isString(part.url) && isString(part.sourceId)))
+          (isString(part.url) &&
+            isString(part.sourceId) &&
+            (part.title === undefined || isString(part.title))))
     )
   );
 }
 
-export function parseConversations(
-  value: unknown
-): StoredConversation[] | null {
+function parseConversations(value: unknown): StoredConversation[] | null {
   if (!Array.isArray(value)) return null;
   return value
     .flatMap((entry): StoredConversation[] =>
@@ -249,7 +244,7 @@ export function parseConversations(
     .slice(0, CONVERSATION_LIMIT);
 }
 
-export function parsePanel(value: unknown): PanelState | null {
+function parsePanel(value: unknown): PanelState | null {
   if (!isRecord(value)) return null;
   return {
     open: value.open === true,
@@ -265,6 +260,7 @@ export function parsePanel(value: unknown): PanelState | null {
 }
 
 export type DocspotStores = {
+  sync: () => (() => void) | undefined;
   recentPages: Store<StoredPage[]>;
   conversations: Store<StoredConversation[]>;
   panel: Store<PanelState>;
@@ -279,7 +275,7 @@ export function createStores({
 }): DocspotStores {
   const namespace = getNamespace(id);
   const key = (name: string) => (persist ? `${namespace}:${name}` : null);
-  return {
+  const stores = {
     recentPages: createStore({
       key: key('recent-pages'),
       fallback: [],
@@ -297,6 +293,17 @@ export function createStores({
       fallback: defaultPanelState,
       parse: parsePanel,
     }),
+  };
+  return {
+    ...stores,
+    sync() {
+      if (!persist) return;
+      function onStorage(event: StorageEvent) {
+        for (const store of Object.values(stores)) store.onStorage(event);
+      }
+      window.addEventListener('storage', onStorage);
+      return () => window.removeEventListener('storage', onStorage);
+    },
   };
 }
 

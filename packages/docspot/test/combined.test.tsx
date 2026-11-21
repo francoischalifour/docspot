@@ -216,6 +216,19 @@ it('opens search from a link', async () => {
     .toBeVisible();
 });
 
+it('keeps browser navigation from being overwritten by a pending query write', async () => {
+  history.replaceState(null, '', '/docs?q=earlier');
+  await render(<Docspot search={() => results} syncUrl />);
+  await expect.element(searchInput()).toHaveValue('earlier');
+  await userEvent.keyboard(' later');
+
+  history.replaceState(null, '', '/docs?q=history');
+  dispatchEvent(new PopStateEvent('popstate'));
+  await expect.element(searchInput()).toHaveValue('history');
+  await new Promise(resolve => setTimeout(resolve, 350));
+  expect(location.search).toBe('?q=history');
+});
+
 it('composes surfaces and controls them with useDocspot', async () => {
   const { chat, requests } = createChatServer(question => ({
     text: `About ${question}.`,

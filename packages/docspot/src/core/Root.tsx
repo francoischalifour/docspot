@@ -3,6 +3,8 @@ import {
   use,
   useEffect,
   useEffectEvent,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -39,6 +41,7 @@ import {
   type StoredConversation,
   addConversation,
   createStores,
+  defaultPanelState,
 } from '@/core/storage';
 import {
   browserUrlAdapter,
@@ -72,6 +75,7 @@ export type ChatRequest =
 type PageContext = { follow: true } | { page: DocspotPage | undefined };
 
 export type DocspotConfig = {
+  chatPanelId: string;
   search: DocspotSearch | undefined;
   canSearch: boolean;
   canChat: boolean;
@@ -182,21 +186,25 @@ export function DocspotRoot(props: DocspotRootProps) {
     () => createStores({ id, persist: history }),
     [id, history]
   );
+  useEffect(stores.sync, [stores]);
   const messages = useMemo(
     () => resolveMessages(messageOverrides),
     [messageOverrides]
   );
   const chatLoader = useMemo(
     () => (chat ? createModuleLoader(getChatInternals(chat).load) : null),
-    [chat]
+    [chat, stores]
   );
+  const activeLoader = useRef(chatLoader);
   const url: DocspotUrlAdapter | null =
     syncUrl === true ? browserUrlAdapter : syncUrl || null;
   const currentPage = context?.page;
   const resolvePage = context?.resolvePage;
 
   const emit = useEffectEvent((event: DocspotEvent) => onEvent?.(event));
+  const chatPanelId = useId();
   const config: DocspotConfig = {
+    chatPanelId,
     search,
     canSearch,
     canChat,
@@ -267,7 +275,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     setSearchState(state => ({
       isOpen: true,
       query,
-      version: query ? state.version + 1 : state.version,
+      version: state.version + 1,
     }));
     if (!searchOpenRef.current) emit({ type: 'search.open' });
     writeQuery(query, searchOpenRef.current);
@@ -314,7 +322,7 @@ export function DocspotRoot(props: DocspotRootProps) {
   const panel = useSyncExternalStore(
     stores.panel.subscribe,
     stores.panel.get,
-    () => stores.panel.get()
+    () => defaultPanelState
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [runtime, setRuntime] = useState<ChatRuntime | undefined>(() =>
@@ -371,8 +379,9 @@ export function DocspotRoot(props: DocspotRootProps) {
   }
 
   function loadRuntime() {
-    if (!chatLoader) return Promise.reject(new Error('Chat is not configured'));
-    return chatLoader.load().then(loaded => {
+    return chatLoader?.load().then(loaded => {
+      if (activeLoader.current !== chatLoader) return;
+
       setRuntime(() => loaded);
       return loaded;
     });
@@ -474,7 +483,10 @@ export function DocspotRoot(props: DocspotRootProps) {
     // Usually preloaded, so the panel opens with its conversation at once.
     const loaded = chatLoader.get();
     if (loaded) settle(loaded);
-    else void loadRuntime().then(settle);
+    else
+      void loadRuntime()?.then(loaded => {
+        if (loaded) settle(loaded);
+      });
   }
 
   function closeChat() {
@@ -518,15 +530,24 @@ export function DocspotRoot(props: DocspotRootProps) {
   });
   useEffect(() => {
     if (canChat) restorePanel();
-  }, [canChat]);
+  }, [canChat, stores]);
 
-  useEffect(
-    () => () => {
+  // A pending load and its session belong to the same transport and history namespace.
+  useLayoutEffect(() => {
+    activeLoader.current = chatLoader;
+    setRuntime(chatLoader?.get());
+    setSession(null);
+    setIsChatOpen(false);
+    setPageContext({ follow: true });
+    return () => {
+      activeLoader.current = null;
       const current = sessionRef.current;
       if (current) chatLoader?.get()?.stop(current);
-    },
-    [chatLoader]
-  );
+      sessionRef.current = null;
+      focusPendingRef.current = false;
+      pendingLinkRef.current = null;
+    };
+  }, [chatLoader]);
 
   // ── URL ───────────────────────────────────────────────────────────────
   const pendingLinkRef = useRef<string | null>(null);
@@ -548,6 +569,7 @@ export function DocspotRoot(props: DocspotRootProps) {
         emit({ type: 'search.open' });
       } else if (query !== writtenQueryRef.current) {
         // A query from history or a link replaces what was typed.
+        clearTimeout(queryWriteRef.current);
         writtenQueryRef.current = query;
         setSearchState(state => ({
           ...state,
@@ -563,8 +585,14 @@ export function DocspotRoot(props: DocspotRootProps) {
     if (linkKey === pendingLinkRef.current) return;
     pendingLinkRef.current = linkKey;
     if (link) {
-      void loadRuntime().then(() => {
+      void loadRuntime()?.then(loaded => {
+        if (!loaded) return;
+        // A newer location changed while the chat module was loading.
+        if (pendingLinkRef.current !== linkKey) return;
         url.write(removeChatLink(url.read()), { replace: true });
+        // Browser history writes do not notify subscribers. Leave the same
+        // link eligible when a router later navigates to it again.
+        if (!readChatLink(url.read())) pendingLinkRef.current = null;
         askChat({
           action: link.action,
           text: link.text,
@@ -578,7 +606,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     if (!url) return;
     syncFromUrl();
     return url.subscribe(syncFromUrl);
-  }, [url]);
+  }, [url, canSearch, chatLoader]);
 
   // ── Shortcuts and preloading ──────────────────────────────────────────
   const onGlobalKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -623,14 +651,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     [search]
   );
   const preloadChat = useMemo(
-    () =>
-      chatLoader
-        ? () =>
-            void chatLoader.load().then(
-              loaded => setRuntime(() => loaded),
-              () => {}
-            )
-        : undefined,
+    () => (chatLoader ? () => void loadRuntime()?.catch(() => {}) : undefined),
     [chatLoader]
   );
   useIdlePreload(preloadSearch);
@@ -641,7 +662,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     query: searchState.query,
     queryVersion: searchState.version,
     setQuery: setSearchQuery,
-    open: (opener, query) => openSearch(opener, query),
+    open: openSearch,
     close: () => closeSearch(),
     leave: leaveSearch,
     ask(request) {
@@ -724,7 +745,6 @@ export function useDocspot(): DocspotApi {
     isSearchOpen: search.isOpen,
     isChatOpen: chat.isOpen,
     openSearch(query) {
-      if (!config.canSearch) return warnMissing('search', 'openSearch');
       search.open(undefined, query);
     },
     closeSearch: search.close,

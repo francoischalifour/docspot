@@ -189,19 +189,14 @@ export type DocspotSlots = {
 };
 
 export type DocspotQuestionSource =
-  | 'composer'
-  | 'prompt'
-  | 'search'
-  | 'url'
-  | 'api';
+  'composer' | 'prompt' | 'search' | 'url' | 'api';
 
 export type DocspotEvent =
   | { type: 'search.open' }
   | { type: 'search.close' }
   | { type: 'search.results'; query: string; count: number }
   | ({ type: 'search.select'; query: string; position: number } & (
-      | { result: DocspotResult }
-      | { item: DocspotItem }
+      { result: DocspotResult } | { item: DocspotItem }
     ))
   | { type: 'search.error'; query: string; error: unknown }
   | { type: 'history.clear' }
