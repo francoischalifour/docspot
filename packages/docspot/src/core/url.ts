@@ -1,7 +1,20 @@
-import type { DocspotUrlAdapter } from '@/types';
+import type { DocspotPage, DocspotUrlAdapter } from '@/types';
 
 export const SEARCH_PARAM = 'q';
 const CHAT_PARAMS = ['prompt', 'draft', 'askPage'] as const;
+
+/** A URL without its hash: the page, whichever section it points to. */
+export function stripHash(url: string) {
+  return url.split('#')[0] ?? url;
+}
+
+/** Whether both pages are given and are the same page, ignoring sections. */
+export function isSamePage(
+  a: DocspotPage | undefined,
+  b: DocspotPage | undefined
+) {
+  return Boolean(a && b && stripHash(a.url) === stripHash(b.url));
+}
 
 export type ChatLink = {
   text: string;

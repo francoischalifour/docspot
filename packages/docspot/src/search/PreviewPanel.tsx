@@ -9,6 +9,7 @@ import {
 
 import { type ChatRequest, useDocspotInternal } from '@/core/Root';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
+import { stripHash } from '@/core/url';
 import type { DocspotLinkItem } from '@/types';
 import { isLinkItem } from '@/search/items';
 import { ExternalIcon, PageIcon } from '@/ui/icons';
@@ -176,7 +177,7 @@ function PagePreview({
           const href = link.getAttribute('href');
           if (!href) return;
           const target = href.startsWith('#')
-            ? `${item.action.split('#')[0]}${href}`
+            ? `${stripHash(item.action)}${href}`
             : href;
           const url = new URL(target, window.location.href);
           if (url.origin !== window.location.origin) return;

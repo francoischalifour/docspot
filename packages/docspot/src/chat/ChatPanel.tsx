@@ -12,7 +12,9 @@ import {
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { hasModifierKey } from '@/core/platform';
 import type { StoredConversation } from '@/core/storage';
+import { isSamePage } from '@/core/url';
 import type { DocspotMessages } from '@/messages';
 import type { DocspotPage } from '@/types';
 import {
@@ -48,10 +50,6 @@ import {
   retry,
   toConversation,
 } from '@/chat/session';
-
-function samePage(a: DocspotPage | undefined, b: DocspotPage | undefined) {
-  return (a?.url.split('#')[0] ?? null) === (b?.url.split('#')[0] ?? null);
-}
 
 export function ChatPanel({
   session,
@@ -92,7 +90,7 @@ export function ChatPanel({
   const pageSuggestions =
     chatMessages.length &&
     !busy &&
-    !samePage(contextPage, getQuestionPage(chatMessages))
+    !isSamePage(contextPage, getQuestionPage(chatMessages))
       ? (contextPage?.prompts ?? [])
       : [];
 
@@ -125,10 +123,7 @@ export function ChatPanel({
           }}
         />
         {chatMessages.length > 0 && (
-          <IconButton
-            label={messages.newConversation}
-            onClick={onNewConversation}
-          >
+          <IconButton label={messages.newChat} onClick={onNewConversation}>
             <NewChatIcon size={16} />
           </IconButton>
         )}
@@ -493,14 +488,7 @@ function Markdown({
         <a
           href={internal}
           onClick={event => {
-            if (
-              event.button !== 0 ||
-              event.metaKey ||
-              event.ctrlKey ||
-              event.shiftKey ||
-              event.altKey
-            )
-              return;
+            if (event.button !== 0 || hasModifierKey(event)) return;
             onNavigate(internal, event);
           }}
         >

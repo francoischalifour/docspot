@@ -47,13 +47,13 @@ export function Welcome({
 }: {
   title: string;
   questions: string[];
-  onChoose?: (question: string) => void;
+  onChoose: (question: string) => void;
   className?: string;
 }) {
   return (
     <div className={cx('docspot-welcome', className)}>
       <h2 className="docspot-welcome-title">{title}</h2>
-      {onChoose && questions.length > 0 && (
+      {questions.length > 0 && (
         <Suggestions questions={questions} onChoose={onChoose} />
       )}
     </div>

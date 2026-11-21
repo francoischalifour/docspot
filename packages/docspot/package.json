@@ -96,6 +96,7 @@
   "peerDependencies": {
     "@ai-sdk/react": "^2.0.0",
     "ai": "^5.0.0",
+    "minisearch": "^7.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -104,6 +105,9 @@
       "optional": true
     },
     "ai": {
+      "optional": true
+    },
+    "minisearch": {
       "optional": true
     }
   }

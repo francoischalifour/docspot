@@ -11,7 +11,6 @@ import {
 
 import { prefersReducedMotion } from '@/core/platform';
 import { ArrowDownIcon } from '@/ui/icons';
-import { cx } from '@/ui/primitives';
 
 const END_TOLERANCE = 8;
 
@@ -46,27 +45,21 @@ export function Scroller({
   follow,
   followKey,
   jumpLabel,
-  className,
-  viewportClassName,
   children,
-  footer,
 }: {
   /** Follows content growth, for example while an answer streams. */
   follow: boolean;
   /** Changes when a new question starts, to follow again. */
   followKey: string | undefined;
   jumpLabel: string;
-  className?: string;
-  viewportClassName?: string;
   children: ReactNode;
-  footer?: ReactNode;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const followRef = useRef(true);
   const wasAtEndRef = useRef(true);
   const previousScrollTopRef = useRef(0);
   const anchorRef = useRef<HTMLElement | null>(null);
-  // Whether the reader has left the anchored answer's start.
+  // Whether the anchored answer's start is still aligned to the top.
   const alignedRef = useRef(false);
   const [edges, setEdges] = useState({ start: false, end: false });
   const [resumeKey, setResumeKey] = useState(0);
@@ -173,10 +166,10 @@ export function Scroller({
   };
 
   return (
-    <div className={cx('docspot-scroller', className)}>
+    <div className="docspot-scroller">
       <div
         ref={viewportRef}
-        className={cx('docspot-scroller-viewport', viewportClassName)}
+        className="docspot-scroller-viewport"
         onScroll={event => {
           const viewport = event.currentTarget;
           const atEnd = distanceToEnd(viewport) <= END_TOLERANCE;
@@ -236,7 +229,6 @@ export function Scroller({
       >
         <ArrowDownIcon size={14} />
       </button>
-      {footer}
     </div>
   );
 }

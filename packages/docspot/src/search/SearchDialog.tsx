@@ -839,5 +839,3 @@ export function SearchDialog() {
     </dialog>
   );
 }
-
-export default SearchDialog;

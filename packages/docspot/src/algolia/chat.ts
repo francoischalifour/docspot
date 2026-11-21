@@ -26,11 +26,8 @@ function formatPageContext(
 ) {
   const markdown = (page.content ?? '').slice(0, contextLimit);
   const title = markdown.match(/^#\s+(.+)$/m)?.[1] ?? page.title ?? page.url;
-  const url =
-    typeof window === 'undefined'
-      ? page.url
-      : new URL(page.url, window.location.origin).href;
-  return `Documentation context (a relevance hint; follow the user's explicit question even when it concerns another page):\nTitle: ${title}\nURL: ${url}\n<documentation>\n${markdown}\n</documentation>`;
+  // Docspot sends the page URL already resolved against `siteUrl`.
+  return `Documentation context (a relevance hint; follow the user's explicit question even when it concerns another page):\nTitle: ${title}\nURL: ${page.url}\n<documentation>\n${markdown}\n</documentation>`;
 }
 
 function appendToLastQuestion(messages: UIMessage[], text: string) {
