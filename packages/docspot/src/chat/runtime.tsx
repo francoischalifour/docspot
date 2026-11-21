@@ -1,14 +1,14 @@
 import type { ChatTransport, UIMessage } from 'ai';
 
-import { ChatPanel } from './ChatPanel';
-import type { ChatPanelProps, ChatRuntime } from './contract';
+import { ChatPanel } from '@/chat/ChatPanel';
+import type { ChatPanelProps, ChatRuntime } from '@/chat/contract';
 import {
   type Session,
   ask,
   createSession,
   discard,
   toConversation,
-} from './session';
+} from '@/chat/session';
 
 export type RuntimeOptions = { holdFirstStep: boolean };
 

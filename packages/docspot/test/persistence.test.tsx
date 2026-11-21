@@ -2,8 +2,8 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, importDocspotHistory } from '../src';
-import { createChatServer, results } from './fixtures';
+import { Docspot, importDocspotHistory } from '@/index';
+import { createChatServer, results } from '@test/fixtures';
 
 const searchInput = () =>
   page.getByRole('combobox', { name: 'Search documentation' });

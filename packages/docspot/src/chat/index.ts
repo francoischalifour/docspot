@@ -1,7 +1,7 @@
 import type { ChatTransport, UIMessage } from 'ai';
 
-import type { DocspotChat } from '../types';
-import { createChatHandle } from './contract';
+import type { DocspotChat } from '@/types';
+import { createChatHandle } from '@/chat/contract';
 
 type Transport = ChatTransport<UIMessage>;
 
@@ -31,7 +31,7 @@ export function createChat({
   return createChatHandle({
     async load() {
       const [{ createRuntime }, resolved] = await Promise.all([
-        import('./runtime'),
+        import('@/chat/runtime'),
         typeof transport === 'function' ? transport() : transport,
       ]);
       return createRuntime(resolved, { holdFirstStep });
@@ -39,6 +39,6 @@ export function createChat({
   });
 }
 
-export { CONTEXT_FIELD } from './contract';
-export type { DocspotRequestContext } from './contract';
-export type { DocspotQuestionMetadata } from './session';
+export { CONTEXT_FIELD } from '@/chat/contract';
+export type { DocspotRequestContext } from '@/chat/contract';
+export type { DocspotQuestionMetadata } from '@/chat/session';

@@ -1,4 +1,4 @@
-import type { DocspotPage, DocspotUrlAdapter } from '../types';
+import type { DocspotPage, DocspotUrlAdapter } from '@/types';
 
 export const SEARCH_PARAM = 'q';
 const CHAT_PARAMS = ['prompt', 'draft', 'askPage'] as const;

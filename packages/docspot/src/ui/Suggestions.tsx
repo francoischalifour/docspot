@@ -1,6 +1,6 @@
-import type { DocspotPage } from '../types';
-import { QuestionIcon } from './icons';
-import { cx } from './primitives';
+import type { DocspotPage } from '@/types';
+import { QuestionIcon } from '@/ui/icons';
+import { cx } from '@/ui/primitives';
 
 /** The questions to offer for a page: its own, or the defaults. */
 export function getPrompts(page: DocspotPage | undefined, prompts: string[]) {

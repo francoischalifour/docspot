@@ -15,22 +15,22 @@ import {
   useState,
 } from 'react';
 
-import { type ChatRequest, useDocspotInternal } from '../core/Root';
+import { type ChatRequest, useDocspotInternal } from '@/core/Root';
 import {
   hasModifierKey,
   isCommandKey,
   isExternalUrl,
   useVisualViewport,
-} from '../core/platform';
-import { addRecentPage } from '../core/storage';
-import { LoadingIcon, SearchIcon } from '../ui/icons';
-import { Kbd, cx } from '../ui/primitives';
-import { getPrompts } from '../ui/Suggestions';
-import { useScrollEdges } from '../ui/useScrollEdges';
-import { PreviewPanel } from './PreviewPanel';
-import { ResultItem } from './ResultItem';
-import type { DocspotItem, DocspotLinkItem } from '../types';
-import { getItemId, isLinkItem, recentItems } from './items';
+} from '@/core/platform';
+import { addRecentPage } from '@/core/storage';
+import { LoadingIcon, SearchIcon } from '@/ui/icons';
+import { Kbd, cx } from '@/ui/primitives';
+import { getPrompts } from '@/ui/Suggestions';
+import { useScrollEdges } from '@/ui/useScrollEdges';
+import { PreviewPanel } from '@/search/PreviewPanel';
+import { ResultItem } from '@/search/ResultItem';
+import type { DocspotItem, DocspotLinkItem } from '@/types';
+import { getItemId, isLinkItem, recentItems } from '@/search/items';
 import {
   type ItemSection,
   type SearchItem,
@@ -42,7 +42,7 @@ import {
   normalizeResponse,
   plain,
   toStoredPage,
-} from './model';
+} from '@/search/model';
 
 export function SearchDialog() {
   const { config, search, chat } = useDocspotInternal('Docspot.SearchDialog');

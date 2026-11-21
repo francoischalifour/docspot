@@ -1,4 +1,4 @@
-import type { DocspotItem, DocspotLinkItem } from '../types';
+import type { DocspotItem, DocspotLinkItem } from '@/types';
 
 /**
  * Marks where the reader's recent pages go in `defaultItems`. Without it,

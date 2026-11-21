@@ -3,8 +3,8 @@
 import { DefaultChatTransport } from 'ai';
 import { renderToString } from 'react-dom/server';
 
-import { Docspot } from '../dist/index.js';
-import { createChat } from '../dist/chat.js';
+import { Docspot } from 'docspot';
+import { createChat } from 'docspot/chat';
 
 if (typeof window !== 'undefined')
   throw new Error('Expected a server environment');

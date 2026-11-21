@@ -1,7 +1,7 @@
 import type { HTMLAttributes, MouseEvent } from 'react';
 
-import { useDocspotInternal } from '../core/Root';
-import type { HighlightedText } from '../types';
+import { useDocspotInternal } from '@/core/Root';
+import type { HighlightedText } from '@/types';
 import {
   CommandIcon,
   EnterIcon,
@@ -10,10 +10,10 @@ import {
   PageIcon,
   QuestionIcon,
   SectionIcon,
-} from '../ui/icons';
-import { isExternalUrl } from '../core/platform';
-import { Kbd } from '../ui/primitives';
-import { type SearchItem, getItemUrl, plain } from './model';
+} from '@/ui/icons';
+import { isExternalUrl } from '@/core/platform';
+import { Kbd } from '@/ui/primitives';
+import { type SearchItem, getItemUrl, plain } from '@/search/model';
 
 export function Highlight({ value }: { value: HighlightedText }) {
   return value.map((segment, index) =>

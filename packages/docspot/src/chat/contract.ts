@@ -2,15 +2,15 @@
 // import the AI SDK, so search-only consumers never resolve it.
 import type { ComponentType, MouseEvent, Ref } from 'react';
 
-import type { DocspotMessages } from '../messages';
-import type { StoredConversation } from '../core/storage';
+import type { DocspotMessages } from '@/messages';
+import type { StoredConversation } from '@/core/storage';
 import type {
   DocspotChat,
   DocspotEvent,
   DocspotLoadPage,
   DocspotPage,
   DocspotQuestionSource,
-} from '../types';
+} from '@/types';
 
 const CHAT_INTERNALS = Symbol.for('docspot.chat');
 

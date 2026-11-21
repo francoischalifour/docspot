@@ -7,8 +7,8 @@ import {
   useState,
 } from 'react';
 
-import { useIsMac } from '../core/platform';
-import { CheckIcon, CopyIcon } from './icons';
+import { useIsMac } from '@/core/platform';
+import { CheckIcon, CopyIcon } from '@/ui/icons';
 
 export function cx(...names: Array<string | false | null | undefined>) {
   return names.filter(Boolean).join(' ');

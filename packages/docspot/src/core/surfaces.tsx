@@ -11,15 +11,15 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 
-import { SearchIcon } from '../ui/icons';
-import { Kbd, cx } from '../ui/primitives';
-import { searchDialogLoader, useDocspotInternal } from './Root';
+import { SearchIcon } from '@/ui/icons';
+import { Kbd, cx } from '@/ui/primitives';
+import { searchDialogLoader, useDocspotInternal } from '@/core/Root';
 import {
   isChatBesidePage,
   isCommandKey,
   prefersReducedMotion,
   useVisualViewport,
-} from './platform';
+} from '@/core/platform';
 
 const CHAT_PANEL_ID = 'docspot-chat-panel';
 /** Matches the 25rem width the stylesheet docks the panel at. */

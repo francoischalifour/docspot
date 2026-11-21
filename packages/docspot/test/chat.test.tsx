@@ -7,8 +7,8 @@ import {
   type DocspotLoadPage,
   type DocspotPage,
   useDocspot,
-} from '../src';
-import { createChatServer, lastQuestion, wait } from './fixtures';
+} from '@/index';
+import { createChatServer, lastQuestion, wait } from '@test/fixtures';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const panel = () => page.getByRole('complementary', { name: 'Ask AI' });

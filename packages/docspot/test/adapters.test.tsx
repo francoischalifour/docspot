@@ -4,10 +4,10 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, createDocspotUrl } from '../src';
-import { createAlgoliaSearch } from '../src/algolia/search';
-import { createAlgoliaChat } from '../src/algolia/chat';
-import { createMiniSearchSearch } from '../src/minisearch';
+import { Docspot, createDocspotUrl } from '@/index';
+import { createAlgoliaSearch } from '@/algolia/search';
+import { createAlgoliaChat } from '@/algolia/chat';
+import { createMiniSearchSearch } from '@/minisearch';
 
 afterEach(() => vi.unstubAllGlobals());
 

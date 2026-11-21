@@ -1,12 +1,12 @@
-import type { StoredConversation, StoredPage } from '../core/storage';
+import type { StoredConversation, StoredPage } from '@/core/storage';
 import type {
   DocspotHandoff,
   DocspotItem,
   DocspotLinkItem,
   DocspotSearchResponse,
   HighlightedText,
-} from '../types';
-import { isLinkItem, recentItems } from './items';
+} from '@/types';
+import { isLinkItem, recentItems } from '@/search/items';
 
 export type SearchItem = {
   id: string;

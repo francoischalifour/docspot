@@ -1,8 +1,8 @@
 import type { UIMessage } from 'ai';
 
-import { createChat } from '../chat';
-import { CONTEXT_FIELD, type DocspotRequestContext } from '../chat/contract';
-import type { DocspotChat } from '../types';
+import { createChat } from '@/chat';
+import { CONTEXT_FIELD, type DocspotRequestContext } from '@/chat/contract';
+import type { DocspotChat } from '@/types';
 
 export type AlgoliaChatOptions = {
   appId: string;

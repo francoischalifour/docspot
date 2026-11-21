@@ -1,12 +1,12 @@
 import type MiniSearch from 'minisearch';
 import type { SearchResult } from 'minisearch';
 
-import { highlightTerms } from '../search/model';
+import { highlightTerms } from '@/search/model';
 import type {
   DocspotLinkItem,
   DocspotSearch,
   DocspotSearchParams,
-} from '../types';
+} from '@/types';
 
 /** What a MiniSearch document becomes in results: a page. */
 export type MiniSearchDocument = Omit<
