@@ -55,6 +55,11 @@ export type ItemSection =
     }
   | { kind: 'recent' };
 
+type EntryDedupe = {
+  urls: Set<string>;
+  itemIds: Set<string>;
+};
+
 export function normalizeResponse(response: DocspotSearchResponse) {
   return Array.isArray(response)
     ? { results: response, prioritizeChat: false }
@@ -72,11 +77,11 @@ export function normalizeResponse(response: DocspotSearchResponse) {
  */
 export function groupEntries(
   entries: ReadonlyArray<DocspotResult | DocspotItem | typeof recentItems>,
-  labels: { result: string; item: string }
+  labels: { result: string; item: string },
+  seen: EntryDedupe
 ): ItemSection[] {
   const sections: ItemSection[] = [];
   const groups = new Map<string, Array<DocspotResult | DocspotItem>>();
-  const seen = new Set<string>();
   for (const entry of entries) {
     if (entry === recentItems) {
       if (!sections.some(section => section.kind === 'recent'))
@@ -84,13 +89,17 @@ export function groupEntries(
       continue;
     }
     // A URL is listed once, whether a result or an item opens it.
-    const key = isResult(entry)
-      ? `url:${entry.url}`
-      : typeof entry.action === 'string'
-        ? `url:${entry.action}`
-        : `id:${entry.id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (isResult(entry)) {
+      if (seen.urls.has(entry.url)) continue;
+      seen.urls.add(entry.url);
+    } else {
+      if (seen.itemIds.has(entry.id)) continue;
+      if (typeof entry.action === 'string') {
+        if (seen.urls.has(entry.action)) continue;
+        seen.urls.add(entry.action);
+      }
+      seen.itemIds.add(entry.id);
+    }
     const label =
       entry.group ?? (isResult(entry) ? labels.result : labels.item);
     let group = groups.get(label);
@@ -166,9 +175,36 @@ export function parseHighlightedString(
   return segments;
 }
 
+/**
+ * Folds text for matching and maps every folded code unit to the original
+ * text. This lets highlights retain the spelling the reader sees.
+ */
+function foldWithOffsets(text: string) {
+  let folded = '';
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let offset = 0;
+  for (const character of text) {
+    const end = offset + character.length;
+    const normalized = fold(character);
+    if (normalized) {
+      folded += normalized;
+      for (let index = 0; index < normalized.length; index++) {
+        starts.push(offset);
+        ends.push(end);
+      }
+    } else if (ends.length) {
+      // Keep a decomposed accent with the base character it modifies.
+      ends[ends.length - 1] = end;
+    }
+    offset = end;
+  }
+  return { folded, starts, ends };
+}
+
 /** Marks every occurrence of the given terms, ignoring case and accents. */
 export function highlightTerms(text: string, terms: string[]): HighlightedText {
-  const words = [...new Set(terms.filter(Boolean))].sort(
+  const words = [...new Set(terms.map(fold).filter(Boolean))].sort(
     (a, b) => b.length - a.length
   );
   if (!words.length || !text) return plain(text);
@@ -177,12 +213,25 @@ export function highlightTerms(text: string, terms: string[]): HighlightedText {
   );
   // Terms match at word starts, so "zoo" marks "zoom" but "a" skips "image".
   const pattern = new RegExp(
-    `(?<![\\p{L}\\p{N}])(${escaped.join('|')})`,
+    `(?<![\\p{L}\\p{N}])(?:${escaped.join('|')})`,
     'giu'
   );
-  // Splitting on one capture group alternates text and matches.
-  return text
-    .split(pattern)
-    .map((part, index) => ({ text: part, highlighted: index % 2 === 1 }))
-    .filter(segment => segment.text);
+  const offsets = /^\p{ASCII}*$/u.test(text)
+    ? undefined
+    : foldWithOffsets(text);
+  const segments: HighlightedText = [];
+  let cursor = 0;
+  for (const match of (offsets?.folded ?? text).matchAll(pattern)) {
+    const from = match.index!;
+    const to = from + match[0].length;
+    const start = offsets ? offsets.starts[from]! : from;
+    const end = offsets ? offsets.ends[to - 1]! : to;
+    if (cursor < start)
+      segments.push({ text: text.slice(cursor, start), highlighted: false });
+    segments.push({ text: text.slice(start, end), highlighted: true });
+    cursor = end;
+  }
+  if (cursor < text.length)
+    segments.push({ text: text.slice(cursor), highlighted: false });
+  return segments;
 }

@@ -161,25 +161,23 @@ export function SearchDialog() {
         setErrorQuery(trimmed);
         config.emit({ type: 'search.error', query: trimmed, error });
       }
+      const seen = { urls: new Set<string>(), itemIds: new Set<string>() };
       sections = [
-        ...groupEntries([...matched, ...results], labels),
+        ...groupEntries([...matched, ...results], labels, seen),
         // Handoffs follow the results they can link to.
         ...groupEntries(
           config.handoffs.map(handoff => handoff({ query: trimmed, results })),
-          { result: labels.result, item: messages.search.handoffs }
+          { result: labels.result, item: messages.search.handoffs },
+          seen
         ),
       ];
     } else {
       const recentUrls = new Set(recentPages.map(page => page.url));
-      const defaults = config.defaultItems.filter(
-        entry =>
-          entry === recentItems ||
-          !isResult(entry) ||
-          !recentUrls.has(entry.url)
-      );
+      const defaults = config.defaultItems;
       sections = groupEntries(
         defaults.includes(recentItems) ? defaults : [recentItems, ...defaults],
-        labels
+        labels,
+        { urls: recentUrls, itemIds: new Set() }
       );
     }
     const select = ({ item }: { item: SearchItem }) =>
@@ -569,12 +567,10 @@ export function SearchDialog() {
               onFocus={() => autocomplete.setIsOpen(true)}
               onChange={event => {
                 inputProps.onChange(event);
-                if (
-                  !(
-                    'isComposing' in event.nativeEvent &&
-                    event.nativeEvent.isComposing
-                  )
-                )
+                if (!(
+                  'isComposing' in event.nativeEvent &&
+                  event.nativeEvent.isComposing
+                ))
                   search.setQuery(event.currentTarget.value);
               }}
               onCompositionEnd={event => {

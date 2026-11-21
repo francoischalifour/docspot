@@ -374,6 +374,35 @@ it('renders slots for previews, page actions, and branding', async () => {
   expect(navigate).toHaveBeenCalledWith('/docs/related', {});
 });
 
+it('records pages opened from the preview in recent pages and selection events', async () => {
+  const onEvent = vi.fn();
+  await render(
+    <Docspot
+      search={() => results}
+      onEvent={onEvent}
+      navigate={() => {}}
+      slots={{ preview: () => null }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('product');
+  await page.getByRole('link', { name: 'Open page' }).click();
+  expect(onEvent).toHaveBeenCalledWith({
+    type: 'search.select',
+    query: 'product',
+    position: 0,
+    result: results[0],
+  });
+  await openSearch();
+  await expect
+    .element(
+      page
+        .getByRole('region', { name: 'Recent' })
+        .getByRole('option', { name: /Example/ })
+    )
+    .toBeVisible();
+});
+
 it('overrides messages partially', async () => {
   await render(
     <Docspot

@@ -42,14 +42,17 @@ function getTermsIn(text: string) {
 
 /** The sentence matching the most terms, trimmed around the first match. */
 function createExcerpt(text: string, terms: string[], maxLength = 180) {
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-  if (!sentences.length) return '';
-  const best = sentences
-    .map(sentence => ({
-      sentence,
-      score: getTermsIn(sentence).filter(term => terms.includes(term)).length,
-    }))
-    .sort((a, b) => b.score - a.score)[0]!.sentence;
+  let best = '';
+  let bestScore = -1;
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    const score = getTermsIn(sentence).filter(term =>
+      terms.includes(term)
+    ).length;
+    if (score > bestScore) {
+      best = sentence;
+      bestScore = score;
+    }
+  }
   if (best.length <= maxLength) return best;
   const position = terms.length
     ? best
@@ -83,12 +86,13 @@ export function createMiniSearchSearch<T>({
   let loading: Promise<MiniSearch<T>> | undefined;
 
   function run(miniSearch: MiniSearch<T>, query: string): DocspotResult[] {
+    const queryTerms = getTermsIn(query);
     return search({ index: miniSearch, query })
       .slice(0, limit)
       .map(hit => {
         const { content, ...document } = getDocument(hit);
         // Matched document terms, plus the typed words for prefix matches.
-        const terms = [...new Set([...hit.terms, ...getTermsIn(query)])];
+        const terms = [...new Set([...hit.terms, ...queryTerms])];
         const excerpt = content
           ? createExcerpt(content, terms, excerptLength)
           : undefined;
@@ -109,20 +113,26 @@ export function createMiniSearchSearch<T>({
   function load(): MiniSearch<T> | Promise<MiniSearch<T>> {
     if (loaded) return loaded;
     if (typeof index !== 'function') return (loaded = index);
-    return (loading ??= Promise.resolve(index()).then(
-      miniSearch => (loaded = miniSearch),
-      error => {
-        loading = undefined;
-        throw error;
-      }
-    ));
+    return (loading ??= Promise.resolve()
+      .then(index)
+      .then(
+        miniSearch => (loaded = miniSearch),
+        error => {
+          loading = undefined;
+          throw error;
+        }
+      ));
   }
 
   return Object.assign(
-    ({ query }: DocspotSearchParams) => {
+    ({ query, signal }: DocspotSearchParams) => {
+      signal.throwIfAborted();
       const miniSearch = load();
       return miniSearch instanceof Promise
-        ? miniSearch.then(loadedIndex => run(loadedIndex, query))
+        ? miniSearch.then(loadedIndex => {
+            signal.throwIfAborted();
+            return run(loadedIndex, query);
+          })
         : run(miniSearch, query);
     },
     {

@@ -1,6 +1,16 @@
 import { expect, it } from 'vitest';
 
-import { isQuestion, shouldPrioritizeChat } from '@/index';
+import { highlightTerms, isQuestion, shouldPrioritizeChat } from '@/index';
+
+it('highlights text regardless of case or accents', () => {
+  expect(highlightTerms('Thème sombre', ['theme'])).toEqual([
+    { text: 'Thème', highlighted: true },
+    { text: ' sombre', highlighted: false },
+  ]);
+  expect(highlightTerms('Café', ['CAFÉ'])).toEqual([
+    { text: 'Café', highlighted: true },
+  ]);
+});
 
 it.each([
   'how to share a data app',

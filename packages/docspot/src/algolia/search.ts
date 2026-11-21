@@ -72,6 +72,16 @@ function isCompleteMatch(hit: AlgoliaHit, contentWordCount: number) {
   return ranking.nbTypos === 0 && ranking.words >= contentWordCount;
 }
 
+const hierarchyLevels = [
+  'lvl0',
+  'lvl1',
+  'lvl2',
+  'lvl3',
+  'lvl4',
+  'lvl5',
+  'lvl6',
+];
+
 /**
  * Opens a connection to `origin` ahead of a request. Browsers drop unused
  * connections after a few seconds, so each call renews the hint.
@@ -181,10 +191,12 @@ export function createAlgoliaSearch({
     const counts = new Map<string | undefined, number>();
     const seen = new Set<string>();
     const normalized: DocspotResult[] = [];
+    let topHit: AlgoliaHit | undefined;
     for (const hit of hits) {
-      const hierarchy = Object.entries(hit.hierarchy).filter(
-        (entry): entry is [string, string] => Boolean(entry[1])
-      );
+      const hierarchy = hierarchyLevels.flatMap(level => {
+        const title = hit.hierarchy[level];
+        return title ? [[level, title] as const] : [];
+      });
       const level = hit.type === 'content' ? hierarchy.at(-1)?.[0] : hit.type;
       const title = (level && hit.hierarchy[level]) || hierarchy.at(-1)?.[1];
       if (!title) continue;
@@ -225,8 +237,8 @@ export function createAlgoliaSearch({
           excerpt: excerpt ? highlight(excerpt, '') : undefined,
         },
       });
+      topHit ??= hit;
     }
-    const topHit = hits[0];
     return {
       results: normalized,
       prioritizeChat: shouldPrioritizeChat({
