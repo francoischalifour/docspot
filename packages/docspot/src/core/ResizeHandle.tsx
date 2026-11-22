@@ -5,7 +5,12 @@ import {
   PANEL_MIN_WIDTH,
   clampPanelWidth,
 } from '@/core/chatPanelSize';
-import type { PanelGestureEvent } from '@/core/panelGesture';
+import type { HideDirection, PanelGestureEvent } from '@/core/panelGesture';
+
+/** The panel docks at the end of the reading direction, so it hides that way. */
+function hideDirection(element: Element): HideDirection {
+  return getComputedStyle(element).direction === 'rtl' ? -1 : 1;
+}
 
 /** Arrow keys resize by this much; with Shift, twice as much. */
 const KEYBOARD_STEP = 16;
@@ -49,6 +54,7 @@ export function ResizeHandle({ width, onGesture }: ResizeHandleProps) {
           x: event.clientX,
           time: event.timeStamp,
           width: currentWidth,
+          toward: hideDirection(event.currentTarget),
         });
       }}
       onPointerMove={event =>
@@ -80,11 +86,18 @@ export function ResizeHandle({ width, onGesture }: ResizeHandleProps) {
       onDoubleClick={() => onGesture({ type: 'resize', width: undefined })}
       onKeyDown={event => {
         const step = event.shiftKey ? KEYBOARD_STEP * 2 : KEYBOARD_STEP;
+        const toward = hideDirection(event.currentTarget);
+        // The arrow pointing toward the page widens the panel.
+        const [widen, narrow] =
+          toward === 1
+            ? ['ArrowLeft', 'ArrowRight']
+            : ['ArrowRight', 'ArrowLeft'];
         const resize = (next: number) =>
           onGesture({ type: 'resize', width: clampPanelWidth(next) });
-        if (event.key === 'ArrowLeft') resize(currentWidth + step);
-        else if (event.key === 'ArrowRight') {
-          if (currentWidth <= PANEL_MIN_WIDTH) onGesture({ type: 'hide' });
+        if (event.key === widen) resize(currentWidth + step);
+        else if (event.key === narrow) {
+          if (currentWidth <= PANEL_MIN_WIDTH)
+            onGesture({ type: 'hide', toward });
           else resize(currentWidth - step);
         } else if (event.key === 'Home') resize(PANEL_MIN_WIDTH);
         else if (event.key === 'End') resize(PANEL_MAX_WIDTH);

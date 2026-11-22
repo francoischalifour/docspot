@@ -10,8 +10,15 @@ import {
 /** A pause this long before releasing is not a flick. */
 const FLICK_MAX_PAUSE_MS = 100;
 
+/**
+ * The way the panel moves to hide: 1 toward the right, -1 toward the left
+ * in right-to-left pages, where it docks on the left.
+ */
+export type HideDirection = 1 | -1;
+
 type PanelDrag = {
   pointerId: number;
+  toward: HideDirection;
   startX: number;
   startWidth: number;
   lastX: number;
@@ -31,28 +38,34 @@ export type PanelGesture =
   | {
       status: 'settling';
       resize: PanelResize | null;
+      toward: HideDirection;
       /** The width to save once settled; undefined resets it. */
       width: number | undefined;
     }
-  | { status: 'hiding'; resize: PanelResize | null };
+  | { status: 'hiding'; resize: PanelResize | null; toward: HideDirection };
 
 type PointerPosition = { pointerId: number; x: number; time: number };
 
 export type PanelGestureEvent =
-  | ({ type: 'pointerDown'; width: number } & PointerPosition)
+  | ({
+      type: 'pointerDown';
+      width: number;
+      toward: HideDirection;
+    } & PointerPosition)
   | ({ type: 'pointerMove' } & PointerPosition)
   | ({ type: 'pointerUp'; cancelled: boolean } & PointerPosition)
   /** Resizes without a drag, from the keyboard or a double click. */
   | { type: 'resize'; width: number | undefined }
   /** Hides without a drag, from the keyboard. */
-  | { type: 'hide' }
+  | { type: 'hide'; toward: HideDirection }
   /** The settling or hiding animation finished. */
   | { type: 'settled' };
 
 export const idleGesture: PanelGesture = { status: 'idle' };
 
 function getResize(drag: PanelDrag, x: number): PanelResize {
-  const draggedWidth = drag.startWidth + drag.startX - x;
+  // Dragging away from the panel's edge, toward the page, widens it.
+  const draggedWidth = drag.startWidth - drag.toward * (x - drag.startX);
   return {
     width: clampPanelWidth(draggedWidth),
     overshoot: Math.max(0, PANEL_MIN_WIDTH - draggedWidth),
@@ -71,6 +84,7 @@ export function panelGesture(
         return state;
       const drag: PanelDrag = {
         pointerId: event.pointerId,
+        toward: event.toward,
         startX: event.x,
         startWidth: event.width,
         lastX: event.x,
@@ -88,7 +102,7 @@ export function panelGesture(
         elapsed > 0
           ? {
               ...drag,
-              velocity: (event.x - drag.lastX) / elapsed,
+              velocity: (drag.toward * (event.x - drag.lastX)) / elapsed,
               lastX: event.x,
               lastTime: event.time,
             }
@@ -112,22 +126,33 @@ export function panelGesture(
         resize.overshoot >= PANEL_HIDE_DISTANCE ||
         (isFlick && resize.overshoot >= PANEL_FLICK_HIDE_DISTANCE);
       return hides
-        ? { status: 'hiding', resize }
-        : { status: 'settling', resize, width: resize.width };
+        ? { status: 'hiding', resize, toward: drag.toward }
+        : {
+            status: 'settling',
+            resize,
+            toward: drag.toward,
+            width: resize.width,
+          };
     }
     case 'resize':
       return state.status === 'idle'
-        ? { status: 'settling', resize: null, width: event.width }
+        ? { status: 'settling', resize: null, toward: 1, width: event.width }
         : state;
     case 'hide':
       return state.status === 'idle'
-        ? { status: 'hiding', resize: null }
+        ? { status: 'hiding', resize: null, toward: event.toward }
         : state;
     case 'settled':
       return state.status === 'settling' || state.status === 'hiding'
         ? idleGesture
         : state;
   }
+}
+
+/** The way the panel moves to hide during the gesture. */
+export function gestureDirection(state: PanelGesture): HideDirection {
+  if (state.status === 'idle') return 1;
+  return state.status === 'dragging' ? state.drag.toward : state.toward;
 }
 
 /** The size the panel shows during the gesture, if it differs from saved. */

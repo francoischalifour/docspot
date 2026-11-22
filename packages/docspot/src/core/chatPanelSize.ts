@@ -30,7 +30,10 @@ export function clampPanelWidth(width: number) {
   );
 }
 
-/** Moves the panel right, filling the space it leaves with the page color. */
+/**
+ * Moves the panel by a signed offset, right when positive, filling the
+ * space it leaves with the page color.
+ */
 export function getPanelOffsetStyle(offset: number) {
   return {
     transform: `translateX(${offset}px)`,
@@ -40,5 +43,5 @@ export function getPanelOffsetStyle(offset: number) {
 
 /** Fades the panel content until releasing would hide it. */
 export function getPanelContentOpacity(offset: number) {
-  return 1 - Math.min(offset / PANEL_HIDE_DISTANCE, 1) * 0.6;
+  return 1 - Math.min(Math.abs(offset) / PANEL_HIDE_DISTANCE, 1) * 0.6;
 }

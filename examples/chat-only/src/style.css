@@ -62,6 +62,6 @@ body {
 .content {
   max-width: 44rem;
   padding: 2rem 1.5rem;
-  margin-right: var(--docspot-chat-inset, 0px);
+  margin-inline-end: var(--docspot-chat-inset, 0px);
   line-height: 1.7;
 }

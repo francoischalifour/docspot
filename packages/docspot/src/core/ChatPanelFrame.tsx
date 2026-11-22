@@ -26,7 +26,12 @@ import {
   getPanelContentOpacity,
   getPanelOffsetStyle,
 } from '@/core/chatPanelSize';
-import { gestureResize, idleGesture, panelGesture } from '@/core/panelGesture';
+import {
+  gestureDirection,
+  gestureResize,
+  idleGesture,
+  panelGesture,
+} from '@/core/panelGesture';
 import { ResizeHandle } from '@/core/ResizeHandle';
 
 /** Slides back into place after a drag past the minimum width. */
@@ -48,6 +53,8 @@ export function ChatPanelFrame({
   useVisualViewport(isOpen ? element : null);
   const [gesture, dispatchGesture] = useReducer(panelGesture, idleGesture);
   const resize = gestureResize(gesture);
+  // Offsets are signed: positive moves the panel right.
+  const toward = gestureDirection(gesture);
   const width = resize?.width ?? chat.width;
   const overshoot = resize?.overshoot ?? 0;
 
@@ -82,10 +89,14 @@ export function ChatPanelFrame({
       if (gesture.resize?.overshoot) void slideTo(0, SETTLE_DURATION_MS, save);
       else save();
     } else if (gesture.status === 'hiding') {
-      void slideTo(element?.offsetWidth ?? 0, HIDE_DURATION_MS, () => {
-        dispatchGesture({ type: 'settled' });
-        chat.close();
-      });
+      void slideTo(
+        toward * (element?.offsetWidth ?? 0),
+        HIDE_DURATION_MS,
+        () => {
+          dispatchGesture({ type: 'settled' });
+          chat.close();
+        }
+      );
     }
   });
   useEffect(() => {
@@ -126,7 +137,7 @@ export function ChatPanelFrame({
       style={
         overshoot
           ? ({
-              ...getPanelOffsetStyle(overshoot),
+              ...getPanelOffsetStyle(toward * overshoot),
               '--docspot-chat-content-opacity':
                 getPanelContentOpacity(overshoot),
             } as CSSProperties)

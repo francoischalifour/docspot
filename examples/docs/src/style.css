@@ -35,7 +35,7 @@ body {
 
 /* Docspot sets --docspot-chat-inset while the docked panel is open. */
 .layout {
-  margin-right: var(--docspot-chat-inset, 0px);
+  margin-inline-end: var(--docspot-chat-inset, 0px);
 }
 
 .page {

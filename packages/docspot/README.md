@@ -630,7 +630,7 @@ Changing the props opens, closes, or fills search as Docspot's own controls do: 
 
 The panel fills the screen on phones, floats over the page from 768 px, and docks beside the page from 1280 px. Its width is resizable there and persists with `history`.
 
-- `dock="fixed"` (default) pins the docked panel to the window's right edge and sets `--docspot-chat-inset` on the owner element (the document root by default) while it is open, for the page to pad by.
+- `dock="fixed"` (default) pins the docked panel to the window's edge, right or left in right-to-left pages, and sets `--docspot-chat-inset` on the owner element (the document root by default) while it is open, for the page to pad by with `margin-inline-end: var(--docspot-chat-inset, 0px)`.
 - The owner element carries `--docspot-chat-width`, the panel's resized width, for layouts that make room for it.
 - `dock="inline"` docks it as a flex item where it is rendered, so the page beside it shrinks.
 
@@ -743,6 +743,20 @@ With React Server Components, Docspot's components and hooks are client componen
 - Animations stop under `prefers-reduced-motion`, loading text stays still in forced colors mode, and on-screen keyboards never cover the search input or the composer.
 
 Slots render inside these surfaces, so give their controls accessible names too.
+
+## Languages and reader settings
+
+Docspot adapts to these with no configuration:
+
+- **Right-to-left pages** (`dir="rtl"`): layouts mirror, the chat panel docks on the left, and resizing follows. Key combinations still read left to right.
+- **Keyboard layouts:** shortcuts work on non-Latin layouts, such as Russian or Greek, by the key's position, and on remapped Latin layouts, such as Dvorak, by the letter typed.
+- **Light and dark:** see [Light and dark](#light-and-dark).
+- **High contrast** (`forced-colors`): system colors apply, and the selected result is marked in the system highlight color.
+- **More contrast** (`prefers-contrast: more`): secondary text and borders get stronger.
+- **Reduced motion:** animations stop.
+- **Zoom and text size:** sizes are in `rem`, so they follow the reader's font size.
+- **Notched screens:** full-screen search and chat keep clear of safe areas.
+- **Print:** search, chat, and the room kept for the docked panel are left out.
 
 ## Browser support
 

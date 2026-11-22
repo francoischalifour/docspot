@@ -72,3 +72,25 @@ it('resizes by dragging, and hides when dragged far past its minimum', async () 
     .element(page.getByRole('button', { name: 'Ask AI' }).first())
     .toHaveAttribute('aria-expanded', 'false');
 });
+
+it('docks on the left and mirrors resizing in right-to-left pages', async () => {
+  document.documentElement.dir = 'rtl';
+  try {
+    await openDockedChat();
+    expect(panel().element().getBoundingClientRect().left).toBe(0);
+    handle().element().focus();
+    // The arrow pointing toward the page widens the panel.
+    await userEvent.keyboard('{ArrowRight}');
+    await expect.element(handle()).toHaveAttribute('aria-valuenow', '416');
+
+    await commands.dragBy('separator', 'Resize Ask AI', 84);
+    await expect.element(handle()).toHaveAttribute('aria-valuenow', '500');
+
+    await commands.dragBy('separator', 'Resize Ask AI', -320, { steps: 20 });
+    await expect
+      .element(page.getByRole('button', { name: 'Ask AI' }).first())
+      .toHaveAttribute('aria-expanded', 'false');
+  } finally {
+    document.documentElement.removeAttribute('dir');
+  }
+});
