@@ -39,13 +39,23 @@ export function hasModifierKey(event: MouseEvent | KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 }
 
-/** True for ⌘ or Ctrl plus `key`, on any platform, without Alt or Shift. */
+const LATIN_LETTER = /^[a-z]$/i;
+
+/**
+ * True for ⌘ or Ctrl plus the letter `key`, on any platform, without Alt or
+ * Shift. The letter typed decides on Latin layouts, including remapped ones
+ * such as Dvorak; on others, such as Russian or Greek, where the key types
+ * another letter, its position on a QWERTY keyboard does.
+ */
 export function isCommandKey(
   event: KeyboardEvent | ReactKeyboardEvent,
   key: string
 ) {
+  const matches = LATIN_LETTER.test(event.key)
+    ? event.key.toLowerCase() === key
+    : event.code === `Key${key.toUpperCase()}`;
   return (
-    event.key.toLowerCase() === key &&
+    matches &&
     (event.metaKey || event.ctrlKey) &&
     !event.altKey &&
     !event.shiftKey

@@ -718,3 +718,29 @@ it('renders a trigger as another element or with a function', async () => {
     .element(page.getByRole('button', { name: 'Find' }))
     .toBeInTheDocument();
 });
+
+it('opens with the shortcut on non-Latin and remapped keyboard layouts', async () => {
+  await render(<Docspot search={() => results} />);
+  const press = (key: string, code: string) =>
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key,
+        code,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+  // Ctrl+K on a Russian layout types “л”.
+  press('л', 'KeyK');
+  await expect.element(searchInput()).toHaveFocus();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+  // On Dvorak, the key in QWERTY's K position types “t”: not a shortcut.
+  press('t', 'KeyK');
+  await new Promise(requestAnimationFrame);
+  expect(searchDialog().query()).toBeNull();
+  // And the key labeled K, in QWERTY's V position, is.
+  press('k', 'KeyV');
+  await expect.element(searchInput()).toHaveFocus();
+});
