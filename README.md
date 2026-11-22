@@ -10,7 +10,6 @@
 </div>
 
 <div align="center">
-  <a href="packages/docspot/README.md">Documentation</a> ·
   <a href="examples/">Examples</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </div>
@@ -18,6 +17,16 @@
 <br />
 
 Docspot gives a documentation site a <kbd>⌘K</kbd> search dialog and an Ask AI chat panel, or either one alone. It handles the interface, keyboard and screen reader support, mobile layouts, history, and shareable URLs. You bring the search function, the [AI SDK](https://ai-sdk.dev) chat transport, and your site's routing.
+
+<p align="center">
+  <img src=".github/assets/search.webp" alt="The Docspot search dialog on the Altertable docs, with grouped results for &quot;install analytics&quot; and a preview of the selected section">
+</p>
+
+<p align="center">
+  <img src=".github/assets/chat.webp" alt="The Docspot Ask AI panel on the Altertable docs, answering &quot;install analytics&quot; with steps and links to the relevant pages">
+</p>
+
+<p align="center"><sub>Search and Ask AI on the <a href="https://altertable.ai/docs">Altertable docs</a>.</sub></p>
 
 ## Quickstart
 
