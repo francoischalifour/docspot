@@ -6,6 +6,7 @@
 - **Primitives compose.** `<Docspot>` is `<Docspot.Root>` with default surfaces. Everything it does is possible with the parts, `useDocspot()`, slots, and props. Parts accept the props of the element they render and pass consumer refs and handlers through.
 - **The interface is the contract.** Variables, the stable selectors listed in the README, and the public types are the API. Other class names are internal.
 - **Accessible by default.** Every surface works with the keyboard and a screen reader, respects reduced motion and forced colors, and fits a phone. Tests query by role and accessible name.
+- **Every change reports its cost.** Bundle sizes and render counts are measured against recorded baselines. Raising one is a decision, not a fix.
 - **Tests wait on behavior, not time.** Wait for what the reader would see with `expect.element` or `vi.waitFor`, not for a fixed delay.
 
 ## Set up
@@ -37,6 +38,17 @@ It runs every step CI runs: formatting, lint, build, types, browser tests, and p
 - `bun run lint`: lint with oxlint.
 - `bun run test`: run the browser tests in Chromium. Add a file or `-t <name>` after `bun run --cwd packages/docspot test` to run some.
 - `bun run --filter docspot check:package`: check the published package, entry point isolation, tree shaking, eager sizes, and server rendering.
+
+## Measure
+
+| Command         | Compares with                           |
+| --------------- | --------------------------------------- |
+| `bun run size`  | `packages/docspot/baselines/size.json`  |
+| `bun run bench` | `packages/docspot/baselines/bench.json` |
+
+`size` bundles common import sets as an application would, minified and gzipped, without peer dependencies, and reports the code each loads up front and on demand. `bench` runs fixed interactions in Chromium and counts React commits and component renders, which follow from the code; durations are printed but not compared. Both fail when a number grows past its baseline: 1% for sizes, 10% for counts. Run `bun run build` before `size`.
+
+To record an intended change, run `bun run --filter docspot size --update` or `bun run --filter docspot bench --update`, and include the change in the pull request. `size --markdown` prints a table to paste.
 
 ## Write
 

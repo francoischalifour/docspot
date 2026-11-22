@@ -86,7 +86,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check:package": "publint && attw --pack . --profile esm-only --exclude-entrypoints styles.css && bun scripts/check-isolation.ts && bun scripts/check-tree-shaking.ts && bun scripts/check-ssr.tsx",
-    "prepublishOnly": "bun run --cwd ../.. check"
+    "prepublishOnly": "bun run --cwd ../.. check",
+    "size": "bun scripts/size.ts",
+    "bench": "bun scripts/bench.ts"
   },
   "dependencies": {
     "@algolia/autocomplete-core": "^1.19.2",

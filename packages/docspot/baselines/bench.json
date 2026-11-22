@@ -1,0 +1,18 @@
+{
+  "search: open": {
+    "commits": 7,
+    "renders": 43
+  },
+  "search: type a query over 30 results": {
+    "commits": 72,
+    "renders": 8953
+  },
+  "search: arrow through 20 results": {
+    "commits": 40,
+    "renders": 5060
+  },
+  "chat: type 20 characters after 8 answers": {
+    "commits": 20,
+    "renders": 840
+  }
+}

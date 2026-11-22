@@ -4,5 +4,5 @@
     "types": ["vitest/importMeta"],
     "paths": { "@/*": ["./src/*"], "@test/*": ["./test/*"] }
   },
-  "include": ["src", "test", "*.ts"]
+  "include": ["src", "test", "bench", "*.ts"]
 }
