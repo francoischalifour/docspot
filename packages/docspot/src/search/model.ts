@@ -7,7 +7,7 @@ import type {
 } from '@/types';
 import { isResult, recentItems } from '@/search/items';
 
-export type SearchItem = {
+export type SearchOption = {
   id: string;
   /** The query the item answers; items for older queries are stale. */
   query: string;
@@ -35,11 +35,11 @@ export type SearchItem = {
     }
 );
 
-export type ItemEntry = Extract<SearchItem, { kind: 'item' }>;
-export type AskEntry = Extract<SearchItem, { kind: 'ask' }>;
+export type ItemOption = Extract<SearchOption, { kind: 'item' }>;
+export type AskOption = Extract<SearchOption, { kind: 'ask' }>;
 
 /** The URL an entry opens, if it opens one. */
-export function getEntryUrl(entry: SearchItem) {
+export function getOptionUrl(entry: SearchOption) {
   if (entry.kind === 'result') return entry.result.url;
   if (entry.kind === 'item' && typeof entry.item.action === 'string')
     return entry.item.action;

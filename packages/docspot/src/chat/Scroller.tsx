@@ -53,6 +53,15 @@ function distanceToContentEnd(
   return distanceToEnd(viewport) - Math.max(0, reserved);
 }
 
+type ScrollerProps = {
+  /** Follows content growth, for example while an answer streams. */
+  follow: boolean;
+  /** Changes when a new question starts, to follow again. */
+  followKey: string | undefined;
+  jumpLabel: string;
+  children: ReactNode;
+};
+
 /**
  * A conversation that opens at its end, follows a new question's answer
  * until the reader scrolls, and anchors a streamed answer's start at the
@@ -63,14 +72,7 @@ export function Scroller({
   followKey,
   jumpLabel,
   children,
-}: {
-  /** Follows content growth, for example while an answer streams. */
-  follow: boolean;
-  /** Changes when a new question starts, to follow again. */
-  followKey: string | undefined;
-  jumpLabel: string;
-  children: ReactNode;
-}) {
+}: ScrollerProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const followRef = useRef(true);
   const wasAtEndRef = useRef(true);
@@ -261,10 +263,9 @@ export function Scroller({
   );
 }
 
-export function ReadingAnchor({
-  active,
-  ...props
-}: ComponentProps<'div'> & { active: boolean }) {
+type ReadingAnchorProps = ComponentProps<'div'> & { active: boolean };
+
+export function ReadingAnchor({ active, ...props }: ReadingAnchorProps) {
   const scroller = use(ScrollerContext);
   const elementRef = useRef<HTMLDivElement>(null);
   const wasActiveRef = useRef(false);

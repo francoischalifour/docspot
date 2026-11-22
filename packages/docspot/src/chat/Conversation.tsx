@@ -36,8 +36,12 @@ import {
   StopIcon,
 } from '@/ui/icons';
 import { CopyButton, IconButton, Menu, Shimmer } from '@/ui/primitives';
-import { Suggestions, Welcome, getPrompts } from '@/ui/Suggestions';
-import type { ChatPanelProps } from '@/chat/contract';
+import {
+  SuggestedQuestions,
+  Welcome,
+  getPrompts,
+} from '@/ui/SuggestedQuestions';
+import type { ConversationProps } from '@/chat/contract';
 import {
   completeStreamingMarkdown,
   getAnswerProgress,
@@ -56,7 +60,7 @@ import {
   toConversation,
 } from '@/chat/session';
 
-export function ChatPanel({
+export function Conversation({
   session,
   composerRef,
   draft,
@@ -72,7 +76,7 @@ export function ChatPanel({
   toInternalUrl,
   messages: allMessages,
   holdFirstStep,
-}: ChatPanelProps & { holdFirstStep: boolean }) {
+}: ConversationProps) {
   const chat = session as Session;
   const messages = allMessages.chat;
   // Answers are memoized, so typing or streaming re-renders only what
@@ -241,7 +245,7 @@ export function ChatPanel({
             />
           ) : (
             pageSuggestions.length > 0 && (
-              <Suggestions
+              <SuggestedQuestions
                 aria-label={messages.suggestionsAbout(
                   contextPage?.title ?? contextPage?.url ?? ''
                 )}
@@ -276,19 +280,21 @@ export function ChatPanel({
   );
 }
 
+type ConversationSwitcherProps = {
+  current: StoredConversation | null;
+  conversations: ConversationProps['conversations'];
+  messages: DocspotMessages['chat'];
+  onSelect: (conversation: StoredConversation) => void;
+  onDeleteCurrent: () => void;
+};
+
 function ConversationSwitcher({
   current,
   conversations,
   messages,
   onSelect,
   onDeleteCurrent,
-}: {
-  current: StoredConversation | null;
-  conversations: ChatPanelProps['conversations'];
-  messages: DocspotMessages['chat'];
-  onSelect: (conversation: StoredConversation) => void;
-  onDeleteCurrent: () => void;
-}) {
+}: ConversationSwitcherProps) {
   const saved = useSyncExternalStore(
     conversations.subscribe,
     conversations.list
@@ -365,7 +371,9 @@ function ConversationSwitcher({
   );
 }
 
-function Timestamp({ time }: { time: string | undefined }) {
+type TimestampProps = { time: string | undefined };
+
+function Timestamp({ time }: TimestampProps) {
   if (!time) return null;
   const date = new Date(time);
   if (Number.isNaN(date.getTime())) return null;
@@ -389,15 +397,7 @@ function Timestamp({ time }: { time: string | undefined }) {
   );
 }
 
-const ChatMessage = memo(function ChatMessage({
-  message,
-  streaming,
-  holdFirstStep,
-  messages,
-  onNavigate,
-  toInternalUrl,
-  onRetry,
-}: {
+type ChatMessageProps = {
   message: UIMessage;
   streaming: boolean;
   holdFirstStep: boolean;
@@ -406,7 +406,17 @@ const ChatMessage = memo(function ChatMessage({
   toInternalUrl: (url: string) => string | null;
   /** Offered on the latest answer once it is complete. */
   onRetry?: () => void;
-}) {
+};
+
+const ChatMessage = memo(function ChatMessage({
+  message,
+  streaming,
+  holdFirstStep,
+  messages,
+  onNavigate,
+  toInternalUrl,
+  onRetry,
+}: ChatMessageProps) {
   const text = getMessageText(message, { streaming, holdFirstStep });
   const sources = message.parts.filter(part => part.type === 'source-url');
   if (!hasMessageContent(message, { streaming, holdFirstStep })) return null;
@@ -446,7 +456,7 @@ const ChatMessage = memo(function ChatMessage({
             <ul>
               {sources.map(source => (
                 <li key={source.sourceId}>
-                  <DocsLink
+                  <AnswerLink
                     href={source.url}
                     onNavigate={onNavigate}
                     toInternalUrl={toInternalUrl}
@@ -454,7 +464,7 @@ const ChatMessage = memo(function ChatMessage({
                   >
                     {source.title ?? messages.sourceFallback}
                     <ArrowUpRightIcon size={12} />
-                  </DocsLink>
+                  </AnswerLink>
                 </li>
               ))}
             </ul>
@@ -486,20 +496,22 @@ const ChatMessage = memo(function ChatMessage({
   );
 });
 
+type MarkdownProps = {
+  text: string;
+  streaming: boolean;
+  onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
+  toInternalUrl: (url: string) => string | null;
+};
+
 function Markdown({
   text,
   streaming,
   onNavigate,
   toInternalUrl,
-}: {
-  text: string;
-  streaming: boolean;
-  onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
-  toInternalUrl: (url: string) => string | null;
-}) {
+}: MarkdownProps) {
   const components: Components = {
     a: ({ href, children }) => (
-      <DocsLink
+      <AnswerLink
         href={href}
         onNavigate={onNavigate}
         toInternalUrl={toInternalUrl}
@@ -508,7 +520,7 @@ function Markdown({
         }
       >
         {children}
-      </DocsLink>
+      </AnswerLink>
     ),
   };
   return (
@@ -520,23 +532,25 @@ function Markdown({
   );
 }
 
-/**
- * Links to this site open in place, like links in the docs themselves;
- * links elsewhere open in a new tab.
- */
-function DocsLink({
-  href,
-  onNavigate,
-  toInternalUrl,
-  externalIcon,
-  children,
-}: {
+type AnswerLinkProps = {
   href: string | undefined;
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
   toInternalUrl: (url: string) => string | null;
   externalIcon: ReactNode;
   children: ReactNode;
-}) {
+};
+
+/**
+ * Links to this site open in place, like links in the docs themselves;
+ * links elsewhere open in a new tab.
+ */
+function AnswerLink({
+  href,
+  onNavigate,
+  toInternalUrl,
+  externalIcon,
+  children,
+}: AnswerLinkProps) {
   const internal = href ? toInternalUrl(href) : null;
   return internal ? (
     <a
@@ -556,6 +570,20 @@ function DocsLink({
   );
 }
 
+type ComposerProps = {
+  inputRef: Ref<HTMLTextAreaElement>;
+  draft: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  busy: boolean;
+  onStop: () => void;
+  contextPage: DocspotPage | undefined;
+  onRemoveContext: () => void;
+  messages: DocspotMessages['chat'];
+  label: string;
+  placeholder: string;
+};
+
 function Composer({
   inputRef,
   draft,
@@ -568,19 +596,7 @@ function Composer({
   messages,
   label,
   placeholder,
-}: {
-  inputRef: Ref<HTMLTextAreaElement>;
-  draft: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  busy: boolean;
-  onStop: () => void;
-  contextPage: DocspotPage | undefined;
-  onRemoveContext: () => void;
-  messages: DocspotMessages['chat'];
-  label: string;
-  placeholder: string;
-}) {
+}: ComposerProps) {
   const disabled = !busy && !draft.trim();
   return (
     <form
@@ -640,16 +656,14 @@ function Composer({
   );
 }
 
-/** The page attached to a question; questions without one use all the docs. */
-function PageContextChip({
-  page,
-  onRemove,
-  messages,
-}: {
+type PageContextChipProps = {
   page: DocspotPage | undefined;
   onRemove: () => void;
   messages: DocspotMessages['chat'];
-}) {
+};
+
+/** The page attached to a question; questions without one use all the docs. */
+function PageContextChip({ page, onRemove, messages }: PageContextChipProps) {
   if (!page) return null;
   const title = page.title ?? page.url;
   return (

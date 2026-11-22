@@ -7,17 +7,19 @@ export function getPrompts(page: DocspotPage | undefined, prompts: string[]) {
   return page?.prompts?.length ? page.prompts : prompts;
 }
 
-export function Suggestions({
-  questions,
-  onChoose,
-  className,
-  'aria-label': ariaLabel,
-}: {
+type SuggestedQuestionsProps = {
   questions: string[];
   onChoose: (question: string) => void;
   className?: string;
   'aria-label'?: string;
-}) {
+};
+
+export function SuggestedQuestions({
+  questions,
+  onChoose,
+  className,
+  'aria-label': ariaLabel,
+}: SuggestedQuestionsProps) {
   return (
     <ul aria-label={ariaLabel} className={cx('docspot-suggestions', className)}>
       {questions.map(question => (
@@ -38,23 +40,25 @@ export function Suggestions({
   );
 }
 
+type WelcomeProps = {
+  title: string;
+  questions: string[];
+  onChoose: (question: string) => void;
+  className?: string;
+};
+
 /** An empty conversation's heading and questions, right above the composer. */
 export function Welcome({
   title,
   questions,
   onChoose,
   className,
-}: {
-  title: string;
-  questions: string[];
-  onChoose: (question: string) => void;
-  className?: string;
-}) {
+}: WelcomeProps) {
   return (
     <div className={cx('docspot-welcome', className)}>
       <h2 className="docspot-welcome-title">{title}</h2>
       {questions.length > 0 && (
-        <Suggestions questions={questions} onChoose={onChoose} />
+        <SuggestedQuestions questions={questions} onChoose={onChoose} />
       )}
     </div>
   );

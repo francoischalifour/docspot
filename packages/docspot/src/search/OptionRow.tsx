@@ -13,9 +13,11 @@ import {
 } from '@/ui/icons';
 import { isExternalUrl } from '@/core/platform';
 import { Kbd } from '@/ui/primitives';
-import { type SearchItem, getEntryUrl, plain } from '@/search/model';
+import { type SearchOption, getOptionUrl, plain } from '@/search/model';
 
-export function Highlight({ value }: { value: HighlightedText }) {
+type HighlightProps = { value: HighlightedText };
+
+export function Highlight({ value }: HighlightProps) {
   return value.map((segment, index) =>
     segment.highlighted ? (
       <mark key={index} className="docspot-mark">
@@ -27,14 +29,13 @@ export function Highlight({ value }: { value: HighlightedText }) {
   );
 }
 
-/** Joins breadcrumb parts, keeping each part's highlights. */
-function BreadcrumbHighlight({
-  parts,
-  highlights,
-}: {
+type BreadcrumbHighlightProps = {
   parts: string[];
   highlights: HighlightedText[] | undefined;
-}) {
+};
+
+/** Joins breadcrumb parts, keeping each part's highlights. */
+function BreadcrumbHighlight({ parts, highlights }: BreadcrumbHighlightProps) {
   return parts.map((part, index) => (
     <span key={index}>
       {index > 0 && ' › '}
@@ -55,14 +56,13 @@ const shortcutKeys: Record<string, string> = {
   arrowdown: 'down',
 };
 
-/** An item's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
-function Shortcut({
-  shortcut,
-  slots,
-}: {
+type ShortcutProps = {
   shortcut: string;
   slots: DocspotSlots;
-}) {
+};
+
+/** An item's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
+function Shortcut({ shortcut, slots }: ShortcutProps) {
   const Slot = slots.shortcut;
   if (Slot) return <Slot shortcut={shortcut} />;
   return (
@@ -75,8 +75,8 @@ function Shortcut({
   );
 }
 
-type ResultItemProps = {
-  item: SearchItem;
+type OptionRowProps = {
+  item: SearchOption;
   itemProps: HTMLAttributes<HTMLElement>;
   messages: DocspotMessages['search'];
   slots: DocspotSlots;
@@ -86,7 +86,7 @@ type ResultItemProps = {
    * Chooses an item that opens no URL: asking AI, or a function action.
    * Stable: reads the dialog's latest state.
    */
-  onSelect: (item: SearchItem) => void;
+  onSelect: (item: SearchOption) => void;
 };
 
 /**
@@ -94,8 +94,8 @@ type ResultItemProps = {
  * row is selected. Autocomplete's handlers in `itemProps` act on its own
  * store, so a row's earlier handlers stay valid.
  */
-export const ResultItem = memo(
-  ResultItemRow,
+export const OptionRow = memo(
+  OptionRowContent,
   (previous, next) =>
     previous.item === next.item &&
     previous.messages === next.messages &&
@@ -106,17 +106,17 @@ export const ResultItem = memo(
     previous.itemProps['aria-selected'] === next.itemProps['aria-selected']
 );
 
-function ResultItemRow({
+function OptionRowContent({
   item,
   itemProps,
   messages,
   slots,
   onNavigate,
   onSelect,
-}: ResultItemProps) {
+}: OptionRowProps) {
   const ResultIcon = slots.resultIcon;
 
-  const url = getEntryUrl(item);
+  const url = getOptionUrl(item);
   const result = item.kind === 'result' ? item.result : undefined;
   const shortcut = item.kind === 'item' ? item.item.shortcut : undefined;
   const breadcrumb = result?.breadcrumb ?? [];

@@ -26,16 +26,16 @@ import {
 import { addRecentPage } from '@/core/storage';
 import { LoadingIcon, SearchIcon } from '@/ui/icons';
 import { Kbd, Shimmer, cx } from '@/ui/primitives';
-import { getPrompts } from '@/ui/Suggestions';
+import { getPrompts } from '@/ui/SuggestedQuestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import { PreviewPanel } from '@/search/PreviewPanel';
-import { ResultItem } from '@/search/ResultItem';
+import { OptionRow } from '@/search/OptionRow';
 import type { DocspotResult } from '@/types';
 import { isResult, recentItems } from '@/search/items';
 import {
   type ItemSection,
-  type SearchItem,
-  getEntryUrl,
+  type SearchOption,
+  getOptionUrl,
   groupEntries,
   highlightTerms,
   matchItems,
@@ -65,7 +65,7 @@ export function SearchDialog() {
   const statusTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   useVisualViewport(dialog);
 
-  const [state, setState] = useState<AutocompleteState<SearchItem>>({
+  const [state, setState] = useState<AutocompleteState<SearchOption>>({
     activeItemId: 0,
     query: search.query,
     completion: null,
@@ -81,7 +81,7 @@ export function SearchDialog() {
   });
   // Stable, so result rows skip rendering when only the selection moves.
   const selectEntry = useCallback(
-    (item: SearchItem) => latest.current.selectItem(item),
+    (item: SearchOption) => latest.current.selectItem(item),
     []
   );
   const openEntry = useCallback(
@@ -99,32 +99,34 @@ export function SearchDialog() {
     []
   );
   const abortRef = useRef<AbortController | null>(null);
-  const latestSources = useRef<Promise<AutocompleteSource<SearchItem>[]>>(
+  const latestSources = useRef<Promise<AutocompleteSource<SearchOption>[]>>(
     Promise.resolve([])
   );
 
   const [autocomplete] = useState(() =>
-    createAutocomplete<SearchItem, SyntheticEvent, MouseEvent, KeyboardEvent>({
-      id,
-      initialState: { query: search.query, isOpen: true },
-      defaultActiveItemId: 0,
-      openOnFocus: true,
-      ignoreCompositionEvents: true,
-      shouldPanelOpen: () => true,
-      onStateChange: ({ state: next }) => setState(next),
-      navigator: {
-        navigate: ({ itemUrl, item }) =>
-          latest.current.navigateItem(item, itemUrl),
-      },
-      getSources({ query }) {
-        abortRef.current?.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-        const sources = loadSources(query, controller);
-        latestSources.current = sources;
-        return sources;
-      },
-    })
+    createAutocomplete<SearchOption, SyntheticEvent, MouseEvent, KeyboardEvent>(
+      {
+        id,
+        initialState: { query: search.query, isOpen: true },
+        defaultActiveItemId: 0,
+        openOnFocus: true,
+        ignoreCompositionEvents: true,
+        shouldPanelOpen: () => true,
+        onStateChange: ({ state: next }) => setState(next),
+        navigator: {
+          navigate: ({ itemUrl, item }) =>
+            latest.current.navigateItem(item, itemUrl),
+        },
+        getSources({ query }) {
+          abortRef.current?.abort();
+          const controller = new AbortController();
+          abortRef.current = controller;
+          const sources = loadSources(query, controller);
+          latestSources.current = sources;
+          return sources;
+        },
+      }
+    )
   );
 
   /**
@@ -139,7 +141,7 @@ export function SearchDialog() {
   async function loadSources(
     query: string,
     controller: AbortController
-  ): Promise<AutocompleteSource<SearchItem>[]> {
+  ): Promise<AutocompleteSource<SearchOption>[]> {
     const { config, chat } = latest.current;
     const { messages, canChat, stores } = config;
     const trimmed = query.trim();
@@ -200,20 +202,20 @@ export function SearchDialog() {
         { urls: recentUrls, itemIds: new Set() }
       );
     }
-    const select = ({ item }: { item: SearchItem }) =>
+    const select = ({ item }: { item: SearchOption }) =>
       latest.current.selectItem(item);
-    const getSourceItemUrl = ({ item }: { item: SearchItem }) =>
-      getEntryUrl(item);
+    const getSourceItemUrl = ({ item }: { item: SearchOption }) =>
+      getOptionUrl(item);
     const terms = trimmed.split(/\s+/);
     const resultSources = sections.flatMap(
-      (section, index): AutocompleteSource<SearchItem>[] => {
+      (section, index): AutocompleteSource<SearchOption>[] => {
         if (section.kind === 'recent')
           return recentPages.length
             ? [
                 {
                   sourceId: 'recent',
                   getItems: () =>
-                    recentPages.map((result): SearchItem => ({
+                    recentPages.map((result): SearchOption => ({
                       id: `recent:${result.url}`,
                       kind: 'result',
                       result,
@@ -231,7 +233,7 @@ export function SearchDialog() {
           {
             sourceId: `group-${index}`,
             getItems: () =>
-              section.entries.map((entry): SearchItem =>
+              section.entries.map((entry): SearchOption =>
                 isResult(entry)
                   ? {
                       id: `result:${entry.url}`,
@@ -266,11 +268,11 @@ export function SearchDialog() {
       trimmed || conversation || resultSources.length
         ? []
         : getPrompts(config.currentPage, config.prompts);
-    const askSource: AutocompleteSource<SearchItem> = {
+    const askSource: AutocompleteSource<SearchOption> = {
       sourceId: 'ask-ai',
       getItems: () =>
         prompts.length
-          ? prompts.map((prompt): SearchItem => ({
+          ? prompts.map((prompt): SearchOption => ({
               id: `ask-prompt:${prompt}`,
               kind: 'ask',
               title: prompt,
@@ -302,7 +304,7 @@ export function SearchDialog() {
 
   const query = state.query.trim();
   // Results arrive after typing; Ask AI always offers what is typed now.
-  function withLiveQuery(item: SearchItem): SearchItem {
+  function withLiveQuery(item: SearchOption): SearchOption {
     if (item.kind !== 'ask' || !query || item.query === query) return item;
     return {
       ...item,
@@ -321,7 +323,7 @@ export function SearchDialog() {
   const activeItem =
     state.activeItemId === null ? undefined : items[state.activeItemId];
   const currentItems = items.filter(item => item.query === query);
-  const isListed = (item: SearchItem) => item.kind !== 'ask';
+  const isListed = (item: SearchOption) => item.kind !== 'ask';
   const pageItems = currentItems.filter(isListed);
   const isLoading = state.status === 'loading' || state.status === 'stalled';
   // While loading, the previous results stay until the new ones arrive.
@@ -372,7 +374,7 @@ export function SearchDialog() {
     search.close();
   }
 
-  function navigateItem(item: SearchItem, url: string) {
+  function navigateItem(item: SearchOption, url: string) {
     if (item.kind === 'ask') return;
     if (isExternalUrl(url)) {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -382,7 +384,7 @@ export function SearchDialog() {
     config.navigate(url, {});
   }
 
-  function selectItem(selected: SearchItem) {
+  function selectItem(selected: SearchOption) {
     const item = withLiveQuery(selected);
     const position = items.findIndex(entry => entry.id === selected.id);
     if (item.kind === 'result') {
@@ -414,7 +416,7 @@ export function SearchDialog() {
 
   function openChat(request?: ChatRequest) {
     // Questions from search use the page being read.
-    search.ask(
+    search.openChat(
       request?.action === 'submit' || request?.action === 'draft'
         ? { ...request, page: request.page ?? config.currentPage ?? null }
         : request
@@ -554,7 +556,7 @@ export function SearchDialog() {
               event.preventDefault();
               if (!canNavigate) return;
               selectItem(activeItem);
-              const url = getEntryUrl(activeItem);
+              const url = getOptionUrl(activeItem);
               if (url) navigateItem(activeItem, url);
             }}
           >
@@ -755,7 +757,7 @@ export function SearchDialog() {
                       })}
                     >
                       {sourceItems.map(item => (
-                        <ResultItem
+                        <OptionRow
                           key={item.id}
                           item={withLiveQuery(item)}
                           itemProps={autocomplete.getItemProps({

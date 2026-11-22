@@ -1,7 +1,7 @@
 import type { ChatTransport, UIMessage } from 'ai';
 
-import { ChatPanel } from '@/chat/ChatPanel';
-import type { ChatPanelProps, ChatRuntime } from '@/chat/contract';
+import { Conversation } from '@/chat/Conversation';
+import type { ConversationProps, ChatRuntime } from '@/chat/contract';
 import {
   type Session,
   ask,
@@ -17,8 +17,10 @@ export function createRuntime(
   transport: ChatTransport<UIMessage>,
   { holdFirstStep }: RuntimeOptions
 ): ChatRuntime {
-  function Panel(props: ChatPanelProps) {
-    return <ChatPanel {...props} holdFirstStep={holdFirstStep} />;
+  function RuntimeConversation(
+    props: Omit<ConversationProps, 'holdFirstStep'>
+  ) {
+    return <Conversation {...props} holdFirstStep={holdFirstStep} />;
   }
   return {
     createSession: (saved, options) => createSession(transport, saved, options),
@@ -28,6 +30,6 @@ export function createRuntime(
     discard: session => discard(session as Session),
     toConversation: session =>
       toConversation(session.id, (session as Session).messages),
-    Panel,
+    Conversation: RuntimeConversation,
   };
 }

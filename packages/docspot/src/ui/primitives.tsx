@@ -35,7 +35,7 @@ export function mergeRefs<T>(
 }
 
 /** Runs the consumer's handler, then Docspot's own. */
-export function chain<E>(
+export function composeHandlers<E>(
   own: (event: E) => void,
   theirs: ((event: E) => void) | undefined
 ) {
@@ -58,16 +58,18 @@ const keyLabels: Record<string, string> = {
   down: '↓',
 };
 
+type KbdProps = ComponentProps<'kbd'> & {
+  keys: string[];
+  variant?: 'default' | 'ghost';
+};
+
 /** Keyboard keys. `mod` is ⌘ on Apple platforms and Ctrl elsewhere. */
 export function Kbd({
   keys,
   variant = 'default',
   className,
   ...props
-}: ComponentProps<'kbd'> & {
-  keys: string[];
-  variant?: 'default' | 'ghost';
-}) {
+}: KbdProps) {
   const isApple = useIsApplePlatform();
   return (
     <kbd
@@ -90,9 +92,18 @@ export function Kbd({
   );
 }
 
-export function Shimmer({ children }: { children: ReactNode }) {
+type ShimmerProps = { children: ReactNode };
+
+export function Shimmer({ children }: ShimmerProps) {
   return <span className="docspot-shimmer">{children}</span>;
 }
+
+type IconButtonProps = ComponentProps<'button'> & {
+  label: string;
+  tooltip?: string;
+  shortcut?: string[];
+  side?: 'top' | 'bottom' | 'left';
+};
 
 /**
  * A button whose label shows on hover and focus. Tooltips repeat the
@@ -106,12 +117,7 @@ export function IconButton({
   children,
   side = 'bottom',
   ...props
-}: ComponentProps<'button'> & {
-  label: string;
-  tooltip?: string;
-  shortcut?: string[];
-  side?: 'top' | 'bottom' | 'left';
-}) {
+}: IconButtonProps) {
   return (
     <span className="docspot-tooltip-anchor" data-side={side}>
       <button
@@ -143,15 +149,13 @@ export function useClipboard(resetAfter = 2000) {
   return { isCopied, copy };
 }
 
-export function CopyButton({
-  text,
-  label,
-  copiedLabel,
-}: {
+type CopyButtonProps = {
   text: string;
   label: string;
   copiedLabel: string;
-}) {
+};
+
+export function CopyButton({ text, label, copiedLabel }: CopyButtonProps) {
   const { isCopied, copy } = useClipboard();
   return (
     <IconButton
@@ -187,22 +191,19 @@ export type MenuItem =
   | { kind: 'separator'; key: string }
   | { kind: 'text'; key: string; label: ReactNode };
 
+type MenuProps = {
+  trigger: (props: ComponentProps<'button'>) => ReactNode;
+  items: MenuItem[];
+  className?: string;
+  onOpenChange?: (open: boolean) => void;
+};
+
 /**
  * A menu button on the Popover API: the browser handles light dismiss,
  * Escape, and top-layer rendering. Arrow keys move between items and focus
  * returns to the button.
  */
-export function Menu({
-  trigger,
-  items,
-  className,
-  onOpenChange,
-}: {
-  trigger: (props: ComponentProps<'button'>) => ReactNode;
-  items: MenuItem[];
-  className?: string;
-  onOpenChange?: (open: boolean) => void;
-}) {
+export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);

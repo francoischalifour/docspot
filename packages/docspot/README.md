@@ -181,7 +181,7 @@ function SupportPane() {
 | `Docspot.SearchDialog`  | The search dialog while it is open                                       |
 | `Docspot.ChatPanel`     | The chat panel and, with `launcher`, a floating button that opens it     |
 
-Triggers accept button props, including `ref`. Your handlers run before Docspot's: calling `event.preventDefault()` in `onClick` keeps the surface closed. Pass `children` to replace their content.
+Triggers accept button props, including `ref`, typed as `SearchTriggerProps`, `ChatTriggerProps`, and `TriggerProps`. Your handlers run before Docspot's: calling `event.preventDefault()` in `onClick` keeps the surface closed. Pass `children` to replace their content.
 
 `useDocspot()` returns:
 

@@ -38,7 +38,12 @@ export const Docspot = /* @__PURE__ */ Object.assign(DocspotComponent, {
 
 export { useDocspot } from '@/core/Root';
 export type { DocspotApi } from '@/core/Root';
-export type { ChatPanelProps } from '@/core/surfaces';
+export type {
+  ChatPanelProps,
+  ChatTriggerProps,
+  SearchTriggerProps,
+  TriggerProps,
+} from '@/core/surfaces';
 export { createDocspotUrl } from '@/core/url';
 export type { DocspotLinkOptions } from '@/core/url';
 export { importDocspotHistory } from '@/core/storage';

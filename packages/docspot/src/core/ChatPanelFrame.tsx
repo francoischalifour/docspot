@@ -57,10 +57,12 @@ function getPanelContentOpacity(offset: number) {
   return 1 - Math.min(offset / PANEL_HIDE_DISTANCE, 1) * 0.6;
 }
 
+type ChatPanelFrameProps = Omit<ChatPanelProps, 'launcher'>;
+
 export function ChatPanelFrame({
   dock = 'fixed',
   className,
-}: Omit<ChatPanelProps, 'launcher'>) {
+}: ChatPanelFrameProps) {
   const { config, search, chat } = useDocspotInternal('Docspot.ChatPanel');
   const { messages, canSearch } = config;
   const { isOpen, runtime, session } = chat;
@@ -107,7 +109,7 @@ export function ChatPanelFrame({
     };
   }, [config.owner, width, isOpen, dock]);
 
-  const Panel = runtime?.Panel;
+  const Conversation = runtime?.Conversation;
 
   return (
     <aside
@@ -200,8 +202,8 @@ export function ChatPanelFrame({
           </div>
         </div>
       )}
-      {session && Panel && (
-        <Panel
+      {session && Conversation && (
+        <Conversation
           key={session.id}
           session={session}
           composerRef={chat.composerRef}
@@ -228,9 +230,9 @@ export function ChatPanelFrame({
             },
           }}
           onSelectConversation={conversation =>
-            chat.ask({ action: 'resume', conversation })
+            chat.open({ action: 'resume', conversation })
           }
-          onNewConversation={() => chat.ask({ action: 'reset' })}
+          onNewConversation={() => chat.open({ action: 'reset' })}
           onClose={chat.close}
           onNavigate={(url, event) => {
             event.preventDefault();
@@ -256,6 +258,13 @@ type PanelDrag = {
   velocity: number;
 };
 
+type ResizeHandleProps = {
+  width: number | undefined;
+  onResize: (resize: PanelResize) => void;
+  onResizeEnd: (width: number | undefined) => void;
+  onHide: () => void;
+};
+
 /**
  * Drags or arrow keys resize the docked panel; double-click resets it. Past
  * the minimum width the panel follows the pointer, and releasing far enough,
@@ -266,12 +275,7 @@ function ResizeHandle({
   onResize,
   onResizeEnd,
   onHide,
-}: {
-  width: number | undefined;
-  onResize: (resize: PanelResize) => void;
-  onResizeEnd: (width: number | undefined) => void;
-  onHide: () => void;
-}) {
+}: ResizeHandleProps) {
   const { config } = useDocspotInternal('Docspot.ChatPanel');
   const messages = config.messages.chat;
   const dragRef = useRef<PanelDrag | null>(null);

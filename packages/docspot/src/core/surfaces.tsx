@@ -1,7 +1,7 @@
 import { type ComponentProps, Suspense, lazy } from 'react';
 
 import { SearchIcon } from '@/ui/icons';
-import { Kbd, chain, cx, mergeRefs } from '@/ui/primitives';
+import { Kbd, composeHandlers, cx, mergeRefs } from '@/ui/primitives';
 import {
   chatFrameLoader,
   searchDialogLoader,
@@ -16,8 +16,11 @@ const LazyChatPanelFrame = /* @__PURE__ */ lazy(() =>
   chatFrameLoader.load().then(module => ({ default: module.ChatPanelFrame }))
 );
 
-/** Runs `onClick` first; calling `preventDefault` keeps the surface closed. */
-type ButtonProps = Omit<ComponentProps<'button'>, 'type'>;
+/**
+ * Button props, including `ref`. Handlers run before Docspot's; calling
+ * `preventDefault` in `onClick` keeps the surface closed.
+ */
+export type SearchTriggerProps = Omit<ComponentProps<'button'>, 'type'>;
 
 /** Opens search. Renders nothing without `search`. */
 export function SearchTrigger({
@@ -28,7 +31,7 @@ export function SearchTrigger({
   onFocus,
   onPointerEnter,
   ...props
-}: ButtonProps) {
+}: SearchTriggerProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchTrigger');
   if (!config.canSearch) return null;
   const label = config.canChat
@@ -43,8 +46,8 @@ export function SearchTrigger({
       // Focus returns to a visible trigger when search closes.
       ref={mergeRefs(ref, search.registerTrigger)}
       className={cx('docspot-trigger', className)}
-      onPointerEnter={chain(search.preload, onPointerEnter)}
-      onFocus={chain(search.preload, onFocus)}
+      onPointerEnter={composeHandlers(search.preload, onPointerEnter)}
+      onFocus={composeHandlers(search.preload, onFocus)}
       onClick={event => {
         onClick?.(event);
         if (!event.defaultPrevented) search.open(event.currentTarget);
@@ -67,6 +70,9 @@ export function SearchTrigger({
   );
 }
 
+/** Button props, as for `SearchTriggerProps`. */
+export type ChatTriggerProps = Omit<ComponentProps<'button'>, 'type'>;
+
 /** Opens or hides chat. Renders nothing without `chat`. */
 export function ChatTrigger({
   className,
@@ -75,7 +81,7 @@ export function ChatTrigger({
   onFocus,
   onPointerEnter,
   ...props
-}: ButtonProps) {
+}: ChatTriggerProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatTrigger');
   if (!config.canChat) return null;
   return (
@@ -86,8 +92,8 @@ export function ChatTrigger({
       aria-expanded={chat.isOpen}
       aria-controls={config.chatPanelId}
       className={cx('docspot-trigger docspot-chat-trigger', className)}
-      onPointerEnter={chain(chat.preload, onPointerEnter)}
-      onFocus={chain(chat.preload, onFocus)}
+      onPointerEnter={composeHandlers(chat.preload, onPointerEnter)}
+      onFocus={composeHandlers(chat.preload, onFocus)}
       onClick={event => {
         onClick?.(event);
         if (!event.defaultPrevented) chat.toggle();
@@ -109,8 +115,11 @@ export function ChatTrigger({
   );
 }
 
+/** Button props, as for `SearchTriggerProps`. */
+export type TriggerProps = SearchTriggerProps & ChatTriggerProps;
+
 /** Opens search when configured, otherwise chat. */
-export function Trigger(props: ButtonProps) {
+export function Trigger(props: TriggerProps) {
   const { config } = useDocspotInternal('Docspot.Trigger');
   return config.canSearch ? (
     <SearchTrigger {...props} />
@@ -132,8 +141,10 @@ export function SearchDialog() {
   );
 }
 
+type ChatLauncherProps = { hidden: boolean };
+
 /** Sits where the panel opens, so the chat's place on screen is clear. */
-function ChatLauncher({ hidden }: { hidden: boolean }) {
+function ChatLauncher({ hidden }: ChatLauncherProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatPanel');
   return (
     <span
@@ -149,7 +160,7 @@ function ChatLauncher({ hidden }: { hidden: boolean }) {
         aria-keyshortcuts="Meta+J Control+J"
         onPointerEnter={chat.preload}
         onFocus={chat.preload}
-        onClick={() => chat.ask()}
+        onClick={() => chat.open()}
         // Stays mounted while hidden, so focus can return to it.
         hidden={hidden}
         className="docspot-launcher"

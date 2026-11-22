@@ -13,9 +13,22 @@ import { stripHash } from '@/core/url';
 import type { DocspotResult } from '@/types';
 import { ExternalIcon, PageIcon, QuestionIcon, SendIcon } from '@/ui/icons';
 import { cx } from '@/ui/primitives';
-import { Welcome, getPrompts } from '@/ui/Suggestions';
+import { Welcome, getPrompts } from '@/ui/SuggestedQuestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
-import type { AskEntry, ItemEntry, SearchItem } from '@/search/model';
+import type { AskOption, ItemOption, SearchOption } from '@/search/model';
+
+type PreviewPanelProps = {
+  activeItem: SearchOption | undefined;
+  query: string;
+  isLoading: boolean;
+  onClose: () => void;
+  /** Closes search to follow a link, keeping the query for Back. */
+  onLeave: () => void;
+  onNotify: (message: string) => void;
+  onStartChat: (request?: ChatRequest) => void;
+  /** Chooses an item from its preview: runs it, or records the link opened. */
+  onSelect: (item: SearchOption) => void;
+};
 
 export function PreviewPanel({
   activeItem,
@@ -26,18 +39,7 @@ export function PreviewPanel({
   onNotify,
   onStartChat,
   onSelect,
-}: {
-  activeItem: SearchItem | undefined;
-  query: string;
-  isLoading: boolean;
-  onClose: () => void;
-  /** Closes search to follow a link, keeping the query for Back. */
-  onLeave: () => void;
-  onNotify: (message: string) => void;
-  onStartChat: (request?: ChatRequest) => void;
-  /** Chooses an item from its preview: runs it, or records the link opened. */
-  onSelect: (item: SearchItem) => void;
-}) {
+}: PreviewPanelProps) {
   const deferredItem = useDeferredValue(activeItem);
   const isStale = Boolean(
     deferredItem &&
@@ -83,8 +85,10 @@ export function PreviewPanel({
 }
 
 /** Falls back to the result summary when a preview fails to render. */
+type PreviewErrorBoundaryProps = { fallback: ReactNode; children: ReactNode };
+
 class PreviewErrorBoundary extends Component<
-  { fallback: ReactNode; children: ReactNode },
+  PreviewErrorBoundaryProps,
   { hasError: boolean }
 > {
   override state = { hasError: false };
@@ -96,6 +100,15 @@ class PreviewErrorBoundary extends Component<
   }
 }
 
+type ResultPreviewProps = {
+  result: DocspotResult;
+  query: string;
+  onClose: () => void;
+  onLeave: () => void;
+  onNotify: (message: string) => void;
+  onSelect: () => void;
+};
+
 function ResultPreview({
   result,
   query,
@@ -103,14 +116,7 @@ function ResultPreview({
   onLeave,
   onNotify,
   onSelect,
-}: {
-  result: DocspotResult;
-  query: string;
-  onClose: () => void;
-  onLeave: () => void;
-  onNotify: (message: string) => void;
-  onSelect: () => void;
-}) {
+}: ResultPreviewProps) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages.search;
   const Preview = config.slots.preview;
@@ -237,16 +243,14 @@ function ResultPreview({
   );
 }
 
-/** Records the selection and leaves modified clicks to the browser. */
-function PreviewLink({
-  url,
-  onSelect,
-  onLeave,
-}: {
+type PreviewLinkProps = {
   url: string;
   onSelect: () => void;
   onLeave: () => void;
-}) {
+};
+
+/** Records the selection and leaves modified clicks to the browser. */
+function PreviewLink({ url, onSelect, onLeave }: PreviewLinkProps) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const external = isExternalUrl(url);
   return (
@@ -271,19 +275,17 @@ function PreviewLink({
   );
 }
 
+type ItemPreviewProps = {
+  entry: ItemOption;
+  onLeave: () => void;
+  onSelect: (item: ItemOption) => void;
+};
+
 /**
  * Names an item and says what it does, or shows its own preview, with a
  * button that runs it or opens its link.
  */
-function ItemPreview({
-  entry,
-  onLeave,
-  onSelect,
-}: {
-  entry: ItemEntry;
-  onLeave: () => void;
-  onSelect: (item: ItemEntry) => void;
-}) {
+function ItemPreview({ entry, onLeave, onSelect }: ItemPreviewProps) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const messages = config.messages.search;
   const { item, query } = entry;
@@ -329,15 +331,13 @@ function ItemPreview({
   );
 }
 
-function AskPreview({
-  item,
-  onStartChat,
-  onSelect,
-}: {
-  item: AskEntry;
+type AskPreviewProps = {
+  item: AskOption;
   onStartChat: (request?: ChatRequest) => void;
   onSelect: () => void;
-}) {
+};
+
+function AskPreview({ item, onStartChat, onSelect }: AskPreviewProps) {
   const { config } = useDocspotInternal('Docspot.SearchDialog');
   const { search, chat } = config.messages;
   const page = config.currentPage;

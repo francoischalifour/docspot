@@ -113,8 +113,8 @@ export type SearchController = {
    * query, so going back reopens search where it was left.
    */
   leave: () => void;
-  /** Hands off to chat; without a request it only opens chat. */
-  ask: (request?: ChatRequest) => void;
+  /** Closes search and opens chat, with a request such as a question. */
+  openChat: (request?: ChatRequest) => void;
   registerTrigger: (button: HTMLElement | null) => (() => void) | undefined;
   preload: () => void;
 };
@@ -132,7 +132,8 @@ export type ChatController = {
   composerRef: (composer: HTMLTextAreaElement | null) => void;
   width: number | undefined;
   setWidth: (width: number | undefined) => void;
-  ask: (request?: ChatRequest, options?: { focus?: boolean }) => void;
+  /** Opens chat on its last conversation, or applies a request. */
+  open: (request?: ChatRequest, options?: { focus?: boolean }) => void;
   close: () => void;
   toggle: () => void;
   getActiveConversation: () => StoredConversation | null;
@@ -162,9 +163,9 @@ const noEntries: never[] = [];
 
 const defaultNavigate: DocspotNavigate = url => window.location.assign(url);
 
-function warnMissing(capability: string, method: string) {
+function warnMissing(capability: 'search' | 'chat') {
   console.warn(
-    `Docspot: ${method}() needs \`${capability}\`, which this instance does not configure.`
+    `Docspot: opening ${capability} needs the \`${capability}\` prop, which this instance does not set.`
   );
 }
 
@@ -288,7 +289,7 @@ export function DocspotRoot(props: DocspotRootProps) {
   }
 
   function openSearch(opener?: HTMLElement, query = '') {
-    if (!canSearch) return warnMissing('search', 'openSearch');
+    if (!canSearch) return warnMissing('search');
     search?.preload?.();
     const focused = document.activeElement;
     // Closing search returns to the chat composer it was opened from.
@@ -501,11 +502,11 @@ export function DocspotRoot(props: DocspotRootProps) {
     if (!readChatLink(url.read())) pendingLinkRef.current = null;
   }
 
-  function askChat(
+  function requestChat(
     request?: ChatRequest,
     { focus = true, linkKey }: { focus?: boolean; linkKey?: string } = {}
   ) {
-    if (!chatLoader) return warnMissing('chat', 'ask');
+    if (!chatLoader) return warnMissing('chat');
     const previous = pendingOpen.current;
     const intent = { request, focus, linkKey };
     pendingOpen.current = intent;
@@ -560,7 +561,7 @@ export function DocspotRoot(props: DocspotRootProps) {
 
   function toggleChat() {
     if (chatOpenRef.current) closeChat();
-    else askChat();
+    else requestChat();
   }
 
   function attachComposer(composer: HTMLTextAreaElement | null) {
@@ -582,7 +583,7 @@ export function DocspotRoot(props: DocspotRootProps) {
   const restorePanel = useEffectEvent(() => {
     const link = url && canChat ? readChatLink(url.read()) : null;
     if (!link && stores.panel.get().open && isChatBesidePage())
-      askChat(undefined, { focus: false });
+      requestChat(undefined, { focus: false });
   });
   useEffect(() => {
     if (canChat) restorePanel();
@@ -640,7 +641,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     if (linkKey === pendingLinkRef.current) return;
     pendingLinkRef.current = linkKey;
     if (link && linkKey) {
-      askChat(
+      requestChat(
         {
           action: link.action,
           text: link.text,
@@ -722,10 +723,10 @@ export function DocspotRoot(props: DocspotRootProps) {
     open: openSearch,
     close: () => closeSearch(),
     leave: leaveSearch,
-    ask(request) {
+    openChat(request) {
       restoreFocusRef.current = null;
       closeSearch();
-      askChat(request);
+      requestChat(request);
     },
     registerTrigger(button) {
       if (!button) return;
@@ -743,7 +744,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     retryStartup: startupFailed
       ? () => {
           const pending = pendingOpen.current;
-          if (pending) askChat(pending.request, pending);
+          if (pending) requestChat(pending.request, pending);
         }
       : undefined,
     runtime,
@@ -755,9 +756,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     composerRef: attachComposer,
     width: panel.width,
     setWidth: width => stores.panel.set(state => ({ ...state, width })),
-    ask(request, options) {
+    open(request, options) {
       if (!request && pendingOpen.current) return;
-      askChat(request, options);
+      requestChat(request, options);
     },
     close: closeChat,
     toggle: toggleChat,
@@ -821,24 +822,24 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
   const [actions] = useState((): DocspotActions => ({
     openSearch: query => latest.current.search.open(undefined, query),
     closeSearch: () => latest.current.search.close(),
-    openChat: () => latest.current.chat.ask(),
+    openChat: () => latest.current.chat.open(),
     closeChat: () => latest.current.chat.close(),
     toggleChat: () => latest.current.chat.toggle(),
     setDraft: (text, options) =>
-      latest.current.chat.ask({
+      latest.current.chat.open({
         action: 'draft',
         text,
         page: options?.page,
         source: 'api',
       }),
     submitQuestion: (question, options) =>
-      latest.current.chat.ask({
+      latest.current.chat.open({
         action: 'submit',
         text: question,
         page: options?.page,
         source: 'api',
       }),
-    startConversation: () => latest.current.chat.ask({ action: 'reset' }),
+    startConversation: () => latest.current.chat.open({ action: 'reset' }),
     close() {
       const { search, chat } = latest.current;
       if (search.isOpen) search.close();

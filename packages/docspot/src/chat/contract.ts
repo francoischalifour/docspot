@@ -34,7 +34,7 @@ export type ChatSessionOptions = {
   onEvent: (event: DocspotEvent) => void;
 };
 
-export type ChatPanelProps = {
+export type ConversationProps = {
   session: ChatSession;
   composerRef: Ref<HTMLTextAreaElement>;
   draft: string;
@@ -58,6 +58,11 @@ export type ChatPanelProps = {
   /** The in-app path for a URL on this site, or null for other sites. */
   toInternalUrl: (url: string) => string | null;
   messages: DocspotMessages;
+  /**
+   * Shows nothing of an answer's first step until it completes. Set by the
+   * runtime from `createChat`, not by the core.
+   */
+  holdFirstStep: boolean;
 };
 
 export type ChatRuntime = {
@@ -76,7 +81,7 @@ export type ChatRuntime = {
   /** Stops a removed conversation without saving it again. */
   discard: (session: ChatSession) => void;
   toConversation: (session: ChatSession) => StoredConversation | null;
-  Panel: ComponentType<ChatPanelProps>;
+  Conversation: ComponentType<Omit<ConversationProps, 'holdFirstStep'>>;
 };
 
 export type ChatInternals = { load: () => Promise<ChatRuntime> };
