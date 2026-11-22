@@ -6,15 +6,15 @@
     },
     "search": {
       "eager": 9266,
-      "lazy": 10039
+      "lazy": 10648
     },
     "chat": {
-      "eager": 9775,
-      "lazy": 16283
+      "eager": 9774,
+      "lazy": 16904
     },
     "search and chat": {
-      "eager": 10044,
-      "lazy": 16283
+      "eager": 10043,
+      "lazy": 16904
     },
     "docspot/algolia": {
       "eager": 2290,
@@ -29,7 +29,7 @@
       "lazy": 0
     },
     "docspot/handoffs": {
-      "eager": 2095,
+      "eager": 2096,
       "lazy": 0
     }
   },

@@ -1,15 +1,15 @@
 {
   "search: open": {
     "commits": 7,
-    "renders": 43
+    "renders": 59
   },
   "search: type a query over 30 results": {
     "commits": 72,
-    "renders": 4088
+    "renders": 4373
   },
   "search: arrow through 20 results": {
     "commits": 40,
-    "renders": 560
+    "renders": 720
   },
   "chat: type 20 characters after 8 answers": {
     "commits": 20,
