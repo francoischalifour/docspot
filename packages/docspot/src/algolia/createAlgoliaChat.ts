@@ -16,6 +16,9 @@ export type AlgoliaChatOptions = {
   contextLimit?: number;
 };
 
+/** A Markdown page's top-level heading. */
+const FIRST_HEADING = /^#\s+(.+)$/m;
+
 /**
  * Formats an attached page as text the agent reads with the question. The
  * page guides relevance without overriding what the user asks.
@@ -25,7 +28,7 @@ function formatPageContext(
   contextLimit: number
 ) {
   const markdown = (page.content ?? '').slice(0, contextLimit);
-  const title = markdown.match(/^#\s+(.+)$/m)?.[1] ?? page.title ?? page.url;
+  const title = markdown.match(FIRST_HEADING)?.[1] ?? page.title ?? page.url;
   // Docspot sends the page URL already resolved against `siteUrl`.
   return `Documentation context (a relevance hint; follow the user's explicit question even when it concerns another page):\nTitle: ${title}\nURL: ${page.url}\n<documentation>\n${markdown}\n</documentation>`;
 }

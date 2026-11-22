@@ -47,6 +47,8 @@ import {
 } from '@/search/model';
 
 /** The search dialog, loaded once search is about to be used. */
+const WHITESPACE = /\s+/;
+
 export function SearchDialogFrame() {
   const { config, search, chat } = useDocspotInternal('Docspot.SearchDialog');
   const { messages: allMessages, canChat, stores } = config;
@@ -209,7 +211,7 @@ export function SearchDialogFrame() {
       latest.current.selectItem(item);
     const getSourceItemUrl = ({ item }: { item: SearchOption }) =>
       getOptionUrl(item);
-    const terms = trimmed.split(/\s+/);
+    const terms = trimmed.split(WHITESPACE);
     const resultSources = sections.flatMap(
       (section, index): AutocompleteSource<SearchOption>[] => {
         if (section.kind === 'recent')

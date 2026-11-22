@@ -6,6 +6,15 @@ import type {
   HighlightedText,
 } from '@/types';
 import { isResult, recentItems } from '@/search/items';
+import {
+  COMBINING_MARKS,
+  NON_WORD,
+  cachedRegExp,
+  escapeRegExp,
+} from '@/search/text';
+
+/** Text whose characters fold to themselves, so offsets need no mapping. */
+const ASCII_ONLY = /^\p{ASCII}*$/u;
 
 export type SearchOption = {
   id: string;
@@ -115,13 +124,10 @@ export function groupEntries(
 
 /** Lowercase, without accents, so "Theme" finds "Thème" and the other way around. */
 function fold(text: string) {
-  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  return text.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
 }
 
-const words = (text: string) =>
-  fold(text)
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
+const words = (text: string) => fold(text).split(NON_WORD).filter(Boolean);
 
 /**
  * The items every word of the query starts a word of, in their title or
@@ -208,17 +214,12 @@ export function highlightTerms(text: string, terms: string[]): HighlightedText {
     (a, b) => b.length - a.length
   );
   if (!words.length || !text) return plain(text);
-  const escaped = words.map(word =>
-    word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  );
   // Terms match at word starts, so "zoo" marks "zoom" but "a" skips "image".
-  const pattern = new RegExp(
-    `(?<![\\p{L}\\p{N}])(?:${escaped.join('|')})`,
+  const pattern = cachedRegExp(
+    `(?<![\\p{L}\\p{N}])(?:${words.map(escapeRegExp).join('|')})`,
     'giu'
   );
-  const offsets = /^\p{ASCII}*$/u.test(text)
-    ? undefined
-    : foldWithOffsets(text);
+  const offsets = ASCII_ONLY.test(text) ? undefined : foldWithOffsets(text);
   const segments: HighlightedText = [];
   let cursor = 0;
   for (const match of (offsets?.folded ?? text).matchAll(pattern)) {

@@ -84,11 +84,13 @@ export function createDocspotUrl(url: string, options: DocspotLinkOptions) {
   return `${path}?${params}${hash}`;
 }
 
+const LEADING_QUESTION_MARK = /^\?/;
+
 /** The default adapter: the browser history, observing back and forward. */
 export const browserUrlAdapter: DocspotUrlAdapter = {
   read: () => window.location.search,
   write(search, { replace }) {
-    const query = search.replace(/^\?/, '');
+    const query = search.replace(LEADING_QUESTION_MARK, '');
     const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
     if (replace) window.history.replaceState(window.history.state, '', url);
     else window.history.pushState(window.history.state, '', url);

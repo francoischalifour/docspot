@@ -10,15 +10,19 @@ const IDLE_PRELOAD_DELAY_MS = 3_000;
 // A page that never idles, such as one running animations, still preloads.
 const IDLE_PRELOAD_TIMEOUT_MS = 2_000;
 
+const APPLE_PLATFORM = /Mac|iPhone|iPad|iPod/;
+let isApple: boolean | undefined;
+
 /**
  * Whether this is an Apple platform (macOS, iOS, or iPadOS), whose
  * keyboards label the command key ⌘.
  */
 export function isApplePlatform() {
-  return (
+  // The platform never changes, and this runs on every key hint's render.
+  isApple ??=
     typeof navigator !== 'undefined' &&
-    /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent)
-  );
+    APPLE_PLATFORM.test(navigator.platform || navigator.userAgent);
+  return isApple;
 }
 
 const subscribeToNothing = () => () => {};

@@ -81,6 +81,11 @@ export function getMetadataTime(
   return typeof value === 'string' ? value : undefined;
 }
 
+/** Inline code spans on one line, such as `code`. */
+const INLINE_CODE = /`[^`\n]*`/g;
+/** Lines opening or closing a fenced code block. */
+const CODE_FENCE = /(?:^|\n)```/g;
+
 /**
  * Closes inline markdown that is still being written, so a streamed answer
  * shows formatted text instead of flashing raw backticks or `**`. Open code
@@ -89,14 +94,14 @@ export function getMetadataTime(
 export function completeStreamingMarkdown(markdown: string): string {
   if (isInsideCodeFence(markdown)) return markdown;
   const lastParagraph = markdown.slice(markdown.lastIndexOf('\n\n') + 1);
-  const outsideInlineCode = lastParagraph.replace(/`[^`\n]*`/g, '');
+  const outsideInlineCode = lastParagraph.replace(INLINE_CODE, '');
   if (countOf(outsideInlineCode, '`') % 2 === 1) return `${markdown}\``;
   if (countOf(outsideInlineCode, '**') % 2 === 1) return `${markdown}**`;
   return markdown;
 }
 
 function isInsideCodeFence(markdown: string) {
-  return (markdown.match(/(?:^|\n)```/g)?.length ?? 0) % 2 === 1;
+  return (markdown.match(CODE_FENCE)?.length ?? 0) % 2 === 1;
 }
 
 function countOf(text: string, token: string) {

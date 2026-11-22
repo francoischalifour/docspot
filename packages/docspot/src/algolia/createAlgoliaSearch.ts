@@ -48,8 +48,11 @@ export type AlgoliaSearchOptions = {
   ) => DocspotResult | null;
 };
 
+/** Numbering before a heading, such as "2. ". */
+const SECTION_NUMBER = /^\d+\.\s+/;
+
 function stripNumbering(title: string) {
-  return title.replace(/^\d+\.\s+/, '');
+  return title.replace(SECTION_NUMBER, '');
 }
 
 function highlight(

@@ -1,3 +1,5 @@
+import { NON_WORD } from '@/search/text';
+
 const QUESTION_START =
   /^(how|what|why|where|when|which|who|whose|can|could|should|would|will|do|does|did|is|are|was|were|has|have)\b/i;
 const REQUEST_START =
@@ -5,6 +7,8 @@ const REQUEST_START =
 const COMPARISON = /\b(difference between|best way|vs\.?|versus)\b/i;
 const PERSONAL = /\b(i|my|we|our|you|your)\b/i;
 const CODE_LIKE = /[_(){}=<>`]|[a-z][A-Z]|\w\.\w/;
+/** Words, keeping contractions such as "don't" whole. */
+const QUERY_WORD = /[\p{L}\p{N}]+(?:'[\p{L}]+)?/gu;
 const STOP_WORDS = new Set(
   'a an and are can could did do does for from has have how i in is it my of on or our should the there to was we were what when where which who why will with would you your'.split(
     ' '
@@ -12,7 +16,7 @@ const STOP_WORDS = new Set(
 );
 
 export function getWords(query: string) {
-  return query.toLowerCase().match(/[\p{L}\p{N}]+(?:'[\p{L}]+)?/gu) ?? [];
+  return query.toLowerCase().match(QUERY_WORD) ?? [];
 }
 
 /** Words that carry meaning, without question words and stop words. */
@@ -40,10 +44,7 @@ export function isQuestion(query: string) {
 }
 
 function normalize(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
+  return text.toLowerCase().replace(NON_WORD, ' ').trim();
 }
 
 /** Whether the query names a result's page, like "SQL Explorer". */

@@ -3,6 +3,12 @@ import type { SearchResult } from 'minisearch';
 
 import { createSearch } from '@/search/createSearch';
 import { highlightTerms } from '@/search/model';
+import {
+  COMBINING_MARKS,
+  WORD,
+  cachedRegExp,
+  escapeRegExp,
+} from '@/search/text';
 import type { DocspotResult, DocspotSearch } from '@/types';
 
 /** What a MiniSearch document becomes in results: a page. */
@@ -27,24 +33,26 @@ export type MiniSearchSearchOptions<T> = {
   excerptLength?: number;
 };
 
+/** Where one sentence ends and the next begins. */
+const SENTENCE_BREAK = /(?<=[.!?])\s+/;
+
 function getTermsIn(text: string) {
   return (
     text
       .normalize('NFKD')
-      .replace(/\p{M}/gu, '')
+      .replace(COMBINING_MARKS, '')
       .toLowerCase()
-      .match(/[\p{L}\p{N}]+/gu) ?? []
+      .match(WORD) ?? []
   );
 }
 
 /** The sentence matching the most terms, trimmed around the first match. */
 function createExcerpt(text: string, terms: string[], maxLength = 180) {
+  const termSet = new Set(terms);
   let best = '';
   let bestScore = -1;
-  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
-    const score = getTermsIn(sentence).filter(term =>
-      terms.includes(term)
-    ).length;
+  for (const sentence of text.split(SENTENCE_BREAK)) {
+    const score = getTermsIn(sentence).filter(term => termSet.has(term)).length;
     if (score > bestScore) {
       best = sentence;
       bestScore = score;
@@ -54,13 +62,7 @@ function createExcerpt(text: string, terms: string[], maxLength = 180) {
   const position = terms.length
     ? best
         .toLowerCase()
-        .search(
-          new RegExp(
-            terms
-              .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-              .join('|')
-          )
-        )
+        .search(cachedRegExp(terms.map(escapeRegExp).join('|'), 'u'))
     : 0;
   const offset = Math.max(0, position - Math.floor(maxLength / 3));
   const start = offset ? best.lastIndexOf(' ', offset) + 1 : 0;
