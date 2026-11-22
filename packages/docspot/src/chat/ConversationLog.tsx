@@ -11,8 +11,15 @@ import { useConversationContext } from '@/chat/ConversationContext';
  */
 export function ConversationLog() {
   const conversation = useConversationContext('ConversationLog');
-  const { messages, chatMessages, lastMessage, busy, error, holdFirstStep } =
-    conversation;
+  const {
+    messages,
+    chatMessages,
+    lastMessage,
+    busy,
+    error,
+    holdFirstStep,
+    tools,
+  } = conversation;
   return (
     <Scroller
       follow={busy}
@@ -33,12 +40,16 @@ export function ConversationLog() {
             <div
               key={message.id}
               className="docspot-chat-item"
-              hidden={!hasMessageContent(message, { streaming, holdFirstStep })}
+              hidden={
+                !hasMessageContent(message, { streaming, holdFirstStep, tools })
+              }
             >
               <ChatMessage
                 message={message}
                 streaming={streaming}
                 holdFirstStep={holdFirstStep}
+                tools={tools}
+                onToolOutput={conversation.addToolOutput}
                 messages={messages}
                 onNavigate={conversation.navigate}
                 toInternalUrl={conversation.toInternal}

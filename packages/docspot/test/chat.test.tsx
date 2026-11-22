@@ -8,7 +8,7 @@ import {
   type DocspotPage,
   useDocspot,
 } from '@/index';
-import { createChat } from '@/chat';
+import { type DocspotToolProps, createChat } from '@/chat';
 import type { DocspotUrlAdapter } from '@/types';
 import { createChatServer, lastQuestion, wait } from '@test/fixtures';
 
@@ -564,4 +564,92 @@ it('stays where the reader scrolled while an answer streams, until they jump bac
   await expect.element(answer).toHaveTextContent('The very end.');
   await panel().getByRole('button', { name: 'Jump to latest answer' }).click();
   await expect.element(answer.getByText('The very end.')).toBeInViewport();
+});
+
+it('renders tool calls with their renderers, and continues once the reader answers one', async () => {
+  type Option = { name: string; defaultValue: string };
+  const { requests, transport } = createChatServer((_question, index) =>
+    index === 0
+      ? {
+          tool: {
+            name: 'showOption',
+            input: { name: 'port' },
+            output: { name: 'port', defaultValue: '3000' },
+          },
+          text: 'Change it in acme.json.',
+          chunkDelayMs: 300,
+        }
+      : index === 1
+        ? { tool: { name: 'confirmReset', input: { option: 'port' } } }
+        : { text: 'Reset to 3000.' }
+  );
+  const chat = createChat({
+    transport,
+    tools: {
+      showOption: ({
+        state,
+        output,
+      }: DocspotToolProps<{ name: string }, Option>) =>
+        state === 'output-available' && output ? (
+          <p>{`${output.name} defaults to ${output.defaultValue}`}</p>
+        ) : (
+          <p>Looking up the option</p>
+        ),
+      confirmReset: ({
+        state,
+        addOutput,
+      }: DocspotToolProps<unknown, boolean>) =>
+        state === 'input-available' ? (
+          <button type="button" onClick={() => addOutput(true)}>
+            Reset the port
+          </button>
+        ) : (
+          <p>Confirmed</p>
+        ),
+    },
+  });
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('How do I change the port?{Enter}');
+  // The renderer follows the call from its input to its output.
+  await expect
+    .element(answers().first().getByText('Looking up the option'))
+    .toBeVisible();
+  await expect
+    .element(answers().first().getByText('port defaults to 3000'))
+    .toBeVisible();
+  await expect
+    .element(answers().first().getByText('Change it in acme.json.'))
+    .toBeVisible();
+
+  await expect
+    .element(panel().getByRole('button', { name: 'Copy answer' }))
+    .toBeInTheDocument();
+
+  await userEvent.keyboard('Reset it{Enter}');
+  await answers()
+    .nth(1)
+    .getByRole('button', { name: 'Reset the port' })
+    .click();
+  await expect.element(answers().nth(1).getByText('Confirmed')).toBeVisible();
+  await expect
+    .element(answers().nth(1).getByText('Reset to 3000.'))
+    .toBeVisible();
+  // The reply continues the same answer rather than starting another.
+  await expect.element(answers()).toHaveLength(2);
+  // The reader's answer reaches the agent with the conversation.
+  const sent = JSON.stringify(requests.at(-1)?.body.messages.at(-1));
+  expect(sent).toContain('"output":true');
+});
+
+it('shows tools without a renderer only as progress', async () => {
+  const { chat } = createChatServer(() => ({
+    tool: { name: 'lookup', input: { q: 'port' }, output: { hits: 2 } },
+    text: 'Found it.',
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('Where is the port?{Enter}');
+  await expect.element(answers().getByText('Found it.')).toBeVisible();
+  expect(answers().element().textContent).not.toContain('hits');
 });

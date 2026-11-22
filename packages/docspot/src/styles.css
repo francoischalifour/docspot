@@ -1620,6 +1620,12 @@
   font-size: var(--docspot-text-xs);
 }
 
+/* A tool call's renderer, before the answer's text. Its look is the
+   renderer's own; Docspot only spaces calls apart. */
+.docspot-tool {
+  margin-bottom: 1rem;
+}
+
 .docspot-sources {
   margin-top: 1.25rem;
 }

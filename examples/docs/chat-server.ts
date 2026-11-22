@@ -21,6 +21,36 @@ type Body = {
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** The options `acme.json` accepts, for the `showOption` tool. */
+const OPTIONS = [
+  {
+    name: 'port',
+    type: 'number',
+    defaultValue: '3000',
+    environment: 'ACME_PORT',
+    description: 'The port the development server listens on.',
+  },
+  {
+    name: 'name',
+    type: 'string',
+    defaultValue: 'Required',
+    environment: 'ACME_NAME',
+    description: 'The site name, shown in titles and navigation.',
+  },
+  {
+    name: 'base',
+    type: 'string',
+    defaultValue: '/',
+    environment: 'ACME_BASE',
+    description: 'The path the site is served under.',
+  },
+];
+
+/** Each option, with the pattern that finds it named in a question. */
+const OPTION_PATTERNS = OPTIONS.map(
+  option => [option, new RegExp(`\\b${option.name}\\b`, 'i')] as const
+);
+
 function getQuestion(body: Body) {
   return (
     body.messages
@@ -109,6 +139,27 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
         output: { pages: sources.length },
       });
       writer.write({ type: 'finish-step' });
+      // Questions naming an option show it as a card, through a tool the
+      // site renders with `createChat({ tools })`.
+      const option = OPTION_PATTERNS.find(([, pattern]) =>
+        pattern.test(question)
+      )?.[0];
+      if (option) {
+        writer.write({ type: 'start-step' });
+        writer.write({
+          type: 'tool-input-available',
+          toolCallId: 'option',
+          toolName: 'showOption',
+          input: { name: option.name },
+        });
+        await wait(1200);
+        writer.write({
+          type: 'tool-output-available',
+          toolCallId: 'option',
+          output: option,
+        });
+        writer.write({ type: 'finish-step' });
+      }
       writer.write({ type: 'start-step' });
       writer.write({ type: 'text-start', id: 'answer' });
       for (const token of text.match(/\S+\s*/g) ?? []) {

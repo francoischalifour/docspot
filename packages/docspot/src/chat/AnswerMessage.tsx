@@ -4,6 +4,8 @@ import type { MouseEvent } from 'react';
 import type { DocspotMessages } from '@/messages';
 import { AnswerActions } from '@/chat/AnswerActions';
 import { AnswerSources } from '@/chat/AnswerSources';
+import { AnswerTools } from '@/chat/AnswerTools';
+import type { DocspotTools } from '@/chat/tools';
 import { Markdown } from '@/chat/Markdown';
 import { ReadingAnchor } from '@/chat/ReadingAnchor';
 
@@ -12,6 +14,8 @@ type AnswerMessageProps = {
   /** The answer's latest step as Markdown. */
   text: string;
   streaming: boolean;
+  tools: DocspotTools;
+  onToolOutput: (tool: string, toolCallId: string, output: unknown) => void;
   messages: DocspotMessages['chat'];
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
   toInternalUrl: (url: string) => string | null;
@@ -19,13 +23,16 @@ type AnswerMessageProps = {
 };
 
 /**
- * An answer: its Markdown, the sources it cites, and actions once it is
- * complete. While it streams, its start stays where the reader begins.
+ * An answer: its tool calls that have a renderer, its Markdown, the sources
+ * it cites, and actions once it is complete. While it streams, its start
+ * stays where the reader begins.
  */
 export function AnswerMessage({
   message,
   text,
   streaming,
+  tools,
+  onToolOutput,
   messages,
   onNavigate,
   toInternalUrl,
@@ -41,6 +48,11 @@ export function AnswerMessage({
         className="docspot-message"
         data-role="assistant"
       >
+        <AnswerTools
+          message={message}
+          tools={tools}
+          onToolOutput={onToolOutput}
+        />
         <Markdown
           text={text}
           streaming={streaming}

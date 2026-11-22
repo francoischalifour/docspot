@@ -5,11 +5,14 @@ import type { DocspotMessages } from '@/messages';
 import { getMessageText, hasMessageContent } from '@/chat/messages';
 import { AnswerMessage } from '@/chat/AnswerMessage';
 import { QuestionMessage } from '@/chat/QuestionMessage';
+import type { DocspotTools } from '@/chat/tools';
 
 type ChatMessageProps = {
   message: UIMessage;
   streaming: boolean;
   holdFirstStep: boolean;
+  tools: DocspotTools;
+  onToolOutput: (tool: string, toolCallId: string, output: unknown) => void;
   messages: DocspotMessages['chat'];
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
   toInternalUrl: (url: string) => string | null;
@@ -25,12 +28,15 @@ export const ChatMessage = memo(function ChatMessage({
   message,
   streaming,
   holdFirstStep,
+  tools,
+  onToolOutput,
   messages,
   onNavigate,
   toInternalUrl,
   onRetry,
 }: ChatMessageProps) {
-  if (!hasMessageContent(message, { streaming, holdFirstStep })) return null;
+  if (!hasMessageContent(message, { streaming, holdFirstStep, tools }))
+    return null;
   const text = getMessageText(message, { streaming, holdFirstStep });
   return message.role === 'user' ? (
     <QuestionMessage message={message} text={text} messages={messages} />
@@ -39,6 +45,8 @@ export const ChatMessage = memo(function ChatMessage({
       message={message}
       text={text}
       streaming={streaming}
+      tools={tools}
+      onToolOutput={onToolOutput}
       messages={messages}
       onNavigate={onNavigate}
       toInternalUrl={toInternalUrl}

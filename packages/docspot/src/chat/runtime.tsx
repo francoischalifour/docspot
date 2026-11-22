@@ -2,6 +2,7 @@ import type { ChatTransport, UIMessage } from 'ai';
 
 import { Conversation } from '@/chat/Conversation';
 import type { ConversationProps, ChatRuntime } from '@/chat/contract';
+import type { DocspotTools } from '@/chat/tools';
 import {
   type Session,
   ask,
@@ -11,16 +12,18 @@ import {
   toConversation,
 } from '@/chat/session';
 
-export type RuntimeOptions = { holdFirstStep: boolean };
+export type RuntimeOptions = { holdFirstStep: boolean; tools: DocspotTools };
 
 export function createRuntime(
   transport: ChatTransport<UIMessage>,
-  { holdFirstStep }: RuntimeOptions
+  { holdFirstStep, tools }: RuntimeOptions
 ): ChatRuntime {
   function RuntimeConversation(
-    props: Omit<ConversationProps, 'holdFirstStep'>
+    props: Omit<ConversationProps, 'holdFirstStep' | 'tools'>
   ) {
-    return <Conversation {...props} holdFirstStep={holdFirstStep} />;
+    return (
+      <Conversation {...props} holdFirstStep={holdFirstStep} tools={tools} />
+    );
   }
   return {
     createSession: (saved, options) => createSession(transport, saved, options),

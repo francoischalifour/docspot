@@ -3,6 +3,7 @@
 import type { ComponentType, MouseEvent, Ref } from 'react';
 
 import type { DocspotMessages } from '@/messages';
+import type { DocspotTools } from '@/chat/tools';
 import type { StoredConversation } from '@/core/storage';
 import type {
   DocspotChat,
@@ -63,6 +64,8 @@ export type ConversationProps = {
    * runtime from `createChat`, not by the core.
    */
   holdFirstStep: boolean;
+  /** Renderers for tool calls. Set by the runtime from `createChat`. */
+  tools: DocspotTools;
 };
 
 export type ChatRuntime = {
@@ -81,7 +84,9 @@ export type ChatRuntime = {
   /** Stops a removed conversation without saving it again. */
   discard: (session: ChatSession) => void;
   toConversation: (session: ChatSession) => StoredConversation | null;
-  Conversation: ComponentType<Omit<ConversationProps, 'holdFirstStep'>>;
+  Conversation: ComponentType<
+    Omit<ConversationProps, 'holdFirstStep' | 'tools'>
+  >;
 };
 
 export type ChatInternals = { load: () => Promise<ChatRuntime> };

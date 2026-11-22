@@ -14,6 +14,12 @@ import {
   toConversation,
 } from '@/chat/session';
 
+type AddToolOutput = (options: {
+  tool: string;
+  toolCallId: string;
+  output: unknown;
+}) => Promise<void>;
+
 /**
  * A conversation's state and behavior, without its markup: its messages,
  * whether an answer is in progress, and how to ask, retry, and stop.
@@ -74,6 +80,19 @@ export function useConversation(props: ConversationProps) {
   }
 
   const retryAnswer = useCallback(() => void retry(chat), [chat]);
+  // Older AI SDK 5 releases only have addToolResult, which later ones
+  // deprecate.
+  const addToolOutput = useCallback(
+    (tool: string, toolCallId: string, output: unknown) => {
+      const session = chat as unknown as {
+        addToolOutput?: AddToolOutput;
+        addToolResult?: AddToolOutput;
+      };
+      const add = session.addToolOutput ?? session.addToolResult;
+      void add?.call(session, { tool, toolCallId, output });
+    },
+    [chat]
+  );
 
   return {
     ...props,
@@ -96,6 +115,7 @@ export function useConversation(props: ConversationProps) {
       ask(draft, 'composer');
     },
     retryAnswer,
+    addToolOutput,
     stop: () => stop(chat),
     /** Deletes the open conversation and starts a new one. */
     deleteCurrent: () => {

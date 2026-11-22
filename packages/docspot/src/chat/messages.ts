@@ -1,6 +1,7 @@
 import type { DynamicToolUIPart, ToolUIPart, UIMessage } from 'ai';
 
 import type { DocspotMessages } from '@/messages';
+import { type DocspotTools, getRenderedToolCalls } from '@/chat/tools';
 
 export function isToolPart(
   part: UIMessage['parts'][number]
@@ -61,11 +62,12 @@ export function getAnswerProgress(
 /** Answers render once they have text or sources, so empty ones take no space. */
 export function hasMessageContent(
   message: UIMessage,
-  options: { streaming: boolean; holdFirstStep: boolean }
+  options: { streaming: boolean; holdFirstStep: boolean; tools: DocspotTools }
 ) {
   if (message.role === 'user') return true;
   return (
     Boolean(getMessageText(message, options)) ||
+    getRenderedToolCalls(message.parts, options.tools).length > 0 ||
     (!options.streaming &&
       message.parts.some(part => part.type === 'source-url'))
   );

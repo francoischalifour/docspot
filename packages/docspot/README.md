@@ -407,6 +407,29 @@ Matched terms are highlighted in titles, breadcrumbs, and excerpts.
 
 When chat opens, a failed runtime or transport load retries once after a short delay. If that attempt also fails, the panel offers **Try again**. A question waiting to be sent, including one from a `?prompt=` link, is sent once startup succeeds. Closing the panel cancels that pending question.
 
+### Tool calls
+
+Answers can show what your agent's tools return, such as a card or a chart, by giving `createChat` a renderer for each tool by name. A renderer receives the call's `state`, its `input`, and its `output` or `errorText`:
+
+```tsx
+import { createChat, type DocspotToolProps } from 'docspot/chat';
+
+function OptionCard({
+  state,
+  input,
+  output,
+}: DocspotToolProps<{ name: string }, Option>) {
+  if (state !== 'output-available') return <p>Looking up {input?.name}</p>;
+  return <OptionDetails option={output!} />;
+}
+
+const chat = createChat({ transport, tools: { showOption: OptionCard } });
+```
+
+Tool calls show in the order the agent made them, before the answer's text. Tools without a renderer show only as progress, such as “Searching for …”.
+
+For a tool that runs in the browser, such as a confirmation, call `addOutput` with the reader's answer: the conversation continues with it, as with the AI SDK's `addToolOutput`. Your endpoint should continue the same answer, for example with `toUIMessageStreamResponse({ originalMessages })`.
+
 ## Customization
 
 ### Slots

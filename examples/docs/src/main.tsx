@@ -8,6 +8,7 @@ import Markdown from 'react-markdown';
 
 import 'docspot/styles.css';
 import './style.css';
+import { OptionCard } from './OptionCard';
 import { findPage, pages } from './pages';
 import type { Section } from './search-index';
 
@@ -44,6 +45,8 @@ const chat = createChat({
     const { DefaultChatTransport } = await import('ai');
     return new DefaultChatTransport({ api: '/api/chat' });
   },
+  // Tool calls the agent makes, rendered in answers.
+  tools: { showOption: OptionCard },
 });
 
 // Handoffs send the query elsewhere, with a link to the best result.

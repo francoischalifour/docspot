@@ -1,4 +1,5 @@
 import {
+  type UIMessage,
   type UIMessageChunk,
   DefaultChatTransport,
   createUIMessageStream,
@@ -59,6 +60,16 @@ export type Answer = {
   sources?: Array<{ url: string; title: string }>;
   /** A tool call with a query, before the answer text. */
   toolQuery?: string;
+  /**
+   * A tool call before the answer text. Without `output` or `errorText`,
+   * the tool waits for the browser to give its output.
+   */
+  tool?: {
+    name: string;
+    input: unknown;
+    output?: unknown;
+    errorText?: string;
+  };
   /** Text the agent says before calling its tool. */
   preamble?: string;
   /** Fails the request with this HTTP status. */
@@ -98,9 +109,40 @@ export function createChatServer(
     if (reply.status)
       return new Response('Unavailable', { status: reply.status });
     const stream = createUIMessageStream({
+      // Continues the last answer, as after a tool the browser answered.
+      originalMessages: body.messages as UIMessage[],
       async execute({ writer }) {
         const write = (chunk: UIMessageChunk) => writer.write(chunk);
         write({ type: 'start' });
+        if (reply.tool) {
+          const { name, input, output, errorText } = reply.tool;
+          write({ type: 'start-step' });
+          write({
+            type: 'tool-input-available',
+            toolCallId: `${name}-call`,
+            toolName: name,
+            input,
+          });
+          await wait(reply.chunkDelayMs ?? 0);
+          if (errorText !== undefined)
+            write({
+              type: 'tool-output-error',
+              toolCallId: `${name}-call`,
+              errorText,
+            });
+          else if (output !== undefined)
+            write({
+              type: 'tool-output-available',
+              toolCallId: `${name}-call`,
+              output,
+            });
+          write({ type: 'finish-step' });
+          // A tool the browser answers ends the response until it does.
+          if (output === undefined && errorText === undefined) {
+            write({ type: 'finish' });
+            return;
+          }
+        }
         if (reply.toolQuery) {
           write({ type: 'start-step' });
           if (reply.preamble) {

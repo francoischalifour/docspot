@@ -2,6 +2,7 @@ import type { ChatTransport, UIMessage } from 'ai';
 
 import type { DocspotChat } from '@/types';
 import { createChatHandle } from '@/chat/contract';
+import type { DocspotTools } from '@/chat/tools';
 
 type Transport = ChatTransport<UIMessage>;
 
@@ -18,7 +19,15 @@ export type CreateChatOptions = {
    * that narrate before searching. Progress shows meanwhile.
    */
   holdFirstStep?: boolean;
+  /**
+   * Renders tool calls in answers, by tool name, such as a card for a
+   * tool's output or a form for a tool the reader answers. Tools without
+   * a renderer show only as progress. Renderers may be lazy.
+   */
+  tools?: DocspotTools;
 };
+
+const noTools: DocspotTools = {};
 
 /**
  * Configures chat. The chat interface and the AI SDK load only when chat is
@@ -27,6 +36,7 @@ export type CreateChatOptions = {
 export function createChat({
   transport,
   holdFirstStep = false,
+  tools = noTools,
 }: CreateChatOptions): DocspotChat {
   return createChatHandle({
     async load() {
@@ -34,7 +44,7 @@ export function createChat({
         import('@/chat/runtime'),
         typeof transport === 'function' ? transport() : transport,
       ]);
-      return createRuntime(resolved, { holdFirstStep });
+      return createRuntime(resolved, { holdFirstStep, tools });
     },
   });
 }

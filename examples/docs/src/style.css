@@ -91,3 +91,50 @@ body {
     overflow-x: auto;
   }
 }
+
+/* The `showOption` tool's card, rendered in answers. */
+.option-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--docspot-border);
+  border-radius: 0.75rem;
+  background: var(--docspot-surface);
+  font-size: 0.875rem;
+}
+
+.option-card p {
+  margin: 0;
+  color: var(--docspot-muted);
+}
+
+.option-card-header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.option-card-header code {
+  font-weight: 600;
+}
+
+.option-card-type,
+.option-card-loading {
+  color: var(--docspot-muted);
+  font-size: 0.75rem;
+}
+
+.option-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.option-card dt {
+  color: var(--docspot-muted);
+}
+
+.option-card dd {
+  margin: 0;
+}
