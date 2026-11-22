@@ -33,10 +33,10 @@ Examples import the built package, so keep the watcher running while you work on
 bun run check
 ```
 
-It runs every step CI runs: formatting, lint, build, types, browser tests, and package checks. To run one step:
+It runs every step CI runs: formatting, build, lint, types, browser tests, and package checks. To run one step:
 
 - `bun run format`: format files.
-- `bun run lint`: lint with oxlint, using type information. Its config is `oxlint.json`.
+- `bun run lint`: lint with oxlint, using type information, after `bun run build` since the examples import the build. Its config is `oxlint.json`.
 - `bun run test`: run the browser tests in Chromium. Add a file or `-t <name>` after `bun run --cwd packages/docspot test` to run some.
 - `bun run --filter docspot check:package`: check the published package, entry point isolation, tree shaking, eager sizes, and server rendering.
 
