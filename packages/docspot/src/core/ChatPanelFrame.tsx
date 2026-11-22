@@ -232,7 +232,7 @@ export function ChatPanelFrame({
             event.preventDefault();
             // A full-screen panel would hide the page the link opens.
             if (!isChatBesidePage()) chat.close();
-            config.navigate(url, { event });
+            void config.navigate(url, { event });
           }}
           toInternalUrl={config.toInternalUrl}
           messages={messages}

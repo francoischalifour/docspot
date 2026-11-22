@@ -1,6 +1,6 @@
 import { Suspense, useDeferredValue } from 'react';
 
-import type { ChatRequest } from '@/core/context';
+import type { ChatRequest, SearchLeave } from '@/core/context';
 import { cx } from '@/ui/cx';
 import type { SearchOption } from '@/search/model';
 import { ResultPreview } from '@/search/ResultPreview';
@@ -14,7 +14,7 @@ type PreviewPanelProps = {
   isLoading: boolean;
   onClose: () => void;
   /** Closes search to follow a link, keeping the query for Back. */
-  onLeave: () => void;
+  onLeave: SearchLeave;
   onNotify: (message: string) => void;
   onStartChat: (request?: ChatRequest) => void;
   /** Chooses an item from its preview: runs it, or records the link opened. */

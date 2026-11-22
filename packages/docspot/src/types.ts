@@ -128,7 +128,7 @@ export type DocspotContextInput = {
 export type DocspotNavigate = (
   url: string,
   options: { event?: MouseEvent<HTMLElement> }
-) => void;
+) => void | Promise<unknown>;
 
 /** Reads and writes the URL's query string, for routers that own history. */
 export type DocspotUrlAdapter = {

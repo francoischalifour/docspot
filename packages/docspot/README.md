@@ -223,7 +223,7 @@ The methods keep their identity across renders, so they are safe in effect depen
 | `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                  |
 | `items`        | Items found by typing their title or keywords, such as switching the theme. See [Results and items](#results-and-items)              |
 | `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                    |
-| `navigate`     | `(url, { event }) => void`. Defaults to `window.location.assign`                                                                     |
+| `navigate`     | `(url, { event }) => void \| Promise`. Search closes once a returned promise settles. Defaults to `window.location.assign`           |
 | `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
 | `history`      | Persists history. Without it, history lasts until the page reloads                                                                   |
 | `id`           | Scopes persisted history, for several instances on one origin                                                                        |

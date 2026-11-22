@@ -19,13 +19,21 @@ import type {
 import type { DocspotConfig } from '@/core/context';
 import { createModuleLoader } from '@/core/platform';
 import { createStores } from '@/core/storage';
-import { browserUrlAdapter } from '@/core/url';
+import { browserUrlAdapter, stripHash } from '@/core/url';
 
 // Defaults keep their identity, so memoized parts skip rendering.
 const noSlots: DocspotSlots = {};
 const noEntries: never[] = [];
 
-const defaultNavigate: DocspotNavigate = url => window.location.assign(url);
+const defaultNavigate: DocspotNavigate = url => {
+  const target = new URL(url, window.location.href);
+  const scrolls =
+    target.hash !== '' &&
+    stripHash(target.href) === stripHash(window.location.href);
+  window.location.assign(target);
+  // A new document replaces this one, so search stays open until it does.
+  if (!scrolls) return new Promise(() => {});
+};
 
 /**
  * Turns `<Docspot.Root>` props into what its parts share: the configuration,

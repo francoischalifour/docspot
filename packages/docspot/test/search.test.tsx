@@ -44,6 +44,75 @@ it('groups highlighted results, previews the active one, and opens it with Enter
   await expect.element(searchDialog()).not.toBeInTheDocument();
 });
 
+it('stays open until the navigation it starts settles', async () => {
+  const navigations: Array<() => void> = [];
+  const navigate = vi.fn(
+    () => new Promise<void>(resolve => navigations.push(resolve))
+  );
+  await render(<Docspot search={() => results} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('http');
+  await page.getByRole('option', { name: /HTTP API/ }).click();
+
+  expect(navigate).toHaveBeenCalledWith(
+    '/docs/query/http-api',
+    expect.anything()
+  );
+  // Search covers the page being left until the next one shows.
+  await expect.element(searchDialog()).toHaveAttribute('aria-busy', 'true');
+  await expect
+    .element(page.getByRole('status').getByText('Opening page'))
+    .toBeInTheDocument();
+  navigations[0]?.();
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+});
+
+it('stays closed when closed while a navigation is pending', async () => {
+  const navigations: Array<() => void> = [];
+  const navigate = () =>
+    new Promise<void>(resolve => navigations.push(resolve));
+  await render(<Docspot search={() => results} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('http{Enter}');
+  await expect.element(searchDialog()).toHaveAttribute('aria-busy', 'true');
+  await searchDialog().getByRole('button', { name: 'Close' }).click();
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+
+  // Opened again, search ignores the navigation it no longer waits for.
+  await openSearch();
+  navigations[0]?.();
+  await userEvent.keyboard('api');
+  await expect.element(searchInput()).toHaveValue('api');
+  await expect.element(searchDialog()).toBeVisible();
+  await expect.element(searchDialog()).not.toHaveAttribute('aria-busy');
+});
+
+it('is ready again when the page it left comes back from memory', async () => {
+  const navigate = () => new Promise<void>(() => {});
+  await render(<Docspot search={() => results} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('http{Enter}');
+  await expect.element(searchDialog()).toHaveAttribute('aria-busy', 'true');
+
+  window.dispatchEvent(
+    new PageTransitionEvent('pageshow', { persisted: true })
+  );
+  await expect.element(searchDialog()).not.toHaveAttribute('aria-busy');
+  await expect.element(searchInput()).toHaveValue('http');
+});
+
+it('closes at once for a section of the current page by default', async () => {
+  const url = `${location.pathname}${location.search}#http-api`;
+  await render(
+    <Docspot search={() => [{ title: 'HTTP API', url, group: 'Query' }]} />
+  );
+  await openSearch();
+  await userEvent.keyboard('http{Enter}');
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+  expect(location.hash).toBe('#http-api');
+  history.replaceState(null, '', location.pathname + location.search);
+});
+
 it('marks matching text in titles from a search provider without highlights', async () => {
   await render(
     <Docspot search={() => [{ title: 'Configuration', url: '/config' }]} />

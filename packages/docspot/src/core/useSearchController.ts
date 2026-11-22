@@ -4,6 +4,7 @@ import type { DocspotRootProps, DocspotUrlAdapter } from '@/types';
 import {
   type DocspotConfig,
   type SearchController,
+  type SearchLeave,
   searchDialogFrameLoader,
   warnMissing,
 } from '@/core/context';
@@ -64,6 +65,9 @@ export function useSearchController(
   // The query last typed, so a query from anywhere else updates the input.
   const typedQueryRef = useRef(query);
   const transitionRef = useRef<Transition | null>(null);
+  // The navigation search waits for before it closes, if any.
+  const leavingRef = useRef<object | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
   // Focus outside search, for a parent opening it through `searchOpen`: by
   // the time that takes effect, the search input has focus.
   const outsideFocusRef = useRef<HTMLElement | null>(null);
@@ -101,6 +105,8 @@ export function useSearchController(
 
   function requestOpen(open: boolean, transition: Transition) {
     if (open === isOpenRef.current) return;
+    // Opening or closing otherwise ends the wait for a navigation.
+    stopLeaving();
     transitionRef.current = transition;
     if (props.searchOpen === undefined)
       setState(current => ({ ...current, isOpen: open }));
@@ -139,11 +145,38 @@ export function useSearchController(
     requestOpen(false, { url: writeUrl ? 'replace' : 'none' });
   }
 
-  function leave() {
+  function stopLeaving() {
+    if (!leavingRef.current) return;
+    leavingRef.current = null;
+    setIsLeaving(false);
+  }
+
+  const leave: SearchLeave = (target, options) => {
     clearTimeout(queryWriteRef.current);
     if (isOpenRef.current) writeQuery(queryRef.current, true);
-    close({ writeUrl: false });
-  }
+    const navigation = config.navigate(target, options);
+    if (!navigation || !isOpenRef.current) {
+      close({ writeUrl: false });
+      return;
+    }
+    // Search stays over the page until the next one shows, without a
+    // flash of the page being left.
+    const leaving = {};
+    leavingRef.current = leaving;
+    setIsLeaving(true);
+    void navigation.finally(() => {
+      if (leavingRef.current === leaving) close({ writeUrl: false });
+    });
+  };
+
+  // Back from a page kept in memory, search is as it was left, ready again.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) stopLeaving();
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   function setQuery(next: string) {
     typedQueryRef.current = next;
@@ -246,6 +279,7 @@ export function useSearchController(
     setQuery,
     open,
     close: () => close(),
+    isLeaving,
     leave,
     registerTrigger: triggers.register,
     preload: () => preload?.(),

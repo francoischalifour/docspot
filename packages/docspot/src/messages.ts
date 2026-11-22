@@ -40,6 +40,7 @@ export const defaultMessages = {
     resultCount: (count: number): string =>
       `${count} ${count === 1 ? 'result' : 'results'}`,
     searching: 'Searching',
+    opening: 'Opening page',
     unavailable: 'Search unavailable',
     askAbout: (query: string): string => `Ask about “${query}”`,
     quotedQuery: (query: string): string => `“${query}”`,
