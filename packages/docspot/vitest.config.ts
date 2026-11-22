@@ -44,6 +44,29 @@ export default defineConfig({
         ) => {
           await context.page.emulateMedia({ colorScheme });
         },
+        /** Drags an element by its role and name with the real mouse. */
+        dragBy: async (
+          context: BrowserCommandContext,
+          role: 'separator',
+          name: string,
+          deltaX: number,
+          { steps = 10 }: { steps?: number } = {}
+        ) => {
+          const element = context.iframe.getByRole(role, { name });
+          const box = await element.boundingBox();
+          if (!box) throw new Error(`No ${role} named “${name}”`);
+          // The test frame may be scaled to fit; deltas are CSS pixels.
+          const cssWidth = await element.evaluate(
+            node => node.getBoundingClientRect().width
+          );
+          const scale = box.width / cssWidth;
+          const x = box.x + box.width / 2;
+          const y = box.y + box.height / 2;
+          await context.page.mouse.move(x, y);
+          await context.page.mouse.down();
+          await context.page.mouse.move(x + deltaX * scale, y, { steps });
+          await context.page.mouse.up();
+        },
       },
     },
   },

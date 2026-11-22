@@ -1,4 +1,11 @@
-import { type CSSProperties, useLayoutEffect, useState } from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useReducer,
+  useState,
+} from 'react';
 import { flushSync } from 'react-dom';
 
 import { useDocspotInternal } from '@/core/context';
@@ -14,17 +21,22 @@ import { IconButton } from '@/ui/IconButton';
 import { Shimmer } from '@/ui/Shimmer';
 import { cx } from '@/ui/cx';
 
-// Loaded with chat: the panel and its startup state.
 import {
   PANEL_SLIDE_EASING,
-  type PanelResize,
   getPanelContentOpacity,
   getPanelOffsetStyle,
 } from '@/core/chatPanelSize';
+import { gestureResize, idleGesture, panelGesture } from '@/core/panelGesture';
 import { ResizeHandle } from '@/core/ResizeHandle';
+
+/** Slides back into place after a drag past the minimum width. */
+const SETTLE_DURATION_MS = 200;
+/** Slides out of view after a drag that hides the panel. */
+const HIDE_DURATION_MS = 150;
 
 type ChatPanelFrameProps = Omit<ChatPanelProps, 'launcher'>;
 
+/** The chat panel, loaded with chat: its frame, resizing, and startup state. */
 export function ChatPanelFrame({
   dock = 'fixed',
   className,
@@ -34,10 +46,10 @@ export function ChatPanelFrame({
   const { isOpen, runtime, session } = chat;
   const [element, setElement] = useState<HTMLElement | null>(null);
   useVisualViewport(isOpen ? element : null);
-  const [resize, setResize] = useState<PanelResize | null>(null);
+  const [gesture, dispatchGesture] = useReducer(panelGesture, idleGesture);
+  const resize = gestureResize(gesture);
   const width = resize?.width ?? chat.width;
   const overshoot = resize?.overshoot ?? 0;
-  const [isSlidingOut, setIsSlidingOut] = useState(false);
 
   /** Animates the panel to an offset, then applies the resulting state. */
   async function slideTo(
@@ -57,6 +69,28 @@ export function ChatPanelFrame({
     flushSync(onSettled);
     animation?.cancel();
   }
+
+  // A gesture that ends animates first, then saves the width or closes.
+  const finishGesture = useEffectEvent(() => {
+    if (gesture.status === 'settling') {
+      const { width: settledWidth } = gesture;
+      const save = () => {
+        chat.setWidth(settledWidth);
+        dispatchGesture({ type: 'settled' });
+      };
+      // Only a panel dragged past its minimum width has somewhere to slide.
+      if (gesture.resize?.overshoot) void slideTo(0, SETTLE_DURATION_MS, save);
+      else save();
+    } else if (gesture.status === 'hiding') {
+      void slideTo(element?.offsetWidth ?? 0, HIDE_DURATION_MS, () => {
+        dispatchGesture({ type: 'settled' });
+        chat.close();
+      });
+    }
+  });
+  useEffect(() => {
+    finishGesture();
+  }, [gesture.status]);
 
   // Pages beside the docked panel read these to make room for it.
   useLayoutEffect(() => {
@@ -85,7 +119,7 @@ export function ChatPanelFrame({
       data-dock={dock}
       data-open={isOpen || undefined}
       data-resizing={resize !== null || undefined}
-      data-sliding-out={isSlidingOut || undefined}
+      data-sliding-out={gesture.status === 'hiding' || undefined}
       aria-label={messages.chat.title}
       className={cx('docspot-chat', className)}
       // Past its minimum width, the panel follows the pointer out.
@@ -117,24 +151,7 @@ export function ChatPanelFrame({
         event.stopPropagation();
       }}
     >
-      <ResizeHandle
-        width={width}
-        onResize={setResize}
-        onResizeEnd={nextWidth => {
-          void slideTo(0, 200, () => {
-            setResize(null);
-            chat.setWidth(nextWidth);
-          });
-        }}
-        onHide={() => {
-          setIsSlidingOut(true);
-          void slideTo(element?.offsetWidth ?? 0, 150, () => {
-            setIsSlidingOut(false);
-            setResize(null);
-            chat.close();
-          });
-        }}
-      />
+      <ResizeHandle width={width} onGesture={dispatchGesture} />
       {isOpen && !session && (
         <div className="docspot-chat-body">
           <div className="docspot-chat-header">

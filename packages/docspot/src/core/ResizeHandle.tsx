@@ -1,76 +1,30 @@
-import { type PointerEvent as ReactPointerEvent, useRef } from 'react';
-
 import { useDocspotInternal } from '@/core/context';
-
 import {
   PANEL_DEFAULT_WIDTH,
-  PANEL_FLICK_HIDE_DISTANCE,
-  PANEL_FLICK_VELOCITY,
-  PANEL_HIDE_DISTANCE,
   PANEL_MAX_WIDTH,
   PANEL_MIN_WIDTH,
-  type PanelResize,
   clampPanelWidth,
 } from '@/core/chatPanelSize';
+import type { PanelGestureEvent } from '@/core/panelGesture';
 
-type PanelDrag = {
-  pointerId: number;
-  startX: number;
-  startWidth: number;
-  lastX: number;
-  lastTime: number;
-  /** In pixels per millisecond, positive toward hiding the panel. */
-  velocity: number;
-};
+/** Arrow keys resize by this much; with Shift, twice as much. */
+const KEYBOARD_STEP = 16;
 
 type ResizeHandleProps = {
+  /** The panel's width, or undefined for the default. */
   width: number | undefined;
-  onResize: (resize: PanelResize) => void;
-  onResizeEnd: (width: number | undefined) => void;
-  onHide: () => void;
+  onGesture: (event: PanelGestureEvent) => void;
 };
 
 /**
  * Drags or arrow keys resize the docked panel; double-click resets it. Past
  * the minimum width the panel follows the pointer, and releasing far enough,
- * or flicking, hides it.
+ * or flicking, hides it. `panelGesture` decides; this reports what happens.
  */
-export function ResizeHandle({
-  width,
-  onResize,
-  onResizeEnd,
-  onHide,
-}: ResizeHandleProps) {
+export function ResizeHandle({ width, onGesture }: ResizeHandleProps) {
   const { config } = useDocspotInternal('Docspot.ChatPanel');
   const messages = config.messages.chat;
-  const dragRef = useRef<PanelDrag | null>(null);
   const currentWidth = width ?? PANEL_DEFAULT_WIDTH;
-
-  function getResize(drag: PanelDrag, clientX: number): PanelResize {
-    const draggedWidth = drag.startWidth + drag.startX - clientX;
-    return {
-      width: clampPanelWidth(draggedWidth),
-      overshoot: Math.max(0, PANEL_MIN_WIDTH - draggedWidth),
-    };
-  }
-
-  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    if (drag?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    const { width: nextWidth, overshoot } = getResize(drag, event.clientX);
-    // A pause before release is not a flick.
-    const isFlick =
-      event.type === 'pointerup' &&
-      event.timeStamp - drag.lastTime < 100 &&
-      drag.velocity > PANEL_FLICK_VELOCITY;
-    if (
-      overshoot >= PANEL_HIDE_DISTANCE ||
-      (isFlick && overshoot >= PANEL_FLICK_HIDE_DISTANCE)
-    )
-      onHide();
-    else onResizeEnd(nextWidth);
-  }
 
   return (
     <div
@@ -89,38 +43,51 @@ export function ResizeHandle({
         if (event.button !== 0) return;
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        dragRef.current = {
+        onGesture({
+          type: 'pointerDown',
           pointerId: event.pointerId,
-          startX: event.clientX,
-          startWidth: currentWidth,
-          lastX: event.clientX,
-          lastTime: event.timeStamp,
-          velocity: 0,
-        };
+          x: event.clientX,
+          time: event.timeStamp,
+          width: currentWidth,
+        });
       }}
-      onPointerMove={event => {
-        const drag = dragRef.current;
-        if (drag?.pointerId !== event.pointerId) return;
-        const elapsed = event.timeStamp - drag.lastTime;
-        if (elapsed > 0) {
-          drag.velocity = (event.clientX - drag.lastX) / elapsed;
-          drag.lastX = event.clientX;
-          drag.lastTime = event.timeStamp;
-        }
-        onResize(getResize(drag, event.clientX));
-      }}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onDoubleClick={() => onResizeEnd(undefined)}
+      onPointerMove={event =>
+        onGesture({
+          type: 'pointerMove',
+          pointerId: event.pointerId,
+          x: event.clientX,
+          time: event.timeStamp,
+        })
+      }
+      onPointerUp={event =>
+        onGesture({
+          type: 'pointerUp',
+          pointerId: event.pointerId,
+          x: event.clientX,
+          time: event.timeStamp,
+          cancelled: false,
+        })
+      }
+      onPointerCancel={event =>
+        onGesture({
+          type: 'pointerUp',
+          pointerId: event.pointerId,
+          x: event.clientX,
+          time: event.timeStamp,
+          cancelled: true,
+        })
+      }
+      onDoubleClick={() => onGesture({ type: 'resize', width: undefined })}
       onKeyDown={event => {
-        const step = event.shiftKey ? 32 : 16;
-        if (event.key === 'ArrowLeft')
-          onResizeEnd(clampPanelWidth(currentWidth + step));
+        const step = event.shiftKey ? KEYBOARD_STEP * 2 : KEYBOARD_STEP;
+        const resize = (next: number) =>
+          onGesture({ type: 'resize', width: clampPanelWidth(next) });
+        if (event.key === 'ArrowLeft') resize(currentWidth + step);
         else if (event.key === 'ArrowRight') {
-          if (currentWidth <= PANEL_MIN_WIDTH) onHide();
-          else onResizeEnd(clampPanelWidth(currentWidth - step));
-        } else if (event.key === 'Home') onResizeEnd(PANEL_MIN_WIDTH);
-        else if (event.key === 'End') onResizeEnd(PANEL_MAX_WIDTH);
+          if (currentWidth <= PANEL_MIN_WIDTH) onGesture({ type: 'hide' });
+          else resize(currentWidth - step);
+        } else if (event.key === 'Home') resize(PANEL_MIN_WIDTH);
+        else if (event.key === 'End') resize(PANEL_MAX_WIDTH);
         else return;
         event.preventDefault();
       }}
