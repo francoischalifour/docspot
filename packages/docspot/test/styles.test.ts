@@ -1,41 +1,68 @@
-import { expect, it } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
+import { commands } from 'vitest/browser';
 
-import styles from '@/styles.css?raw';
+declare module 'vitest/browser' {
+  interface BrowserCommands {
+    emulateColorScheme: (colorScheme: 'light' | 'dark' | null) => Promise<void>;
+  }
+}
 
-function declarations(block: string) {
+// The color tokens the README documents.
+const colorTokens = [
+  'background',
+  'foreground',
+  'muted',
+  'subtle',
+  'border',
+  'border-strong',
+  'surface',
+  'surface-elevated',
+  'accent',
+  'accent-active',
+  'primary',
+  'primary-foreground',
+  'danger',
+  'overlay',
+].map(name => `--docspot-${name}`);
+
+const root = document.documentElement;
+const palette = () => {
+  const style = getComputedStyle(root);
   return Object.fromEntries(
-    [...block.matchAll(/(--docspot-[\w-]+):\s*([^;]+);/g)].map(match => [
-      match[1],
-      match[2]!.replace(/\s+/g, ' ').trim(),
-    ])
+    colorTokens.map(name => [name, style.getPropertyValue(name).trim()])
   );
-}
+};
 
-function blockAfter(selector: string) {
-  const start = styles.indexOf(selector);
-  expect(start).toBeGreaterThan(-1);
-  const open = styles.indexOf('{', start);
-  return styles.slice(open + 1, styles.indexOf('}', open));
-}
-
-it('defines the same dark palette for the system preference and the explicit theme', () => {
-  const system = declarations(
-    blockAfter(":where(:root:not([data-theme='light'], .light))")
-  );
-  const explicit = declarations(
-    blockAfter(":where(:root:is([data-theme='dark'], .dark))")
-  );
-  expect(Object.keys(system).length).toBeGreaterThan(10);
-  expect(explicit).toEqual(system);
+afterEach(async () => {
+  await commands.emulateColorScheme(null);
+  root.removeAttribute('data-theme');
+  root.classList.remove('dark', 'light');
 });
 
-it('gives every dark token a light default', () => {
-  const light = declarations(blockAfter(':where(:root)'));
-  const dark = declarations(
-    blockAfter(":where(:root:is([data-theme='dark'], .dark))")
-  );
-  // Optional tokens fall back where they are used, in both themes.
-  const optional = ['--docspot-selected'];
-  for (const name of Object.keys(dark))
-    if (!optional.includes(name)) expect(light).toHaveProperty(name);
+it('applies the same dark palette from the system setting, data-theme, or .dark', async () => {
+  await commands.emulateColorScheme('light');
+  const light = palette();
+  for (const value of Object.values(light)) expect(value).not.toBe('');
+
+  await commands.emulateColorScheme('dark');
+  const system = palette();
+  expect(system).not.toEqual(light);
+
+  await commands.emulateColorScheme('light');
+  root.dataset.theme = 'dark';
+  expect(palette()).toEqual(system);
+  root.removeAttribute('data-theme');
+  root.classList.add('dark');
+  expect(palette()).toEqual(system);
+});
+
+it('keeps the light palette when a site chooses it over a dark system setting', async () => {
+  await commands.emulateColorScheme('light');
+  const light = palette();
+  await commands.emulateColorScheme('dark');
+  root.dataset.theme = 'light';
+  expect(palette()).toEqual(light);
+  root.removeAttribute('data-theme');
+  root.classList.add('light');
+  expect(palette()).toEqual(light);
 });

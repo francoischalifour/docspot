@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
+import type { BrowserCommandContext } from 'vitest/node';
 
 export default defineConfig({
   plugins: [react()],
@@ -35,6 +36,15 @@ export default defineConfig({
       headless: true,
       instances: [{ browser: 'chromium' }],
       viewport: { width: 1440, height: 900 },
+      commands: {
+        /** Switches the color scheme the way a reader's system setting does. */
+        emulateColorScheme: async (
+          context: BrowserCommandContext,
+          colorScheme: 'light' | 'dark' | null
+        ) => {
+          await context.page.emulateMedia({ colorScheme });
+        },
+      },
     },
   },
 });

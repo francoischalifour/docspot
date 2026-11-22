@@ -661,3 +661,22 @@ it('applies a base message override when its WithAsk variant is not overridden',
     .element(searchInput())
     .toHaveAttribute('placeholder', 'Find a page…');
 });
+
+it('selects results with the accent a dark theme sets', async () => {
+  document.documentElement.dataset.theme = 'dark';
+  document.documentElement.style.setProperty(
+    '--docspot-accent',
+    'rgb(1, 2, 3)'
+  );
+  try {
+    await render(<Docspot search={() => results} />);
+    await openSearch();
+    await userEvent.keyboard('product');
+    const selected = page.getByRole('option', { selected: true });
+    await expect
+      .element(selected)
+      .toHaveStyle({ backgroundColor: 'rgb(1, 2, 3)' });
+  } finally {
+    document.documentElement.removeAttribute('data-theme');
+  }
+});

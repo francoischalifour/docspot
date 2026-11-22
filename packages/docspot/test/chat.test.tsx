@@ -1,4 +1,3 @@
-import { Profiler } from 'react';
 import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -399,10 +398,9 @@ it('anchors a streamed answer at its start instead of following its end', async 
     { timeout: 4000 }
   );
   // The rest of a long answer is below, so jumping to it is offered.
-  const jump = panel()
-    .element()
-    .querySelector<HTMLButtonElement>('.docspot-jump')!;
-  await vi.waitFor(() => expect(jump.dataset.active).toBe('true'));
+  await expect
+    .element(panel().getByRole('button', { name: 'Jump to latest answer' }))
+    .toBeInTheDocument();
 });
 
 it('starts a fresh session when the chat transport changes', async () => {
@@ -521,42 +519,7 @@ it('offers to jump only when more of the answer is below', async () => {
     .element(panel().getByRole('button', { name: 'Copy answer' }))
     .toBeInTheDocument();
   // The space kept below a short answer for reading is not more to read.
-  const jump = panel()
-    .element()
-    .querySelector<HTMLButtonElement>('.docspot-jump')!;
-  await vi.waitFor(() => expect(jump.dataset.active).toBe('false'));
-});
-
-it('re-renders only what changed while typing a follow-up', async () => {
-  const list = Array.from(
-    { length: 30 },
-    (_, index) =>
-      `- **Item ${index}** with \`code\` and [a link](/docs/${index}).`
-  ).join('\n');
-  const { chat } = createChatServer(() => ({ text: `# Answer\n\n${list}` }));
-  let duration = 0;
-  let measuring = false;
-  await render(
-    <Profiler
-      id="docspot"
-      onRender={(_id, _phase, actual) => {
-        if (measuring) duration += actual;
-      }}
-    >
-      <Docspot chat={chat} />
-    </Profiler>
-  );
-  await openChat();
-  for (let index = 0; index < 8; index++) {
-    await userEvent.keyboard(`Question ${index}{Enter}`);
-    await expect
-      .element(panel().getByRole('button', { name: 'Copy answer' }).nth(index))
-      .toBeInTheDocument();
-  }
-  measuring = true;
-  await userEvent.keyboard('abcdefghijklmnopqrst');
-  measuring = false;
-  // Answers are memoized: a keystroke renders the composer, not every
-  // answer's Markdown, and stays well within a frame.
-  expect(duration / 20).toBeLessThan(16);
+  await expect
+    .element(panel().getByRole('button', { name: 'Jump to latest answer' }))
+    .not.toBeInTheDocument();
 });

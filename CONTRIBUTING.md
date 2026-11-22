@@ -7,6 +7,7 @@
 - **The interface is the contract.** Variables, the stable selectors listed in the README, and the public types are the API. Other class names are internal.
 - **Accessible by default.** Every surface works with the keyboard and a screen reader, respects reduced motion and forced colors, and fits a phone. Tests query by role and accessible name.
 - **Every change reports its cost.** Bundle sizes and render counts are measured against recorded baselines. Raising one is a decision, not a fix.
+- **Tests use what people use.** Test exclusively through public APIs, assert observable behavior, simulate realistic interactions, and mock only unavoidable external dependencies, such as a chat backend. Query by role and accessible name, not by class or internal attribute.
 - **Tests wait on behavior, not time.** Wait for what the reader would see with `expect.element` or `vi.waitFor`, not for a fixed delay.
 
 ## Set up
