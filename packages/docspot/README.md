@@ -39,7 +39,7 @@ Each entry point loads only what it needs, and none has import side effects.
 
 | Import                 | Provides                                                                 | Peer dependencies     |
 | ---------------------- | ------------------------------------------------------------------------ | --------------------- |
-| `docspot`              | `<Docspot>`, its parts, `useDocspot()`, and helpers                      | `react`, `react-dom`  |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers    | `react`, `react-dom`  |
 | `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react` |
 | `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                  |
 | `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react` |
@@ -52,14 +52,14 @@ Each entry point loads only what it needs, and none has import side effects.
 ### Search only
 
 ```tsx
-import { Docspot, type DocspotSearch } from 'docspot';
+import { Docspot, createSearch } from 'docspot';
 
-const search: DocspotSearch = async ({ query, signal }) => {
+const search = createSearch(async ({ query, signal }) => {
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
     signal,
   });
   return response.json(); // DocspotResult[]
-};
+});
 
 export function Header() {
   return <Docspot search={search} history syncUrl />;
@@ -204,7 +204,7 @@ The methods keep their identity across renders, so they are safe in effect depen
 
 | Prop           | Description                                                                                                                          |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `search`       | `({ query, signal }) => DocspotSearchResponse \| Promise<…>`                                                                         |
+| `search`       | From `createSearch()` or a provider integration                                                                                      |
 | `chat`         | From `createChat()` or a provider integration                                                                                        |
 | `context`      | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL           |
 | `loadPage`     | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation |
@@ -264,7 +264,7 @@ A URL is listed once, whether a result or an item opens it. The preview pane, wh
 
 #### Search results
 
-A search function returns results, or `{ results, prioritizeChat }`. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query)` and `shouldPrioritizeChat(…)` help decide `prioritizeChat`.
+`createSearch(fn, { preload })` makes search from a function that receives `{ query, signal }` and returns results, or `{ results, prioritizeChat }`. A plain function works too. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query)` and `shouldPrioritizeChat(…)` help decide `prioritizeChat`.
 
 Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens a result that belongs to an older query. Search functions can return results synchronously.
 
@@ -544,13 +544,13 @@ Docspot gets ready before it's needed, so the first open and the first query don
 - Once loaded, the dialog opens in the same frame.
 - `createMiniSearchSearch` loads and builds its index on `preload`, and `createAlgoliaSearch` opens its connection. Algolia requests skip the CORS preflight.
 
-Give your own search function a `preload` to do the same:
+Give your own search a `preload` to do the same:
 
 ```ts
-async function search({ query }: DocspotSearchParams) {
-  return runSearch(await loadIndex(), query);
-}
-search.preload = () => void loadIndex();
+const search = createSearch(
+  async ({ query }) => runSearch(await loadIndex(), query),
+  { preload: () => void loadIndex() }
+);
 ```
 
 Load your own index, data, and slot components lazily too, so the page doesn't pay for search before it's used. A lazy slot can start loading with the index:

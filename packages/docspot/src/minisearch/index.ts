@@ -1,12 +1,9 @@
 import type MiniSearch from 'minisearch';
 import type { SearchResult } from 'minisearch';
 
+import { createSearch } from '@/search/createSearch';
 import { highlightTerms } from '@/search/model';
-import type {
-  DocspotResult,
-  DocspotSearch,
-  DocspotSearchParams,
-} from '@/types';
+import type { DocspotResult, DocspotSearch } from '@/types';
 
 /** What a MiniSearch document becomes in results: a page. */
 export type MiniSearchDocument = Omit<
@@ -124,8 +121,8 @@ export function createMiniSearchSearch<T>({
       ));
   }
 
-  return Object.assign(
-    ({ query, signal }: DocspotSearchParams) => {
+  return createSearch(
+    ({ query, signal }) => {
       signal.throwIfAborted();
       const miniSearch = load();
       return miniSearch instanceof Promise

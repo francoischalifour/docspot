@@ -1,3 +1,4 @@
+import { createSearch } from '@/search/createSearch';
 import { parseHighlightedString, plain } from '@/search/model';
 import {
   countContentWords,
@@ -157,100 +158,106 @@ export function createAlgoliaSearch({
   maxPerGroup = 7,
   transformResult = result => result,
 }: AlgoliaSearchOptions): DocspotSearch {
-  const search: DocspotSearch = async ({ query, signal }) => {
-    const question = isQuestion(query);
-    const isLongQuery = getWords(query).length >= 3;
-    const { results } = await queryAlgolia(
-      appId,
-      apiKey,
-      {
-        requests: indices.map(index => ({
-          ...(typeof index === 'string'
-            ? { indexName: index }
-            : {
-                indexName: index.indexName,
-                ...index.params,
-              }),
-          query,
-          ...(question && {
-            removeStopWords: ['en'],
-            attributeCriteriaComputedByMinProximity: false,
-          }),
-          ...(isLongQuery && { removeWordsIfNoResults: 'allOptional' }),
-          hitsPerPage,
-          getRankingInfo: true,
-          highlightPreTag: HIGHLIGHT_START,
-          highlightPostTag: HIGHLIGHT_END,
-          attributesToSnippet: ['content:24'],
-          snippetEllipsisText: '…',
-        })),
-      },
-      signal
-    );
-    const hits = results.flatMap(result => result.hits);
-    const counts = new Map<string | undefined, number>();
-    const seen = new Set<string>();
-    const normalized: DocspotResult[] = [];
-    let topHit: AlgoliaHit | undefined;
-    for (const hit of hits) {
-      const hierarchy = hierarchyLevels.flatMap(level => {
-        const title = hit.hierarchy[level];
-        return title ? [[level, title] as const] : [];
-      });
-      const level = hit.type === 'content' ? hierarchy.at(-1)?.[0] : hit.type;
-      const title = (level && hit.hierarchy[level]) || hierarchy.at(-1)?.[1];
-      if (!title) continue;
-      // Marked text by its plain text, to highlight whatever a result shows.
-      const highlighted = new Map<string, string>();
-      for (const [key, text] of hierarchy) {
-        const value = hit._highlightResult?.hierarchy?.[key]?.value;
-        if (value) highlighted.set(stripNumbering(text), stripNumbering(value));
-      }
-      const snippet = hit._snippetResult?.content?.value;
-      const snippetText = snippet && unmark(snippet);
-      if (snippet && snippetText) highlighted.set(snippetText, snippet);
-      const result = transformResult(
+  return createSearch(
+    async ({ query, signal }) => {
+      const question = isQuestion(query);
+      const isLongQuery = getWords(query).length >= 3;
+      const { results } = await queryAlgolia(
+        appId,
+        apiKey,
         {
-          url: hit.url,
-          title: stripNumbering(title),
-          pageTitle: hit.hierarchy.lvl1 ?? title,
-          breadcrumb: hierarchy.slice(0, 2).map(([, value]) => value),
-          excerpt: snippetText || (hit.content ?? undefined),
-          group: hierarchy[0]?.[1],
-          type: hit.type === 'lvl0' || hit.type === 'lvl1' ? 'page' : 'section',
-          data: hit,
+          requests: indices.map(index => ({
+            ...(typeof index === 'string'
+              ? { indexName: index }
+              : {
+                  indexName: index.indexName,
+                  ...index.params,
+                }),
+            query,
+            ...(question && {
+              removeStopWords: ['en'],
+              attributeCriteriaComputedByMinProximity: false,
+            }),
+            ...(isLongQuery && { removeWordsIfNoResults: 'allOptional' }),
+            hitsPerPage,
+            getRankingInfo: true,
+            highlightPreTag: HIGHLIGHT_START,
+            highlightPostTag: HIGHLIGHT_END,
+            attributesToSnippet: ['content:24'],
+            snippetEllipsisText: '…',
+          })),
         },
-        { hit }
+        signal
       );
-      if (!result || seen.has(result.url)) continue;
-      const count = counts.get(result.group) ?? 0;
-      if (count >= maxPerGroup) continue;
-      counts.set(result.group, count + 1);
-      seen.add(result.url);
-      const mark = (text: string) => highlight(highlighted.get(text), text);
-      const excerpt = result.excerpt && highlighted.get(result.excerpt);
-      normalized.push({
-        ...result,
-        highlights: {
-          title: mark(result.title),
-          breadcrumb: result.breadcrumb?.map(mark),
-          excerpt: excerpt ? highlight(excerpt, '') : undefined,
-        },
-      });
-      topHit ??= hit;
-    }
-    return {
-      results: normalized,
-      prioritizeChat: shouldPrioritizeChat({
-        query,
-        pageTitles: normalized.map(result => result.pageTitle ?? result.title),
-        hasResults: topHit !== undefined,
-        hasCompleteMatch:
-          topHit !== undefined &&
-          isCompleteMatch(topHit, countContentWords(query)),
-      }),
-    };
-  };
-  search.preload = () => preconnect(`https://${appId}-dsn.algolia.net`);
-  return search;
+      const hits = results.flatMap(result => result.hits);
+      const counts = new Map<string | undefined, number>();
+      const seen = new Set<string>();
+      const normalized: DocspotResult[] = [];
+      let topHit: AlgoliaHit | undefined;
+      for (const hit of hits) {
+        const hierarchy = hierarchyLevels.flatMap(level => {
+          const title = hit.hierarchy[level];
+          return title ? [[level, title] as const] : [];
+        });
+        const level = hit.type === 'content' ? hierarchy.at(-1)?.[0] : hit.type;
+        const title = (level && hit.hierarchy[level]) || hierarchy.at(-1)?.[1];
+        if (!title) continue;
+        // Marked text by its plain text, to highlight whatever a result shows.
+        const highlighted = new Map<string, string>();
+        for (const [key, text] of hierarchy) {
+          const value = hit._highlightResult?.hierarchy?.[key]?.value;
+          if (value)
+            highlighted.set(stripNumbering(text), stripNumbering(value));
+        }
+        const snippet = hit._snippetResult?.content?.value;
+        const snippetText = snippet && unmark(snippet);
+        if (snippet && snippetText) highlighted.set(snippetText, snippet);
+        const result = transformResult(
+          {
+            url: hit.url,
+            title: stripNumbering(title),
+            pageTitle: hit.hierarchy.lvl1 ?? title,
+            breadcrumb: hierarchy.slice(0, 2).map(([, value]) => value),
+            excerpt: snippetText || (hit.content ?? undefined),
+            group: hierarchy[0]?.[1],
+            type:
+              hit.type === 'lvl0' || hit.type === 'lvl1' ? 'page' : 'section',
+            data: hit,
+          },
+          { hit }
+        );
+        if (!result || seen.has(result.url)) continue;
+        const count = counts.get(result.group) ?? 0;
+        if (count >= maxPerGroup) continue;
+        counts.set(result.group, count + 1);
+        seen.add(result.url);
+        const mark = (text: string) => highlight(highlighted.get(text), text);
+        const excerpt = result.excerpt && highlighted.get(result.excerpt);
+        normalized.push({
+          ...result,
+          highlights: {
+            title: mark(result.title),
+            breadcrumb: result.breadcrumb?.map(mark),
+            excerpt: excerpt ? highlight(excerpt, '') : undefined,
+          },
+        });
+        topHit ??= hit;
+      }
+      return {
+        results: normalized,
+        prioritizeChat: shouldPrioritizeChat({
+          query,
+          pageTitles: normalized.map(
+            result => result.pageTitle ?? result.title
+          ),
+          hasResults: topHit !== undefined,
+          hasCompleteMatch:
+            topHit !== undefined &&
+            isCompleteMatch(topHit, countContentWords(query)),
+        }),
+      };
+    },
+    // Opens the connection before the first query needs it.
+    { preload: () => preconnect(`https://${appId}-dsn.algolia.net`) }
+  );
 }

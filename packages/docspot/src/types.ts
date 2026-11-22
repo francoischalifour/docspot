@@ -83,14 +83,14 @@ export type DocspotSearchResponse =
 
 export type DocspotSearchParams = { query: string; signal: AbortSignal };
 
+/**
+ * Search from `createSearch()` or a provider integration. A plain function
+ * that returns results works too.
+ */
 export type DocspotSearch = ((
   params: DocspotSearchParams
 ) => DocspotSearchResponse | Promise<DocspotSearchResponse>) & {
-  /**
-   * Gets ready for the first query, for example by loading an index or
-   * opening a connection. Docspot calls it once the page is idle, when a
-   * trigger is hovered or focused, and when search opens.
-   */
+  /** Gets ready for the first query. See `createSearch`. */
   preload?: () => void;
 };
 

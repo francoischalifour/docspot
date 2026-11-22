@@ -26,15 +26,15 @@ npm install docspot
 ```
 
 ```tsx
-import { Docspot, type DocspotSearch } from 'docspot';
+import { Docspot, createSearch } from 'docspot';
 import 'docspot/styles.css';
 
-const search: DocspotSearch = async ({ query, signal }) => {
+const search = createSearch(async ({ query, signal }) => {
   const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
     signal,
   });
   return response.json(); // [{ url, title, excerpt?, group? }, …]
-};
+});
 
 export function Header() {
   return <Docspot search={search} />;
@@ -51,7 +51,7 @@ Each entry point loads only what it needs. Search-only pages never load chat cod
 
 | Import                 | Provides                                                                 | Needs                     |
 | ---------------------- | ------------------------------------------------------------------------ | ------------------------- |
-| `docspot`              | `<Docspot>`, its composable parts, `useDocspot()`, and helpers           | `react`, `react-dom` 19.2 |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers    | `react`, `react-dom` 19.2 |
 | `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react`     |
 | `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                      |
 | `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react`     |

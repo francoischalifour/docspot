@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotResult, type DocspotSearch } from '@/index';
+import { Docspot, type DocspotResult, createSearch } from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
 import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
@@ -134,13 +134,13 @@ it('keeps native link behavior for modified clicks', async () => {
 it('cancels outdated requests and never shows or opens a stale result', async () => {
   const navigate = vi.fn();
   const signals: Record<string, AbortSignal> = {};
-  const search: DocspotSearch = async ({ query, signal }) => {
+  const search = createSearch(async ({ query, signal }) => {
     signals[query] = signal;
     if (query === 'slow') await wait(400);
     return query === 'slow'
       ? [{ url: '/stale', title: 'Stale result' }]
       : [{ url: '/fresh', title: `Fresh ${query}` }];
-  };
+  });
   await render(<Docspot search={search} navigate={navigate} />);
   await openSearch();
   await userEvent.keyboard('slow');
@@ -160,20 +160,22 @@ it('never reports no results while a request is pending', async () => {
   const { chat } = createChatServer(() => ({ text: 'Answer.' }));
   const settled: string[] = [];
   // Like a real network: slow, and it rejects when aborted.
-  const search: DocspotSearch = ({ query, signal }) =>
-    new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => {
-          settled.push(query);
-          resolve(results);
-        },
-        query.includes('slow') ? 60_000 : 400
-      );
-      signal.addEventListener('abort', () => {
-        clearTimeout(timer);
-        reject(new DOMException('Aborted', 'AbortError'));
-      });
-    });
+  const search = createSearch(
+    ({ query, signal }) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => {
+            settled.push(query);
+            resolve(results);
+          },
+          query.includes('slow') ? 60_000 : 400
+        );
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        });
+      })
+  );
   let sawNoResults = false;
   const observer = new MutationObserver(() => {
     if (document.body.textContent?.includes('No results')) sawNoResults = true;
@@ -265,10 +267,10 @@ it('shows the full breadcrumb, even the part the group heading names', async () 
 
 it('reports failures, retries, and recovers from no matches', async () => {
   let fail = true;
-  const search: DocspotSearch = ({ query }) => {
+  const search = createSearch(({ query }) => {
     if (fail) throw new Error('offline');
     return query === 'nothing' ? [] : results;
-  };
+  });
   await render(<Docspot search={search} />);
   await openSearch();
   await userEvent.keyboard('sql');
@@ -594,21 +596,19 @@ it('previews what a handoff sends', async () => {
 });
 
 it('warms search when a reader shows intent to search', async () => {
-  const search: DocspotSearch = Object.assign(() => results, {
-    preload: vi.fn(),
-  });
+  const preload = vi.fn();
+  const search = createSearch(() => results, { preload });
   await render(<Docspot search={search} />);
   await page.getByRole('button', { name: 'Search docs' }).hover();
-  expect(search.preload).toHaveBeenCalledTimes(1);
+  expect(preload).toHaveBeenCalledTimes(1);
   await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
   await expect.element(searchInput()).toHaveFocus();
-  expect(search.preload).toHaveBeenCalledTimes(2);
+  expect(preload).toHaveBeenCalledTimes(2);
 });
 
 it('keeps trigger behavior when consumers pass a ref and handlers', async () => {
-  const search: DocspotSearch = Object.assign(() => results, {
-    preload: vi.fn(),
-  });
+  const preload = vi.fn();
+  const search = createSearch(() => results, { preload });
   const ref = { current: null as HTMLButtonElement | null };
   const onFocus = vi.fn();
   const onPointerEnter = vi.fn();
@@ -626,7 +626,7 @@ it('keeps trigger behavior when consumers pass a ref and handlers', async () => 
   expect(ref.current).toBe(trigger.element());
   await trigger.hover();
   expect(onPointerEnter).toHaveBeenCalledTimes(1);
-  expect(search.preload).toHaveBeenCalledTimes(1);
+  expect(preload).toHaveBeenCalledTimes(1);
 
   // Focus still returns to the trigger, which its own ref also holds.
   await userEvent.keyboard('/');
@@ -634,7 +634,7 @@ it('keeps trigger behavior when consumers pass a ref and handlers', async () => 
   await userEvent.keyboard('{Escape}');
   await expect.element(trigger).toHaveFocus();
   expect(onFocus).toHaveBeenCalled();
-  expect(search.preload).toHaveBeenCalledTimes(3);
+  expect(preload).toHaveBeenCalledTimes(3);
 });
 
 it('applies a base message override when its WithAsk variant is not overridden', async () => {
