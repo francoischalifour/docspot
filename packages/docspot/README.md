@@ -633,6 +633,8 @@ const search = createMiniSearchSearch({
 
 Docspot renders on the server and reads browser state only after hydration.
 
+With React Server Components, Docspot's components and hooks are client components: their modules start with `'use client'`. Server code can import helpers such as `createDocspotUrl`, `highlightTerms`, and `isQuestion`, for example in a search endpoint. Search, chat, and `navigate` are functions, which can't pass from a server component to a client component, so render `<Docspot>` inside a client component of your own.
+
 ## Keyboard
 
 | Keys                                            | Action                          |

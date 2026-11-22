@@ -61,3 +61,27 @@ for (const [entry, packages] of Object.entries(forbidden)) {
     );
 }
 if (failed) process.exit(1);
+
+// React Server Components: bundlers treat a module that starts with
+// 'use client' as a client boundary. Every chunk that uses React must be
+// one, and entry chunks must not use React themselves, so server
+// components can import helpers such as createDocspotUrl.
+const REACT_MODULE = /^react(-dom)?($|\/)/;
+const USE_CLIENT = /^\s*['"]use client['"];/;
+const usesReact = (source: string) =>
+  transpiler.scanImports(source).some(({ path }) => REACT_MODULE.test(path));
+const isClientModule = (source: string) => USE_CLIENT.test(source);
+const reactEntries = new Set(['handoffs.js']);
+for (const file of new Bun.Glob('*.js').scanSync(dist)) {
+  const source = readFileSync(join(dist, file), 'utf8');
+  if (usesReact(source) && !isClientModule(source)) {
+    failed = true;
+    console.error(`✗ ${file} uses React without 'use client'`);
+  }
+  if (file in forbidden && !reactEntries.has(file) && usesReact(source)) {
+    failed = true;
+    console.error(`✗ ${file} is an entry and uses React directly`);
+  }
+}
+if (!failed) console.log("✓ chunks that use React are marked 'use client'");
+if (failed) process.exit(1);

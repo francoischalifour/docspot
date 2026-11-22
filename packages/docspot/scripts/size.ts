@@ -59,6 +59,11 @@ async function measure(source: string, directory: string): Promise<Size> {
       'remark-gfm',
     ],
     output: { format: 'esm', codeSplitting: true, minify: true },
+    // Docspot's chunks start with 'use client' for React Server Components,
+    // which plain bundles drop on purpose.
+    onLog(level, log, handler) {
+      if (log.code !== 'MODULE_LEVEL_DIRECTIVE') handler(level, log);
+    },
   });
   const chunks = output.flatMap(chunk =>
     chunk.type === 'chunk' ? [chunk] : []

@@ -28,6 +28,6 @@ export function useUrlSync(
   useEffect(() => {
     if (!url) return;
     sync();
-    return url.subscribe(sync);
+    return url.subscribe(() => sync());
   }, [url, ...dependencies]);
 }
