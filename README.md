@@ -1,29 +1,73 @@
-# Docspot
+<h1 align="center">Docspot</h1>
 
-Documentation search and AI chat for React. See the [package README](packages/docspot/README.md).
+<p align="center">Docs search and Ask AI for React. Any search backend, any AI SDK model, accessible and keyboard-first.</p>
 
-| Path                                       | Contents                                               |
-| ------------------------------------------ | ------------------------------------------------------ |
-| [`packages/docspot`](packages/docspot)     | The `docspot` package                                  |
-| [`examples/chat-only`](examples/chat-only) | Chat without search, with a scripted streaming backend |
+<div align="center">
+  <a href="https://www.npmjs.com/package/docspot"><img src="https://img.shields.io/npm/v/docspot.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/docspot"><img src="https://img.shields.io/npm/dm/docspot.svg" alt="npm downloads"></a>
+  <a href="https://github.com/francoischalifour/docspot/actions/workflows/ci.yml"><img src="https://github.com/francoischalifour/docspot/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/docspot.svg" alt="MIT license"></a>
+</div>
 
-## Develop
+<div align="center">
+  <a href="packages/docspot/README.md">Documentation</a> ·
+  <a href="examples/">Examples</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</div>
+
+<br />
+
+Docspot gives a documentation site a <kbd>⌘K</kbd> search dialog and an Ask AI chat panel, or either one alone. It handles the interface, keyboard and screen reader support, mobile layouts, history, and shareable URLs. You bring the search function, the [AI SDK](https://ai-sdk.dev) chat transport, and your site's routing.
+
+## Quickstart
 
 ```sh
-bun install
-bun run build      # Builds the package
-bun run --cwd packages/docspot playwright install chromium
-bun run test       # Browser tests (Playwright Chromium)
-bun run check      # Formatting, lint, build, types, tests, and package checks
-bun run --cwd examples/chat-only dev
+npm install docspot
 ```
 
-### Loading labels
+```tsx
+import { Docspot, type DocspotSearch } from 'docspot';
+import 'docspot/styles.css';
 
-Use the shared `Shimmer` component for visible text that describes work in progress. Write a short label such as “Opening chat” or “Searching” without a trailing ellipsis. Wrap only the label so hints, errors, and retry actions stay still. Keep live-region semantics on the surrounding status. Screen-reader-only announcements need plain text.
+const search: DocspotSearch = async ({ query, signal }) => {
+  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+    signal,
+  });
+  return response.json(); // [{ url, title, excerpt?, group? }, …]
+};
 
-`Shimmer` displays static text when reduced motion or forced colors are active.
+export function Header() {
+  return <Docspot search={search} />;
+}
+```
 
-## Release
+This renders a search button. Click it or press <kbd>⌘K</kbd>, <kbd>Ctrl K</kbd>, or <kbd>/</kbd> to search. Add `chat` to answer questions with AI, and Docspot offers to ask about the query from search.
 
-[release-please](https://github.com/googleapis/release-please) opens a release pull request from the [Conventional Commits](https://www.conventionalcommits.org) that touch `packages/docspot`. Merging it tags the release, reruns the checks, and publishes to npm through [trusted publishing](https://docs.npmjs.com/trusted-publishers), with no token.
+The [package documentation](packages/docspot/README.md) covers chat, composition, providers, customization, history, and URLs.
+
+## Entry points
+
+Each entry point loads only what it needs. Search-only pages never load chat code, and chat-only pages never load search code.
+
+| Import                 | Provides                                                                 | Needs                     |
+| ---------------------- | ------------------------------------------------------------------------ | ------------------------- |
+| `docspot`              | `<Docspot>`, its composable parts, `useDocspot()`, and helpers           | `react`, `react-dom` 19.2 |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react`     |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                      |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react`     |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                   | `minisearch`              |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`                   |
+| `docspot/styles.css`   | The stylesheet, themed with CSS variables                                | None                      |
+
+## Examples
+
+- [Docs](examples/docs): search and chat, with MiniSearch, a preview pane, items, and handoffs
+- [Chat only](examples/chat-only): chat without search, with a scripted streaming backend
+
+## Contributing
+
+See the [contributing guide](CONTRIBUTING.md) to get started.
+
+## License
+
+MIT © [François Chalifour](https://francoischalifour.com)

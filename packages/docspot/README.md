@@ -1,6 +1,8 @@
 # Docspot
 
-Documentation search and AI chat for React. Use search, chat, or both: Docspot provides the dialog, the chat panel, history, URL links, and keyboard and mobile behavior, and you provide the search function, the chat transport, and your site's routing and content.
+[![npm version](https://img.shields.io/npm/v/docspot.svg)](https://www.npmjs.com/package/docspot) [![MIT license](https://img.shields.io/npm/l/docspot.svg)](https://github.com/francoischalifour/docspot/blob/main/LICENSE)
+
+Docs search and Ask AI for React. Use search, chat, or both: Docspot provides the dialog, the chat panel, history, URL links, and keyboard, screen reader, and mobile behavior, and you provide the search function, the [AI SDK](https://ai-sdk.dev) chat transport, and your site's routing and content.
 
 - **Search** with grouped results, highlights, previews, recent pages, and default results, from any backend: Algolia, MiniSearch in the browser, or your own function.
 - **Chat** over any [AI SDK](https://ai-sdk.dev) transport, with suggested questions, page context, streamed Markdown, sources, tool progress, stop, retry, and saved conversations.
@@ -31,6 +33,20 @@ With Tailwind CSS or other cascade layers, import it into a layer so your utilit
 @import 'docspot/styles.css' layer(components);
 ```
 
+### Entry points
+
+Each entry point loads only what it needs, and none has import side effects.
+
+| Import                 | Provides                                                                 | Peer dependencies     |
+| ---------------------- | ------------------------------------------------------------------------ | --------------------- |
+| `docspot`              | `<Docspot>`, its parts, `useDocspot()`, and helpers                      | `react`, `react-dom`  |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react` |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                  |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react` |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                   | `minisearch`          |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`               |
+| `docspot/styles.css`   | The stylesheet                                                           | None                  |
+
 ## Usage
 
 ### Search only
@@ -51,6 +67,8 @@ export function Header() {
 ```
 
 `<Docspot>` renders a trigger button where you place it, and the search dialog. <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd> and <kbd>/</kbd> open search.
+
+Create `search` and `chat` once, outside components or in `useMemo`. A new `chat` starts a new chat session, and a new `search` schedules its preload again.
 
 ### Chat only
 
@@ -91,7 +109,7 @@ type Body = {
 };
 ```
 
-`page.url` is absolute, and `page.content` is what `loadPage` returned for it. The [chat-only example](https://github.com/francoischalifour/docspot/tree/main/examples/chat-only) includes a streaming endpoint.
+`page.url` is absolute, and `page.content` is what `loadPage` returned for it. The [chat-only example](https://github.com/francoischalifour/docspot/tree/main/examples/chat-only) includes a streaming endpoint, and the [docs example](https://github.com/francoischalifour/docspot/tree/main/examples/docs) combines search and chat.
 
 ### Search and chat
 
@@ -163,7 +181,7 @@ function SupportPane() {
 | `Docspot.SearchDialog`  | The search dialog while it is open                                       |
 | `Docspot.ChatPanel`     | The chat panel and, with `launcher`, a floating button that opens it     |
 
-Triggers accept button props. Their `onClick` runs first, and calling `event.preventDefault()` keeps the surface closed. Pass `children` to replace their content.
+Triggers accept button props, including `ref`. Your handlers run before Docspot's: calling `event.preventDefault()` in `onClick` keeps the surface closed. Pass `children` to replace their content.
 
 `useDocspot()` returns:
 
@@ -179,6 +197,8 @@ Triggers accept button props. Their `onClick` runs first, and calling `event.pre
 | `close()`                                   | Closes search and chat                                            |
 
 `page` attaches a page to the question; `null` attaches none. Without it, the current page stays attached.
+
+The methods keep their identity across renders, so they are safe in effect dependencies.
 
 ## Props
 
@@ -454,7 +474,7 @@ Every other class name is internal and may change in any release.
 />
 ```
 
-`defaultMessages` lists the English defaults; any part can be overridden. Keys ending in `WithAsk`, such as `search.placeholderWithAsk`, replace their base key when chat is available.
+`defaultMessages` lists the English defaults; any part can be overridden. Keys ending in `WithAsk`, such as `search.placeholderWithAsk`, and `trigger.searchAndAsk` replace their base key when chat is available. Overriding only the base key overrides both.
 
 ### Chat panel layout
 
@@ -562,6 +582,19 @@ Docspot renders on the server and reads browser state only after hydration.
 | <kbd>Esc</kbd>                                  | Clear the query, then close     |
 | <kbd>⌘J</kbd> / <kbd>Ctrl J</kbd>               | Toggle chat                     |
 | <kbd>Enter</kbd>, <kbd>Shift Enter</kbd>        | Send a question, or add a line  |
+
+## Accessibility
+
+- Search is a modal `<dialog>` with an ARIA combobox and listbox. Results are announced as they arrive, focus returns to where it was when search closes, and the reader's place on the page is kept.
+- The chat panel is a labeled landmark. Answers are announced when they start and finish rather than word by word, a streamed answer stays anchored at its start, and stop, retry, and copy are buttons with names.
+- Every action has a keyboard path, and shortcuts are exposed with `aria-keyshortcuts`. Shortcuts that type a character, such as <kbd>/</kbd>, never fire while typing in a field.
+- Animations stop under `prefers-reduced-motion`, loading text stays still in forced colors mode, and on-screen keyboards never cover the search input or the composer.
+
+Slots render inside these surfaces, so give their controls accessible names too.
+
+## Browser support
+
+Docspot supports browsers with the Popover API and the `<dialog>` top layer: Chrome and Edge 114, Firefox 125, and Safari 17, and later versions.
 
 ## License
 

@@ -1,19 +1,39 @@
 {
   "name": "docspot",
   "version": "0.1.0",
-  "description": "Docs search and Ask AI for React. Bring your own search and your own model.",
+  "description": "Docs search and Ask AI for React. Any search backend, any AI SDK model, accessible and keyboard-first.",
   "keywords": [
+    "ai-chat",
     "ai-sdk",
+    "algolia",
+    "ask-ai",
+    "chatbot",
+    "cmdk",
+    "command-menu",
     "command-palette",
+    "docs",
+    "docs-search",
     "docsearch",
     "documentation",
+    "documentation-search",
+    "llm",
+    "minisearch",
+    "rag",
     "react",
-    "search"
+    "react-component",
+    "search",
+    "search-dialog",
+    "site-search",
+    "typescript"
   ],
-  "homepage": "https://francoischalifour.com/docspot/",
+  "homepage": "https://github.com/francoischalifour/docspot/tree/main/packages/docspot#readme",
   "bugs": "https://github.com/francoischalifour/docspot/issues",
   "license": "MIT",
-  "author": "Francois Chalifour <francois.chalifour@gmail.com>",
+  "author": {
+    "name": "François Chalifour",
+    "email": "francois.chalifour@gmail.com",
+    "url": "https://francoischalifour.com"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/francoischalifour/docspot.git",
