@@ -7,10 +7,21 @@ import {
 } from 'react';
 
 import { prefersReducedMotion } from '@/core/platform';
+import {
+  type ScrollMode,
+  type ScrollModeEvent,
+  following,
+  scrollMode,
+} from '@/chat/scrollMode';
 import { ArrowDownIcon } from '@/ui/icons';
 import { type ScrollerApi, ScrollerContext } from '@/chat/ScrollerContext';
 
 const END_TOLERANCE = 8;
+const UPWARD_KEYS = new Set(['ArrowUp', 'PageUp', 'Home']);
+
+function anchorOf(state: ScrollMode) {
+  return state.mode === 'anchored' ? state.anchor : null;
+}
 
 function getAnchorTop(viewport: HTMLElement, element: HTMLElement) {
   const scrollMarginTop =
@@ -65,12 +76,12 @@ export function Scroller({
   children,
 }: ScrollerProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const followRef = useRef(true);
-  const wasAtEndRef = useRef(true);
+  // Changes on every scroll, so it stays out of React state.
+  const modeRef = useRef<ScrollMode>(following);
+  // Where the viewport is, apart from the mode: an answer anchors only when
+  // the reader was at the end.
+  const atEndRef = useRef(true);
   const previousScrollTopRef = useRef(0);
-  const anchorRef = useRef<HTMLElement | null>(null);
-  // Whether the anchored answer's start is still aligned to the top.
-  const alignedRef = useRef(false);
   // Follows the anchored answer's growth inside its reserved space.
   const anchorObserverRef = useRef<ResizeObserver | null>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
@@ -81,22 +92,37 @@ export function Scroller({
     if (!viewport) return;
     const start = viewport.scrollTop > 1;
     const end =
-      distanceToContentEnd(viewport, anchorRef.current) > END_TOLERANCE;
+      distanceToContentEnd(viewport, anchorOf(modeRef.current)) > END_TOLERANCE;
     setEdges(current =>
       current.start === start && current.end === end ? current : { start, end }
     );
   }, []);
 
-  function releaseAnchor() {
+  /**
+   * Applies a mode event and the DOM effects of entering or leaving an
+   * anchored answer: the space reserved below it, and watching its growth.
+   */
+  function transition(event: ScrollModeEvent) {
+    const previous = modeRef.current;
+    const next = scrollMode(previous, event);
+    if (next === previous) return;
+    modeRef.current = next;
     const viewport = viewportRef.current;
-    alignedRef.current = false;
-    anchorObserverRef.current?.disconnect();
-    anchorObserverRef.current = null;
-    if (anchorRef.current) {
-      anchorRef.current.style.minHeight = '';
-      anchorRef.current = null;
+    const left = anchorOf(previous);
+    const entered = anchorOf(next);
+    if (left && left !== entered) {
+      anchorObserverRef.current?.disconnect();
+      anchorObserverRef.current = null;
+      left.style.minHeight = '';
+      if (viewport) viewport.style.overflowAnchor = '';
     }
-    if (viewport) viewport.style.overflowAnchor = '';
+    if (entered && entered !== left && viewport) {
+      entered.style.minHeight = `${viewport.clientHeight}px`;
+      viewport.style.overflowAnchor = 'none';
+      anchorObserverRef.current = new ResizeObserver(updateEdges);
+      if (entered.lastElementChild)
+        anchorObserverRef.current.observe(entered.lastElementChild);
+    }
   }
 
   useLayoutEffect(() => () => anchorObserverRef.current?.disconnect(), []);
@@ -111,13 +137,14 @@ export function Scroller({
   // A resized panel keeps the answer being read at its top.
   const onViewportResize = useCallback(() => {
     const viewport = viewportRef.current;
-    const anchor = anchorRef.current;
+    const mode = modeRef.current;
+    const anchor = anchorOf(mode);
     // An unconstrained viewport grows with its content; resizing the
     // anchor then would only make it grow further.
     const scrolls = viewport && viewport.scrollHeight > viewport.clientHeight;
     if (viewport && anchor && scrolls) {
       anchor.style.minHeight = `${viewport.clientHeight}px`;
-      if (alignedRef.current)
+      if (mode.mode === 'anchored' && mode.aligned)
         viewport.scrollTop = getAnchorTop(viewport, anchor);
     }
     updateEdges();
@@ -136,11 +163,10 @@ export function Scroller({
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    wasAtEndRef.current = distanceToEnd(viewport) <= END_TOLERANCE;
+    atEndRef.current = distanceToEnd(viewport) <= END_TOLERANCE;
     if (!follow && !resumeKey) return;
-    followRef.current = true;
-    wasAtEndRef.current = true;
-    releaseAnchor();
+    atEndRef.current = true;
+    transition({ type: 'follow' });
     if (!follow) return;
     let frame: number | null = null;
     function scrollToEnd() {
@@ -151,7 +177,7 @@ export function Scroller({
       if (frame !== null) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         frame = null;
-        if (followRef.current) scrollToEnd();
+        if (modeRef.current.mode === 'following') scrollToEnd();
       });
     }
     scrollToEnd();
@@ -169,16 +195,8 @@ export function Scroller({
   const api: ScrollerApi = {
     startReadingAt(element) {
       const viewport = viewportRef.current;
-      if (!viewport || !wasAtEndRef.current) return;
-      followRef.current = false;
-      anchorRef.current = element;
-      alignedRef.current = true;
-      element.style.minHeight = `${viewport.clientHeight}px`;
-      viewport.style.overflowAnchor = 'none';
-      anchorObserverRef.current?.disconnect();
-      anchorObserverRef.current = new ResizeObserver(updateEdges);
-      if (element.lastElementChild)
-        anchorObserverRef.current.observe(element.lastElementChild);
+      if (!viewport || !atEndRef.current) return;
+      transition({ type: 'anchor', anchor: element });
       viewport.scrollTo({
         top: getAnchorTop(viewport, element),
         behavior: prefersReducedMotion() ? 'instant' : 'smooth',
@@ -194,40 +212,35 @@ export function Scroller({
         onScroll={event => {
           const viewport = event.currentTarget;
           const atEnd = distanceToEnd(viewport) <= END_TOLERANCE;
-          wasAtEndRef.current = atEnd;
-          const scrolledDown =
-            viewport.scrollTop > previousScrollTopRef.current;
-          const scrolledPastAnchor =
-            anchorRef.current &&
-            anchorRef.current.getBoundingClientRect().top <
-              viewport.getBoundingClientRect().top - END_TOLERANCE;
-          if (
-            atEnd &&
-            (!anchorRef.current || (scrolledDown && scrolledPastAnchor))
-          ) {
-            releaseAnchor();
-            followRef.current = true;
-          } else if (viewport.scrollTop < previousScrollTopRef.current)
-            followRef.current = false;
+          atEndRef.current = atEnd;
+          const anchor = anchorOf(modeRef.current);
+          transition({
+            type: 'scrolled',
+            atEnd,
+            upward: viewport.scrollTop < previousScrollTopRef.current,
+            downward: viewport.scrollTop > previousScrollTopRef.current,
+            pastAnchor: Boolean(
+              anchor &&
+              anchor.getBoundingClientRect().top <
+                viewport.getBoundingClientRect().top - END_TOLERANCE
+            ),
+          });
           previousScrollTopRef.current = viewport.scrollTop;
           updateEdges();
         }}
-        onWheel={event => {
-          alignedRef.current = false;
-          if (event.deltaY < 0) followRef.current = false;
-        }}
-        onTouchMove={() => {
-          alignedRef.current = false;
-          followRef.current = false;
-        }}
-        onKeyDown={event => {
-          alignedRef.current = false;
-          if (
-            ['ArrowUp', 'PageUp', 'Home'].includes(event.key) ||
-            (event.key === ' ' && event.shiftKey)
-          )
-            followRef.current = false;
-        }}
+        onWheel={event =>
+          transition({ type: 'userScroll', upward: event.deltaY < 0 })
+        }
+        // A touch may scroll either way; it stops following like scrolling up.
+        onTouchMove={() => transition({ type: 'userScroll', upward: true })}
+        onKeyDown={event =>
+          transition({
+            type: 'userScroll',
+            upward:
+              UPWARD_KEYS.has(event.key) ||
+              (event.key === ' ' && event.shiftKey),
+          })
+        }
       >
         <ScrollerContext value={api}>{children}</ScrollerContext>
       </div>

@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { page, userEvent } from 'vitest/browser';
+import { commands, page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import {
@@ -522,4 +522,46 @@ it('offers to jump only when more of the answer is below', async () => {
   await expect
     .element(panel().getByRole('button', { name: 'Jump to latest answer' }))
     .not.toBeInTheDocument();
+});
+
+declare module 'vitest/browser' {
+  interface BrowserCommands {
+    wheel: (role: 'log', name: string, deltaY: number) => Promise<void>;
+  }
+}
+
+it('stays where the reader scrolled while an answer streams, until they jump back', async () => {
+  const { chat } = createChatServer(() => ({
+    chunks: [
+      'Start reading here.\n\n',
+      ...Array.from(
+        { length: 60 },
+        (_, index) => `Paragraph ${index} about querying data.\n\n`
+      ),
+      'The very end.',
+    ],
+    chunkDelayMs: 40,
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('Tell me everything{Enter}');
+  const answer = answers().first();
+  await expect.element(answer).toHaveTextContent('Paragraph 5');
+
+  // Scrolling up while it streams leaves the reader there.
+  await commands.wheel('log', 'Chat', -150);
+  await vi.waitFor(() =>
+    expect(answer.element().getBoundingClientRect().top).toBeGreaterThan(
+      panel().element().getBoundingClientRect().top + 120
+    )
+  );
+  const top = answer.element().getBoundingClientRect().top;
+  await expect.element(answer).toHaveTextContent('Paragraph 30');
+  expect(
+    Math.abs(answer.element().getBoundingClientRect().top - top)
+  ).toBeLessThan(2);
+
+  await expect.element(answer).toHaveTextContent('The very end.');
+  await panel().getByRole('button', { name: 'Jump to latest answer' }).click();
+  await expect.element(answer.getByText('The very end.')).toBeInViewport();
 });

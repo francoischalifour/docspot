@@ -44,6 +44,23 @@ export default defineConfig({
         ) => {
           await context.page.emulateMedia({ colorScheme });
         },
+        /** Turns the real mouse wheel over an element by its role and name. */
+        wheel: async (
+          context: BrowserCommandContext,
+          role: 'log',
+          name: string,
+          deltaY: number
+        ) => {
+          const box = await context.iframe
+            .getByRole(role, { name })
+            .boundingBox();
+          if (!box) throw new Error(`No ${role} named “${name}”`);
+          await context.page.mouse.move(
+            box.x + box.width / 2,
+            box.y + Math.min(box.height / 2, 100)
+          );
+          await context.page.mouse.wheel(0, deltaY);
+        },
         /** Drags an element by its role and name with the real mouse. */
         dragBy: async (
           context: BrowserCommandContext,
