@@ -1,7 +1,9 @@
 /*
  * Docspot styles. Customize with the --docspot-* variables on :root or any
- * ancestor; dark values apply under prefers-color-scheme, [data-theme='dark'],
- * or the .dark class. Defaults have no specificity, so any rule overrides them.
+ * ancestor. The dark palette applies under prefers-color-scheme, and on any
+ * element with [data-theme='dark'] or .dark; [data-theme='light'] or .light
+ * restores the light one. Defaults have no specificity, so any rule
+ * overrides them.
  *
  * The dark palette appears twice, for the media query and for the explicit
  * theme. test/styles.test.ts keeps both copies identical.
@@ -10,6 +12,39 @@
   --docspot-font:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --docspot-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --docspot-mark-weight: 600;
+  --docspot-mark-decoration: none;
+  /* Letter spacing for interface text; tighten it for wide fonts. */
+  --docspot-tracking: normal;
+  /* Type scale. Map it to a site's own scale to match its text sizes. */
+  --docspot-text-2xs: 0.6875rem;
+  --docspot-text-xs: 0.75rem;
+  --docspot-text-sm: 0.8125rem;
+  --docspot-text-md: 0.875rem;
+  --docspot-text-base: 0.9375rem;
+  --docspot-text-lg: 1rem;
+  --docspot-text-xl: 1.125rem;
+  --docspot-text-2xl: 1.5rem;
+  --docspot-radius-control: 0.375rem;
+  --docspot-radius-item: 0.375rem;
+  --docspot-radius-surface: 0.75rem;
+  --docspot-radius-floating: 0.75rem;
+  /* Space above the docked chat panel, such as a fixed header. */
+  --docspot-chat-top: 0px;
+  --docspot-z-index: 50;
+  /* Optional: --docspot-selected, --docspot-selected-border, and
+     --docspot-selected-shadow style the selected result;
+     --docspot-results-background takes any background, gradients included;
+     --docspot-kbd-background, --docspot-kbd-border, and --docspot-kbd-shadow
+     style key hints; --docspot-scrollbar-color sets scrollbar-color. They
+     fall back to the tokens above where they are used, so a theme that only
+     changes those tokens still applies. */
+}
+
+/* The light palette, on the root and wherever a site marks light. */
+:where(:root, [data-theme='light'], .light) {
+  /* Native parts, such as scrollbars, follow the palette. */
+  --docspot-color-scheme: light;
   --docspot-background: #ffffff;
   --docspot-foreground: #18181b;
   --docspot-muted: #6b6b76;
@@ -29,43 +64,19 @@
     var(--docspot-foreground) 15%,
     transparent
   );
-  --docspot-mark-weight: 600;
-  --docspot-mark-decoration: none;
-  /* Letter spacing for interface text; tighten it for wide fonts. */
-  --docspot-tracking: normal;
-  /* Type scale. Map it to a site's own scale to match its text sizes. */
-  --docspot-text-2xs: 0.6875rem;
-  --docspot-text-xs: 0.75rem;
-  --docspot-text-sm: 0.8125rem;
-  --docspot-text-md: 0.875rem;
-  --docspot-text-base: 0.9375rem;
-  --docspot-text-lg: 1rem;
-  --docspot-text-xl: 1.125rem;
-  --docspot-text-2xl: 1.5rem;
   --docspot-overlay: rgb(9 9 11 / 0.4);
   --docspot-focus: color-mix(in oklab, #3b82f6 60%, transparent);
-  --docspot-radius-control: 0.375rem;
-  --docspot-radius-item: 0.375rem;
-  --docspot-radius-surface: 0.75rem;
-  --docspot-radius-floating: 0.75rem;
   --docspot-shadow-floating:
     0 1px 3px -1px rgb(0 0 0 / 0.18), 0 16px 36px -12px rgb(0 0 0 / 0.22);
   --docspot-shadow-raised:
     0 1px 2px rgb(0 0 0 / 0.06), 0 2px 8px rgb(0 0 0 / 0.06);
-  /* Space above the docked chat panel, such as a fixed header. */
-  --docspot-chat-top: 0px;
-  --docspot-z-index: 50;
-  /* Optional: --docspot-selected, --docspot-selected-border, and
-     --docspot-selected-shadow style the selected result;
-     --docspot-results-background takes any background, gradients included;
-     --docspot-kbd-background, --docspot-kbd-border, and --docspot-kbd-shadow
-     style key hints; --docspot-scrollbar-color sets scrollbar-color. They
-     fall back to the tokens above where they are used, so a theme that only
-     changes those tokens still applies. */
+  /* Set by the dark palette; unset here so a light section ignores it. */
+  --docspot-selected: initial;
 }
 
 @media (prefers-color-scheme: dark) {
   :where(:root:not([data-theme='light'], .light)) {
+    --docspot-color-scheme: dark;
     --docspot-background: #111113;
     --docspot-foreground: #ededf0;
     --docspot-muted: #a1a1aa;
@@ -87,7 +98,9 @@
   }
 }
 
-:where(:root:is([data-theme='dark'], .dark)) {
+/* Wherever a site marks dark, the root or any section. */
+:where([data-theme='dark'], .dark) {
+  --docspot-color-scheme: dark;
   --docspot-background: #111113;
   --docspot-foreground: #ededf0;
   --docspot-muted: #a1a1aa;
@@ -115,6 +128,7 @@
   .docspot-launcher,
   .docspot-menu
 ) {
+  color-scheme: var(--docspot-color-scheme);
   font-family: var(--docspot-font);
   letter-spacing: var(--docspot-tracking);
   font-kerning: normal;

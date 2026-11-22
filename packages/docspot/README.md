@@ -472,30 +472,61 @@ Docspot is themed with CSS variables. Most sites only set a few colors and the f
 }
 ```
 
-Set variables on `:root` or any ancestor. Docspot's defaults have no specificity, so any rule overrides them, cascade layers included. The dark palette applies under `prefers-color-scheme: dark`, `[data-theme='dark']`, or `.dark` on the root element; `[data-theme='light']` or `.light` keeps the light palette.
+Set variables on `:root` or any ancestor. Docspot's defaults have no specificity, so any rule overrides them, cascade layers included.
+
+#### Light and dark
+
+Docspot follows the reader's system setting, and the way most sites switch themes, with no configuration:
+
+- **System:** the dark palette applies under `prefers-color-scheme: dark`.
+- **Site switch:** `[data-theme='dark']` or `.dark` applies it, and `[data-theme='light']` or `.light` keeps the light palette whatever the system says. On `<html>`, they theme the whole page; on any element, they theme the Docspot parts inside it, such as a dark section of a light page.
+
+Native parts, such as scrollbars, follow the palette through `--docspot-color-scheme`, even when the page itself doesn't set `color-scheme`.
+
+To change dark colors, override them under the same selectors your site uses for dark mode:
+
+```css
+:root {
+  --docspot-accent: #eef2ff;
+}
+
+:root.dark {
+  --docspot-accent: #1e1b4b;
+}
+
+/* For sites that follow the system setting. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --docspot-accent: #1e1b4b;
+  }
+}
+```
+
+A palette of your own that is dark also sets `--docspot-color-scheme: dark`.
 
 #### Color
 
-| Variable                       | Default    | Used for                                                 |
-| ------------------------------ | ---------- | -------------------------------------------------------- |
-| `--docspot-background`         | `#ffffff`  | Surfaces: the dialog, the chat panel, and menus          |
-| `--docspot-foreground`         | `#18181b`  | Text and icons                                           |
-| `--docspot-muted`              | `#6b6b76`  | Secondary text, such as breadcrumbs and hints            |
-| `--docspot-subtle`             | `#8a8a94`  | Decorative icons and disabled controls                   |
-| `--docspot-border`             | `#e7e7ea`  | Dividers and control borders                             |
-| `--docspot-border-strong`      | `#d4d4d8`  | Borders that stand out, such as buttons and the composer |
-| `--docspot-surface`            | `#f7f7f8`  | Recessed areas, such as the results list and code        |
-| `--docspot-surface-elevated`   | `#ffffff`  | Raised areas, such as the selected result                |
-| `--docspot-accent`             | `#f0f0f2`  | Hover and selection backgrounds                          |
-| `--docspot-accent-active`      | `#e6e6ea`  | Pressed and current backgrounds                          |
-| `--docspot-primary`            | `#18181b`  | The send button and other primary actions                |
-| `--docspot-primary-foreground` | `#ffffff`  | Text and icons on `--docspot-primary`                    |
-| `--docspot-danger`             | `#c8291c`  | Destructive actions                                      |
-| `--docspot-focus`              | Blue, 60%  | Focus outlines                                           |
-| `--docspot-overlay`            | Black, 40% | Behind the search dialog                                 |
-| `--docspot-mark`               | Text tint  | Background of matched text                               |
-| `--docspot-mark-weight`        | `600`      | Weight of matched text                                   |
-| `--docspot-mark-decoration`    | `none`     | Decoration of matched text, such as `underline`          |
+| Variable                       | Default         | Used for                                                 |
+| ------------------------------ | --------------- | -------------------------------------------------------- |
+| `--docspot-background`         | `#ffffff`       | Surfaces: the dialog, the chat panel, and menus          |
+| `--docspot-foreground`         | `#18181b`       | Text and icons                                           |
+| `--docspot-muted`              | `#6b6b76`       | Secondary text, such as breadcrumbs and hints            |
+| `--docspot-subtle`             | `#8a8a94`       | Decorative icons and disabled controls                   |
+| `--docspot-border`             | `#e7e7ea`       | Dividers and control borders                             |
+| `--docspot-border-strong`      | `#d4d4d8`       | Borders that stand out, such as buttons and the composer |
+| `--docspot-surface`            | `#f7f7f8`       | Recessed areas, such as the results list and code        |
+| `--docspot-surface-elevated`   | `#ffffff`       | Raised areas, such as the selected result                |
+| `--docspot-accent`             | `#f0f0f2`       | Hover and selection backgrounds                          |
+| `--docspot-accent-active`      | `#e6e6ea`       | Pressed and current backgrounds                          |
+| `--docspot-primary`            | `#18181b`       | The send button and other primary actions                |
+| `--docspot-primary-foreground` | `#ffffff`       | Text and icons on `--docspot-primary`                    |
+| `--docspot-danger`             | `#c8291c`       | Destructive actions                                      |
+| `--docspot-focus`              | Blue, 60%       | Focus outlines                                           |
+| `--docspot-overlay`            | Black, 40%      | Behind the search dialog                                 |
+| `--docspot-color-scheme`       | `light`, `dark` | The `color-scheme` of native parts, such as scrollbars   |
+| `--docspot-mark`               | Text tint       | Background of matched text                               |
+| `--docspot-mark-weight`        | `600`           | Weight of matched text                                   |
+| `--docspot-mark-decoration`    | `none`          | Decoration of matched text, such as `underline`          |
 
 In both palettes, text colors meet WCAG AA (4.5:1) on every Docspot background, and `--docspot-subtle` meets 3:1 for icons. Keep these ratios when you change them.
 
