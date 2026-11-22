@@ -13,6 +13,6 @@
   },
   "chat: type 20 characters after 8 answers": {
     "commits": 20,
-    "renders": 840
+    "renders": 920
   }
 }
