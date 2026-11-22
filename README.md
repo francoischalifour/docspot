@@ -1,6 +1,6 @@
 <h1 align="center">Docspot</h1>
 
-<p align="center">Docs search and Ask AI for React. Any search backend, any AI SDK model, accessible and keyboard-first.</p>
+<p align="center">Docs search and Ask AI for React. Any search backend, any AI model, accessible and keyboard-first.</p>
 
 <div align="center">
   <a href="https://www.npmjs.com/package/docspot"><img src="https://img.shields.io/npm/v/docspot.svg" alt="npm version"></a>
