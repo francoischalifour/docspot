@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -679,4 +680,41 @@ it('selects results with the accent a dark theme sets', async () => {
   } finally {
     document.documentElement.removeAttribute('data-theme');
   }
+});
+
+it('renders a trigger as another element or with a function', async () => {
+  const onClick = vi.fn();
+  function Button({ className, ...props }: ComponentProps<'button'>) {
+    return <button {...props} className={`${className} ds-button`} />;
+  }
+  await render(
+    <Docspot.Root search={() => results}>
+      <Docspot.SearchTrigger render={<Button onClick={onClick} />} />
+      <Docspot.SearchTrigger
+        render={(props, state) => (
+          <button {...props}>{state.open ? 'Searching' : 'Find'}</button>
+        )}
+      />
+      <Docspot.SearchDialog />
+    </Docspot.Root>
+  );
+  const trigger = page.getByRole('button', { name: 'Search docs' });
+  await expect.element(trigger).toHaveClass('docspot-trigger');
+  await expect.element(trigger).toHaveClass('ds-button');
+  await expect
+    .element(trigger)
+    .toHaveAttribute('aria-keyshortcuts', 'Meta+K Control+K /');
+  await trigger.click();
+  expect(onClick).toHaveBeenCalledTimes(1);
+  await expect.element(searchInput()).toHaveFocus();
+  await expect
+    .element(
+      page.getByRole('button', { name: 'Searching', includeHidden: true })
+    )
+    .toBeInTheDocument();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(trigger).toHaveFocus();
+  await expect
+    .element(page.getByRole('button', { name: 'Find' }))
+    .toBeInTheDocument();
 });

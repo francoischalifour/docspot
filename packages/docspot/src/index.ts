@@ -4,8 +4,11 @@ export type { DocspotProps } from '@/core/Docspot';
 export { useDocspot } from '@/core/useDocspot';
 export type { DocspotApi } from '@/core/useDocspot';
 export type { ChatPanelProps } from '@/core/ChatPanel';
-export type { ChatTriggerProps } from '@/core/ChatTrigger';
-export type { SearchTriggerProps } from '@/core/SearchTrigger';
+export type { ChatTriggerProps, ChatTriggerState } from '@/core/ChatTrigger';
+export type {
+  SearchTriggerProps,
+  SearchTriggerState,
+} from '@/core/SearchTrigger';
 export type { TriggerProps } from '@/core/Trigger';
 export { createDocspotUrl } from '@/core/url';
 export type { DocspotLinkOptions } from '@/core/url';

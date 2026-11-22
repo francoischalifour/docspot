@@ -2,7 +2,10 @@ import { useDocspotInternal } from '@/core/context';
 import { SearchTrigger, type SearchTriggerProps } from '@/core/SearchTrigger';
 import { ChatTrigger, type ChatTriggerProps } from '@/core/ChatTrigger';
 
-/** Button props, as for `SearchTriggerProps`. */
+/**
+ * Button props, as for `SearchTriggerProps`. `render` receives the state of
+ * the surface the trigger opens.
+ */
 export type TriggerProps = SearchTriggerProps & ChatTriggerProps;
 
 /** Opens search when configured, otherwise chat. */

@@ -30,7 +30,7 @@ export default defineConfig({
         // entry chunk, which must stay free of React (see banner).
         {
           name: 'client',
-          test: /src[\\/]core[\\/](Docspot|Root|chatLifecycle|use[A-Z]\w*|SearchTrigger|ChatTrigger|Trigger|SearchDialog|ChatPanel|ChatLauncher)\.tsx?$/,
+          test: /src[\\/]core[\\/](Docspot|Root|chatLifecycle|use[A-Z]\w*|SearchTrigger|ChatTrigger|Trigger|SearchDialog|ChatPanel|ChatLauncher)\.tsx?$|src[\\/]ui[\\/]renderElement\.tsx$/,
         },
       ],
     },

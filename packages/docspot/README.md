@@ -183,6 +183,18 @@ function SupportPane() {
 
 Triggers accept button props, including `ref`, typed as `SearchTriggerProps`, `ChatTriggerProps`, and `TriggerProps`. Your handlers run before Docspot's: calling `event.preventDefault()` in `onClick` keeps the surface closed. Pass `children` to replace their content.
 
+`render` replaces the `<button>` a trigger renders, for example with your design system's button. An element receives the trigger's props merged into its own: both handlers run, yours first, classes join, and refs both receive the element. A function receives the props and the trigger's state, `{ open }`, and returns what to render:
+
+```tsx
+<Docspot.SearchTrigger render={<Button variant="ghost" />} />
+
+<Docspot.ChatTrigger
+  render={(props, { open }) => (
+    <Button {...props}>{open ? 'Hide AI' : 'Ask AI'}</Button>
+  )}
+/>
+```
+
 `useDocspot()` returns:
 
 | Member                                      | Description                                                       |
