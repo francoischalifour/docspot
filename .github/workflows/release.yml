@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the version on main, to retry a release whose publish failed
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,14 +36,14 @@ jobs:
 
   checks:
     needs: release-please
-    if: needs.release-please.outputs.created == 'true'
+    if: needs.release-please.outputs.created == 'true' || inputs.publish
     uses: ./.github/workflows/checks.yml
     with:
-      ref: ${{ needs.release-please.outputs.sha }}
+      ref: ${{ needs.release-please.outputs.sha || github.sha }}
 
   publish:
     needs: [release-please, checks]
-    if: needs.release-please.outputs.created == 'true'
+    if: needs.release-please.outputs.created == 'true' || inputs.publish
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -48,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.sha }}
+          ref: ${{ needs.release-please.outputs.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

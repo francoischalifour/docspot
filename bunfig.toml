@@ -3,4 +3,5 @@ singleQuote = true
 trailingComma = "es5"
 arrowParens = "avoid"
 printWidth = 80
-ignorePatterns = ["**/dist/**"]
+# Release Please writes the changelog in its own format.
+ignorePatterns = ["**/dist/**", "**/CHANGELOG.md"]
