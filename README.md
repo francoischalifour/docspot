@@ -59,6 +59,11 @@ Each entry point loads only what it needs. Search-only pages never load chat cod
 | `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`                   |
 | `docspot/styles.css`   | The stylesheet, themed with CSS variables                                | None                      |
 
+## Showcase
+
+- [Altertable](https://altertable.ai/docs)
+- [medium-zoom](https://medium-zoom.francoischalifour.com/docs/)
+
 ## Examples
 
 - [Docs](examples/docs): search and chat, with MiniSearch, a preview pane, items, and handoffs
