@@ -114,7 +114,7 @@ export function createMiniSearchSearch<T>({
       .then(index)
       .then(
         miniSearch => (loaded = miniSearch),
-        error => {
+        (error: unknown) => {
           loading = undefined;
           throw error;
         }

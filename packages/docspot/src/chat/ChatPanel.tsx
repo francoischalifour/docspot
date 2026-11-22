@@ -602,6 +602,8 @@ function Composer({
         className="docspot-composer-input"
         onChange={event => onChange(event.currentTarget.value)}
         onKeyDown={event => {
+          // Safari reports keys that end a composition with keyCode 229.
+          // oxlint-disable-next-line typescript/no-deprecated
           if (event.nativeEvent.isComposing || event.keyCode === 229) {
             event.stopPropagation();
             return;

@@ -3,7 +3,7 @@ import {
   type MouseEvent,
   useEffect,
   useLayoutEffect,
-  useState,
+  useSyncExternalStore,
 } from 'react';
 
 const IDLE_PRELOAD_DELAY_MS = 3_000;
@@ -17,11 +17,14 @@ export function isMacPlatform() {
   );
 }
 
-/** Whether this platform labels the command key ⌘, read after hydration. */
+const subscribeToNothing = () => () => {};
+
+/**
+ * Whether this platform labels the command key ⌘. The server and hydration
+ * render Ctrl, so the markup matches before the platform is read.
+ */
 export function useIsMac() {
-  const [isMac, setIsMac] = useState(false);
-  useEffect(() => setIsMac(isMacPlatform()), []);
-  return isMac;
+  return useSyncExternalStore(subscribeToNothing, isMacPlatform, () => false);
 }
 
 export function hasModifierKey(event: MouseEvent | KeyboardEvent) {
@@ -154,7 +157,7 @@ export function createModuleLoader<T>(load: () => Promise<T>) {
     load() {
       promise ??= load().then(
         module => (loaded = module),
-        error => {
+        (error: unknown) => {
           promise = undefined;
           throw error;
         }

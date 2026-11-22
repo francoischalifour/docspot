@@ -208,7 +208,15 @@ export function DocspotRoot(props: DocspotRootProps) {
   const currentPage = context?.page;
   const resolvePage = context?.resolvePage;
 
-  const emit = useEffectEvent((event: DocspotEvent) => onEvent?.(event));
+  // Stable for the instance's lifetime and always calls the latest
+  // `onEvent`, so sessions and handlers can keep it.
+  const onEventRef = useRef(onEvent);
+  useLayoutEffect(() => {
+    onEventRef.current = onEvent;
+  });
+  const [emit] = useState(
+    () => (event: DocspotEvent) => onEventRef.current?.(event)
+  );
   // Read refs after the whole tree commits, including an enclosing owner.
   const [owner, setOwner] = useState<HTMLElement | Document | null>(null);
   useEffect(() => {

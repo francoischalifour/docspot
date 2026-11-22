@@ -4,7 +4,7 @@ import {
   createAutocomplete,
 } from '@algolia/autocomplete-core';
 import {
-  type FormEvent,
+  type SyntheticEvent,
   type KeyboardEvent,
   type MouseEvent,
   useEffect,
@@ -84,7 +84,7 @@ export function SearchDialog() {
   );
 
   const [autocomplete] = useState(() =>
-    createAutocomplete<SearchItem, FormEvent, MouseEvent, KeyboardEvent>({
+    createAutocomplete<SearchItem, SyntheticEvent, MouseEvent, KeyboardEvent>({
       id,
       initialState: { query: search.query, isOpen: true },
       defaultActiveItemId: 0,
@@ -147,7 +147,7 @@ export function SearchDialog() {
           })
         );
         // A search that ignores the signal may still resolve.
-        if (controller.signal.aborted) return supersede(controller);
+        if (controller.signal.aborted) return await supersede(controller);
         results = response.results;
         prioritizeChat = response.prioritizeChat;
         setErrorQuery(current => (current === trimmed ? null : current));
@@ -590,6 +590,8 @@ export function SearchDialog() {
                 search.setQuery(event.currentTarget.value);
               }}
               onKeyDown={event => {
+                // Safari reports keys that end a composition with keyCode 229.
+                // oxlint-disable-next-line typescript/no-deprecated
                 if (event.nativeEvent.isComposing || event.keyCode === 229) {
                   event.stopPropagation();
                   return;

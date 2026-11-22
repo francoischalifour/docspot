@@ -178,7 +178,7 @@ it('never reports no results while a request is pending', async () => {
   );
   let sawNoResults = false;
   const observer = new MutationObserver(() => {
-    if (document.body.textContent?.includes('No results')) sawNoResults = true;
+    if (document.body.textContent.includes('No results')) sawNoResults = true;
   });
   observer.observe(document.body, {
     subtree: true,

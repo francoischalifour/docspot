@@ -86,7 +86,7 @@ export function createChatServer(
 ) {
   const requests: ChatRequestRecord[] = [];
   const fetch = async (_input: RequestInfo | URL, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body)) as ChatRequestRecord['body'];
+    const body = JSON.parse(init?.body as string) as ChatRequestRecord['body'];
     requests.push({ body, signal: init?.signal });
     const question =
       body.messages

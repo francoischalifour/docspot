@@ -129,7 +129,7 @@ async function queryAlgolia(
         body: JSON.stringify(body),
         signal,
       }
-    ).catch(error => {
+    ).catch((error: unknown) => {
       if (signal.aborted) throw error;
       lastError = error;
       return null;

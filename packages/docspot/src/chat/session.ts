@@ -102,7 +102,10 @@ function withPageContent(
             ...context.page,
             url: new URL(
               context.page.url,
-              siteUrl ?? globalThis.location?.href ?? 'http://localhost'
+              siteUrl ??
+                (typeof location === 'undefined'
+                  ? 'http://localhost'
+                  : location.href)
             ).href,
             title: loaded?.title ?? context.page.title,
             content: loaded?.content,

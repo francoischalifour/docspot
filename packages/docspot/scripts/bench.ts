@@ -24,4 +24,4 @@ const run = Bun.spawnSync(
 );
 if (existsSync(report)) console.log(readFileSync(report, 'utf8'));
 if (update && run.exitCode === 0) console.log('Recorded baselines/bench.json');
-process.exit(run.exitCode ?? 1);
+process.exit(run.exitCode);

@@ -74,7 +74,7 @@ try {
       output: { format: 'esm', codeSplitting: true },
     });
     const entry = output.find(chunk => chunk.type === 'chunk' && chunk.isEntry);
-    if (!entry || entry.type !== 'chunk')
+    if (entry?.type !== 'chunk')
       throw new Error(`Missing entry chunk for ${name}`);
     // A dependency in a shared static chunk still loads with the entry.
     const chunks = new Map(

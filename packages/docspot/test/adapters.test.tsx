@@ -64,7 +64,7 @@ function stubAlgolia(responses: Array<Response | Error>) {
       requests.push({
         url,
         headers: new Headers(init.headers),
-        body: JSON.parse(String(init.body)),
+        body: JSON.parse(init.body as string),
       });
       const next = responses.shift();
       if (next instanceof Error) throw next;
@@ -243,7 +243,7 @@ it('maps attached page content into the Algolia agent request', async () => {
       requests.push({
         url,
         headers: new Headers(init.headers),
-        body: JSON.parse(String(init.body)),
+        body: JSON.parse(init.body as string),
       });
       const stream = createUIMessageStream({
         execute({ writer }) {

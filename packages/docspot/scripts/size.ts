@@ -107,7 +107,7 @@ function change(current: number, previous: number | undefined) {
 
 const baseline: Baseline = (() => {
   try {
-    return JSON.parse(readFileSync(baselinePath, 'utf8'));
+    return JSON.parse(readFileSync(baselinePath, 'utf8')) as Baseline;
   } catch {
     return { consumers: {}, css: 0 };
   }

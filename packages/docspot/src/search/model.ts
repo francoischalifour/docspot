@@ -222,7 +222,7 @@ export function highlightTerms(text: string, terms: string[]): HighlightedText {
   const segments: HighlightedText = [];
   let cursor = 0;
   for (const match of (offsets?.folded ?? text).matchAll(pattern)) {
-    const from = match.index!;
+    const from = match.index;
     const to = from + match[0].length;
     const start = offsets ? offsets.starts[from]! : from;
     const end = offsets ? offsets.ends[to - 1]! : to;

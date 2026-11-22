@@ -128,7 +128,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
       writer.write({ type: 'finish' });
     },
   });
-  pipeUIMessageStreamToResponse({ response, stream });
+  void pipeUIMessageStreamToResponse({ response, stream });
 }
 
 export function chatServer(): Plugin {
@@ -138,7 +138,7 @@ export function chatServer(): Plugin {
     next: () => void
   ) => {
     if (request.url !== '/api/chat' || request.method !== 'POST') return next();
-    void handle(request, response).catch(error => {
+    void handle(request, response).catch((error: unknown) => {
       response.statusCode = 500;
       response.end(String(error));
     });

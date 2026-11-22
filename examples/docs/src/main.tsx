@@ -9,6 +9,7 @@ import Markdown from 'react-markdown';
 import 'docspot/styles.css';
 import './style.css';
 import { findPage, pages } from './pages';
+import type { Section } from './search-index';
 
 // Search: a MiniSearch index built in the browser, loaded when Docspot
 // preloads (once the page is idle, or when a trigger is hovered).
@@ -18,15 +19,19 @@ const search = createMiniSearchSearch({
     void loadPreview();
     return import('./search-index').then(module => module.index);
   },
-  getDocument: hit => ({
-    url: hit.id,
-    title: hit.title,
-    pageTitle: hit.pageTitle,
-    breadcrumb: [hit.section, hit.pageTitle],
-    group: hit.section,
-    type: 'section',
-    content: hit.text,
-  }),
+  // A hit carries the fields the index stores.
+  getDocument: hit => {
+    const { title, pageTitle, section, text } = hit as unknown as Section;
+    return {
+      url: hit.id as string,
+      title,
+      pageTitle,
+      breadcrumb: [section, pageTitle],
+      group: section,
+      type: 'section',
+      content: text,
+    };
+  },
 });
 const Preview = lazy(loadPreview);
 const PageActions = lazy(() =>
