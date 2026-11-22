@@ -8,8 +8,6 @@ Docs search and Ask AI for React. Use search, chat, or both: Docspot provides th
 - **Chat** over any [AI SDK](https://ai-sdk.dev) transport, with suggested questions, page context, streamed Markdown, sources, tool progress, stop, retry, and saved conversations.
 - **Both**, with handoff from a search query to chat.
 
-See it on the [Altertable](https://altertable.ai/docs) and [medium-zoom](https://medium-zoom.francoischalifour.com/docs/) docs.
-
 ## Install
 
 ```sh
@@ -325,6 +323,8 @@ const prompt = ({ query, results }) =>
   handoffs={[chatGptHandoff({ prompt }), claudeHandoff({ prompt })]}
 />;
 ```
+
+The ChatGPT and Claude logos are trademarks of OpenAI and Anthropic, shown to identify where a query opens. Pass `icon` to use other artwork.
 
 ## Providers
 

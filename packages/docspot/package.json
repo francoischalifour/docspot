@@ -42,8 +42,7 @@
   "files": [
     "dist",
     "CHANGELOG.md",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": [
