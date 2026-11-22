@@ -5,6 +5,8 @@ import {
   type MouseEvent,
   type ReactNode,
   type Ref,
+  memo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -73,6 +75,21 @@ export function ChatPanel({
 }: ChatPanelProps & { holdFirstStep: boolean }) {
   const chat = session as Session;
   const messages = allMessages.chat;
+  // Answers are memoized, so typing or streaming re-renders only what
+  // changed; these keep their identity while reading the latest props.
+  const latest = useRef({ onNavigate, toInternalUrl });
+  useLayoutEffect(() => {
+    latest.current = { onNavigate, toInternalUrl };
+  });
+  const navigate = useCallback(
+    (url: string, event: MouseEvent<HTMLAnchorElement>) =>
+      latest.current.onNavigate(url, event),
+    []
+  );
+  const toInternal = useCallback(
+    (url: string) => latest.current.toInternalUrl(url),
+    []
+  );
   const {
     messages: chatMessages,
     status,
@@ -107,9 +124,7 @@ export function ChatPanel({
     ask(draft, 'composer');
   }
 
-  function retryAnswer() {
-    void retry(chat);
-  }
+  const retryAnswer = useCallback(() => void retry(chat), [chat]);
 
   return (
     <div className="docspot-chat-body">
@@ -174,8 +189,8 @@ export function ChatPanel({
                     streaming={streaming}
                     holdFirstStep={holdFirstStep}
                     messages={messages}
-                    onNavigate={onNavigate}
-                    toInternalUrl={toInternalUrl}
+                    onNavigate={navigate}
+                    toInternalUrl={toInternal}
                     onRetry={
                       !busy &&
                       message === lastMessage &&
@@ -374,7 +389,7 @@ function Timestamp({ time }: { time: string | undefined }) {
   );
 }
 
-function ChatMessage({
+const ChatMessage = memo(function ChatMessage({
   message,
   streaming,
   holdFirstStep,
@@ -469,7 +484,7 @@ function ChatMessage({
       </article>
     </ReadingAnchor>
   );
-}
+});
 
 function Markdown({
   text,

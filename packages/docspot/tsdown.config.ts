@@ -16,6 +16,13 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   copy: [{ from: 'src/styles.css', to: 'dist' }],
+  outputOptions: {
+    codeSplitting: {
+      // URL helpers stay apart from hooks, so `createDocspotUrl` alone
+      // never brings React code along.
+      groups: [{ name: 'url', test: /src[\\/]core[\\/]url\.ts$/ }],
+    },
+  },
   deps: {
     neverBundle: [
       /^react($|\/)/,

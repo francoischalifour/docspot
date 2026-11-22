@@ -59,6 +59,10 @@ export const searchDialogLoader = /* @__PURE__ */ createModuleLoader(
   () => import('@/search/SearchDialog')
 );
 
+export const chatFrameLoader = /* @__PURE__ */ createModuleLoader(
+  () => import('@/core/ChatPanelFrame')
+);
+
 /** What another surface, such as search, hands to chat. */
 export type ChatRequest =
   | {
@@ -689,6 +693,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     () =>
       chatLoader
         ? () => {
+            void chatFrameLoader.load().catch(() => {});
             if (!pendingOpen.current) void chatLoader.load().catch(() => {});
           }
         : undefined,
