@@ -25,8 +25,10 @@ import {
 } from '@/core/platform';
 import { addRecentPage } from '@/core/storage';
 import { LoadingIcon, SearchIcon } from '@/ui/icons';
-import { Kbd, Shimmer, cx } from '@/ui/primitives';
-import { getPrompts } from '@/ui/SuggestedQuestions';
+import { Kbd } from '@/ui/Kbd';
+import { Shimmer } from '@/ui/Shimmer';
+import { cx } from '@/ui/cx';
+import { getPrompts } from '@/ui/getPrompts';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import { PreviewPanel } from '@/search/PreviewPanel';
 import { OptionRow } from '@/search/OptionRow';
@@ -44,7 +46,8 @@ import {
   toStoredPage,
 } from '@/search/model';
 
-export function SearchDialog() {
+/** The search dialog, loaded once search is about to be used. */
+export function SearchDialogFrame() {
   const { config, search, chat } = useDocspotInternal('Docspot.SearchDialog');
   const { messages: allMessages, canChat, stores } = config;
   const messages = allMessages.search;

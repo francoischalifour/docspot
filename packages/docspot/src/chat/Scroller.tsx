@@ -1,8 +1,5 @@
 import {
-  type ComponentProps,
   type ReactNode,
-  createContext,
-  use,
   useCallback,
   useLayoutEffect,
   useRef,
@@ -11,15 +8,9 @@ import {
 
 import { prefersReducedMotion } from '@/core/platform';
 import { ArrowDownIcon } from '@/ui/icons';
+import { type ScrollerApi, ScrollerContext } from '@/chat/ScrollerContext';
 
 const END_TOLERANCE = 8;
-
-type ScrollerApi = {
-  /** Scrolls an answer's start to the top and keeps it there while it grows. */
-  startReadingAt: (element: HTMLElement) => void;
-};
-
-const ScrollerContext = /* @__PURE__ */ createContext<ScrollerApi | null>(null);
 
 function getAnchorTop(viewport: HTMLElement, element: HTMLElement) {
   const scrollMarginTop =
@@ -261,18 +252,4 @@ export function Scroller({
       </button>
     </div>
   );
-}
-
-type ReadingAnchorProps = ComponentProps<'div'> & { active: boolean };
-
-export function ReadingAnchor({ active, ...props }: ReadingAnchorProps) {
-  const scroller = use(ScrollerContext);
-  const elementRef = useRef<HTMLDivElement>(null);
-  const wasActiveRef = useRef(false);
-  useLayoutEffect(() => {
-    if (active && !wasActiveRef.current && elementRef.current)
-      scroller?.startReadingAt(elementRef.current);
-    wasActiveRef.current = active;
-  }, [active, scroller]);
-  return <div ref={elementRef} {...props} />;
 }

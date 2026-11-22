@@ -4,7 +4,7 @@ import type { DocspotUrlAdapter } from '@/types';
 import {
   type DocspotConfig,
   type SearchController,
-  searchDialogLoader,
+  searchDialogFrameLoader,
   warnMissing,
 } from '@/core/context';
 import { isElementVisible, useIdlePreload } from '@/core/platform';
@@ -143,7 +143,7 @@ export function useSearchController(
     () =>
       search
         ? () => {
-            void searchDialogLoader.load().catch(() => {});
+            void searchDialogFrameLoader.load().catch(() => {});
             search.preload?.();
           }
         : undefined,

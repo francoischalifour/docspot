@@ -5,8 +5,8 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot, createDocspotUrl } from '@/index';
-import { createAlgoliaSearch } from '@/algolia/search';
-import { createAlgoliaChat } from '@/algolia/chat';
+import { createAlgoliaSearch } from '@/algolia';
+import { createAlgoliaChat } from '@/algolia-chat';
 import { createMiniSearchSearch } from '@/minisearch';
 
 afterEach(() => vi.unstubAllGlobals());

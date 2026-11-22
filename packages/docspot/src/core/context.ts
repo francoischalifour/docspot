@@ -19,8 +19,8 @@ import type {
 import { createModuleLoader } from '@/core/platform';
 import type { DocspotStores, StoredConversation } from '@/core/storage';
 
-export const searchDialogLoader = /* @__PURE__ */ createModuleLoader(
-  () => import('@/search/SearchDialog')
+export const searchDialogFrameLoader = /* @__PURE__ */ createModuleLoader(
+  () => import('@/search/SearchDialogFrame')
 );
 
 export const chatFrameLoader = /* @__PURE__ */ createModuleLoader(

@@ -5,31 +5,31 @@
       "lazy": 0
     },
     "search": {
-      "eager": 9228,
-      "lazy": 9533
+      "eager": 9066,
+      "lazy": 9673
     },
     "chat": {
-      "eager": 10656,
-      "lazy": 14723
+      "eager": 9589,
+      "lazy": 15674
     },
     "search and chat": {
-      "eager": 10927,
-      "lazy": 14723
+      "eager": 9860,
+      "lazy": 15674
     },
     "docspot/algolia": {
       "eager": 2285,
       "lazy": 0
     },
     "docspot/algolia-chat": {
-      "eager": 833,
-      "lazy": 8107
+      "eager": 834,
+      "lazy": 8092
     },
     "docspot/minisearch": {
       "eager": 1135,
       "lazy": 0
     },
     "docspot/handoffs": {
-      "eager": 2092,
+      "eager": 2093,
       "lazy": 0
     }
   },

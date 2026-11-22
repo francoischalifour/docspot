@@ -1,6 +1,6 @@
 import type { UIMessage } from 'ai';
 
-import { createChat } from '@/chat';
+import { createChat } from '@/chat/createChat';
 import { CONTEXT_FIELD, type DocspotRequestContext } from '@/chat/contract';
 import type { DocspotChat } from '@/types';
 

@@ -2,12 +2,12 @@ import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   entry: {
-    index: 'src/index.tsx',
+    index: 'src/index.ts',
     chat: 'src/chat/index.ts',
-    algolia: 'src/algolia/search.ts',
-    'algolia-chat': 'src/algolia/chat.ts',
+    algolia: 'src/algolia/index.ts',
+    'algolia-chat': 'src/algolia-chat/index.ts',
     minisearch: 'src/minisearch/index.ts',
-    handoffs: 'src/handoffs/index.tsx',
+    handoffs: 'src/handoffs/index.ts',
   },
   format: 'esm',
   platform: 'neutral',

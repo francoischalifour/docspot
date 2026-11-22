@@ -1,7 +1,7 @@
 import { type HTMLAttributes, type MouseEvent, memo } from 'react';
 
 import type { DocspotMessages } from '@/messages';
-import type { DocspotSlots, HighlightedText } from '@/types';
+import type { DocspotSlots } from '@/types';
 import {
   CommandIcon,
   EnterIcon,
@@ -12,68 +12,10 @@ import {
   SectionIcon,
 } from '@/ui/icons';
 import { isExternalUrl } from '@/core/platform';
-import { Kbd } from '@/ui/primitives';
 import { type SearchOption, getOptionUrl, plain } from '@/search/model';
-
-type HighlightProps = { value: HighlightedText };
-
-export function Highlight({ value }: HighlightProps) {
-  return value.map((segment, index) =>
-    segment.highlighted ? (
-      <mark key={index} className="docspot-mark">
-        {segment.text}
-      </mark>
-    ) : (
-      segment.text
-    )
-  );
-}
-
-type BreadcrumbHighlightProps = {
-  parts: string[];
-  highlights: HighlightedText[] | undefined;
-};
-
-/** Joins breadcrumb parts, keeping each part's highlights. */
-function BreadcrumbHighlight({ parts, highlights }: BreadcrumbHighlightProps) {
-  return parts.map((part, index) => (
-    <span key={index}>
-      {index > 0 && ' › '}
-      <Highlight value={highlights?.[index] ?? plain(part)} />
-    </span>
-  ));
-}
-
-/** Key names as `aria-keyshortcuts` writes them, drawn as on the keyboard. */
-const shortcutKeys: Record<string, string> = {
-  meta: '⌘',
-  control: 'Ctrl',
-  alt: '⌥',
-  shift: 'shift',
-  enter: 'enter',
-  escape: 'esc',
-  arrowup: 'up',
-  arrowdown: 'down',
-};
-
-type ShortcutProps = {
-  shortcut: string;
-  slots: DocspotSlots;
-};
-
-/** An item's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
-function Shortcut({ shortcut, slots }: ShortcutProps) {
-  const Slot = slots.shortcut;
-  if (Slot) return <Slot shortcut={shortcut} />;
-  return (
-    <Kbd
-      variant="ghost"
-      keys={shortcut
-        .split('+')
-        .map(key => shortcutKeys[key.toLowerCase()] ?? key.toUpperCase())}
-    />
-  );
-}
+import { Highlight } from '@/search/Highlight';
+import { BreadcrumbHighlight } from '@/search/BreadcrumbHighlight';
+import { Shortcut } from '@/search/Shortcut';
 
 type OptionRowProps = {
   item: SearchOption;
