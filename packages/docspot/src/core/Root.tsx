@@ -14,7 +14,7 @@ import { useUrlSync } from '@/core/useUrlSync';
 export function DocspotRoot(props: DocspotRootProps) {
   const { config, url, chatLoader } = useDocspotConfig(props);
   const triggers = useTriggerRegistry();
-  const search = useSearchController(config, url, triggers);
+  const search = useSearchController(props, config, url, triggers);
   const chat = useChatController(props, config, url, chatLoader, triggers);
 
   const searchController: SearchController = {

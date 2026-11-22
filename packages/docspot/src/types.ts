@@ -273,6 +273,24 @@ type DocspotSharedProps = {
   history?: boolean;
   /** Mirrors search and chat requests in the URL. */
   syncUrl?: boolean | DocspotUrlAdapter;
+  /**
+   * Controls whether search is open. Docspot asks to change it through
+   * `onSearchOpenChange`, and follows this prop.
+   */
+  searchOpen?: boolean;
+  /** Called when Docspot asks to open or close search. */
+  onSearchOpenChange?: (open: boolean) => void;
+  /** Controls the search query, with `onQueryChange`. */
+  query?: string;
+  /** Called when the query changes, by typing or otherwise. */
+  onQueryChange?: (query: string) => void;
+  /**
+   * Controls whether chat is open. Docspot asks to change it through
+   * `onChatOpenChange`; a question asked meanwhile is sent once it opens.
+   */
+  chatOpen?: boolean;
+  /** Called when Docspot asks to open or close chat. */
+  onChatOpenChange?: (open: boolean) => void;
   slots?: DocspotSlots;
   messages?: DocspotMessagesInput;
   onEvent?: (event: DocspotEvent) => void;

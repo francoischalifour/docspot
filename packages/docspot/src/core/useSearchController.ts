@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
-import type { DocspotUrlAdapter } from '@/types';
+import type { DocspotRootProps, DocspotUrlAdapter } from '@/types';
 import {
   type DocspotConfig,
   type SearchController,
@@ -17,12 +17,30 @@ const QUERY_URL_DELAY_MS = 300;
 type SearchState = {
   isOpen: boolean;
   query: string;
-  /** Changes when the query comes from the URL rather than from typing. */
+  /** Changes when the query comes from outside typing, such as the URL. */
   version: number;
 };
 
-/** Search's open state and query, kept in step with the URL. */
+/** How the next open or close applies to the URL and focus. */
+type Transition = {
+  /** `push` adds a history entry with the query; `replace` doesn't. */
+  url: 'push' | 'replace' | 'none';
+  /** Where focus returns on close; null leaves it to whatever opens next. */
+  restoreFocus?: HTMLElement | null;
+};
+
+type SearchStateProps = Pick<
+  DocspotRootProps,
+  'searchOpen' | 'onSearchOpenChange' | 'query' | 'onQueryChange'
+>;
+
+/**
+ * Search's open state and query, kept in step with the URL. Both can be
+ * controlled: requests go through `onSearchOpenChange` and
+ * `onQueryChange`, and what happens follows the props.
+ */
 export function useSearchController(
+  props: SearchStateProps,
   config: DocspotConfig,
   url: DocspotUrlAdapter | null,
   triggers: TriggerRegistry
@@ -33,50 +51,92 @@ export function useSearchController(
     query: '',
     version: 0,
   });
-  const isOpenRef = useRef(false);
-  isOpenRef.current = state.isOpen;
-  const queryRef = useRef('');
-  queryRef.current = state.query;
+  const isOpen = props.searchOpen ?? state.isOpen;
+  const query = props.query ?? state.query;
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+  const queryRef = useRef(query);
+  queryRef.current = query;
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const queryWriteRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   // The query this instance last wrote, so its own URL writes are ignored.
   const writtenQueryRef = useRef<string | null>(null);
+  // The query last typed, so a query from anywhere else updates the input.
+  const typedQueryRef = useRef(query);
+  const transitionRef = useRef<Transition | null>(null);
+  // Focus outside search, for a parent opening it through `searchOpen`: by
+  // the time that takes effect, the search input has focus.
+  const outsideFocusRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (props.searchOpen === undefined) return;
+    function track(event: FocusEvent) {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        !target.closest('[data-docspot-search]')
+      )
+        outsideFocusRef.current = target;
+    }
+    document.addEventListener('focusin', track);
+    return () => document.removeEventListener('focusin', track);
+  }, [props.searchOpen === undefined]);
 
-  function writeQuery(query: string | null, replace: boolean) {
+  function writeQuery(next: string | null, replace: boolean) {
     if (!url || !canSearch) return;
-    writtenQueryRef.current = query;
-    url.write(writeSearchQuery(url.read(), query), { replace });
+    writtenQueryRef.current = next;
+    url.write(writeSearchQuery(url.read(), next), { replace });
   }
 
-  function open(opener?: HTMLElement, query = '') {
+  /** Where focus returns when search closes. */
+  function getReturnFocus(opener?: HTMLElement) {
+    const focused = document.activeElement;
+    // Closing search returns to the chat composer it was opened from.
+    return (
+      opener ??
+      (focused instanceof HTMLElement && focused.closest('[data-docspot-chat]')
+        ? focused
+        : triggers.findVisible())
+    );
+  }
+
+  function requestOpen(open: boolean, transition: Transition) {
+    if (open === isOpenRef.current) return;
+    transitionRef.current = transition;
+    if (props.searchOpen === undefined)
+      setState(current => ({ ...current, isOpen: open }));
+    props.onSearchOpenChange?.(open);
+  }
+
+  /** Sets the query from outside typing, so the input shows it. */
+  function replaceQuery(next: string) {
+    if (props.query === undefined)
+      setState(current => ({ ...current, query: next }));
+    if (next !== queryRef.current) props.onQueryChange?.(next);
+  }
+
+  function open(opener?: HTMLElement, initialQuery = '') {
     if (!canSearch) {
       warnMissing('search');
       return;
     }
     search?.preload?.();
-    const focused = document.activeElement;
-    // Closing search returns to the chat composer it was opened from.
-    restoreFocusRef.current =
-      opener ??
-      (focused instanceof HTMLElement && focused.closest('[data-docspot-chat]')
-        ? focused
-        : triggers.findVisible());
     clearTimeout(queryWriteRef.current);
-    setState(current => ({
-      isOpen: true,
-      query,
-      version: current.version + 1,
-    }));
-    if (!isOpenRef.current) emit({ type: 'search.open' });
-    writeQuery(query, isOpenRef.current);
+    replaceQuery(initialQuery);
+    // An external change is applied by the effect below; bump it here too
+    // for the same query, which a reopened dialog reads again.
+    setState(current => ({ ...current, version: current.version + 1 }));
+    if (isOpenRef.current) {
+      writeQuery(initialQuery, true);
+      return;
+    }
+    restoreFocusRef.current = getReturnFocus(opener);
+    requestOpen(true, { url: 'push', restoreFocus: restoreFocusRef.current });
   }
 
   function close({ writeUrl = true } = {}) {
     // A pending write would reopen search if it ran after the close.
     clearTimeout(queryWriteRef.current);
-    if (isOpenRef.current) emit({ type: 'search.close' });
-    setState(current => ({ ...current, isOpen: false }));
-    if (writeUrl) writeQuery(null, true);
+    requestOpen(false, { url: writeUrl ? 'replace' : 'none' });
   }
 
   function leave() {
@@ -85,58 +145,86 @@ export function useSearchController(
     close({ writeUrl: false });
   }
 
-  function setQuery(query: string) {
-    setState(current => ({ ...current, query }));
+  function setQuery(next: string) {
+    typedQueryRef.current = next;
+    if (props.query === undefined)
+      setState(current => ({ ...current, query: next }));
+    props.onQueryChange?.(next);
     clearTimeout(queryWriteRef.current);
     queryWriteRef.current = setTimeout(() => {
-      if (isOpenRef.current) writeQuery(query, true);
+      if (isOpenRef.current) writeQuery(next, true);
     }, QUERY_URL_DELAY_MS);
   }
 
   useEffect(() => () => clearTimeout(queryWriteRef.current), []);
 
-  const restoreFocus = useEffectEvent(() => {
-    const target = restoreFocusRef.current;
+  // A query that changes other than by typing replaces what the input shows.
+  useEffect(() => {
+    if (query === typedQueryRef.current) return;
+    typedQueryRef.current = query;
+    setState(current => ({ ...current, version: current.version + 1 }));
+  }, [query]);
+
+  // Opening and closing take effect here, whoever asked: Docspot, or a
+  // parent controlling `searchOpen`.
+  const applyOpenChange = useEffectEvent((open: boolean) => {
+    const requested = transitionRef.current;
+    transitionRef.current = null;
+    const transition: Transition = requested ?? {
+      url: open ? 'push' : 'replace',
+    };
+    if (open) {
+      // Docspot's own requests preloaded already; a parent's didn't.
+      if (!requested) search?.preload?.();
+      const outside = outsideFocusRef.current;
+      restoreFocusRef.current =
+        transition.restoreFocus === undefined
+          ? outside && isElementVisible(outside)
+            ? outside
+            : getReturnFocus()
+          : transition.restoreFocus;
+      emit({ type: 'search.open' });
+      if (transition.url !== 'none')
+        writeQuery(queryRef.current, transition.url === 'replace');
+      return;
+    }
+    emit({ type: 'search.close' });
+    if (transition.url !== 'none') writeQuery(null, true);
+    const target =
+      transition.restoreFocus === undefined
+        ? restoreFocusRef.current
+        : transition.restoreFocus;
     if (target === null) return;
     // The reader stays where they were in the page.
     if (isElementVisible(target)) target.focus({ preventScroll: true });
     else triggers.findVisible()?.focus({ preventScroll: true });
   });
-  const wasOpenRef = useRef(false);
+  const wasOpenRef = useRef(isOpen);
   useEffect(() => {
-    if (wasOpenRef.current && !state.isOpen) restoreFocus();
-    wasOpenRef.current = state.isOpen;
-  }, [state.isOpen]);
+    if (wasOpenRef.current === isOpen) return;
+    wasOpenRef.current = isOpen;
+    applyOpenChange(isOpen);
+  }, [isOpen]);
 
   /** Follows `?q=` from history or a link: opens, updates, or closes. */
-  function syncQueryFromUrl(query: string | null) {
-    if (query === null) {
+  function syncQueryFromUrl(next: string | null) {
+    if (next === null) {
       if (isOpenRef.current) close({ writeUrl: false });
-    } else if (!isOpenRef.current) {
-      restoreFocusRef.current = triggers.findVisible();
-      writtenQueryRef.current = query;
-      setState(current => ({
-        isOpen: true,
-        query,
-        version: current.version + 1,
-      }));
-      emit({ type: 'search.open' });
-    } else if (query !== writtenQueryRef.current) {
-      // A query from history or a link replaces what was typed.
-      clearTimeout(queryWriteRef.current);
-      writtenQueryRef.current = query;
-      setState(current => ({
-        ...current,
-        query,
-        version: current.version + 1,
-      }));
+      return;
     }
+    if (isOpenRef.current && next === writtenQueryRef.current) return;
+    // A query from history or a link replaces what was typed.
+    clearTimeout(queryWriteRef.current);
+    writtenQueryRef.current = next;
+    replaceQuery(next);
+    if (!isOpenRef.current)
+      requestOpen(true, { url: 'none', restoreFocus: triggers.findVisible() });
   }
 
   /** Closes search for chat, which then owns the focus. */
   function closeForChat() {
-    restoreFocusRef.current = null;
-    close();
+    clearTimeout(queryWriteRef.current);
+    requestOpen(false, { url: 'replace', restoreFocus: null });
   }
 
   const preload = useMemo(
@@ -152,8 +240,8 @@ export function useSearchController(
   useIdlePreload(preload);
 
   const controller: Omit<SearchController, 'openChat'> = {
-    isOpen: state.isOpen,
-    query: state.query,
+    isOpen,
+    query,
     queryVersion: state.version,
     setQuery,
     open,

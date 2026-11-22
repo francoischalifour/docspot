@@ -229,6 +229,9 @@ The methods keep their identity across renders, so they are safe in effect depen
 | `id`           | Scopes persisted history, for several instances on one origin                                                                        |
 | `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                              |
 | `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
+| `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                |
+| `query`        | Controls the search query, with `onQueryChange`                                                                                      |
+| `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                               |
 | `slots`        | Components that replace parts of the interface                                                                                       |
 | `messages`     | Interface text overrides                                                                                                             |
 | `onEvent`      | Receives interaction events, for analytics                                                                                           |
@@ -549,6 +552,25 @@ Every other class name is internal and may change in any release.
 ```
 
 `defaultMessages` lists the English defaults; any part can be overridden. Keys ending in `WithAsk`, such as `search.placeholderWithAsk`, and `trigger.searchAndAsk` replace their base key when chat is available. Overriding only the base key overrides both.
+
+### Controlled state
+
+Search's open state and query, and chat's open state, can be controlled. Docspot asks for a change through the `on…Change` callback and follows the prop, so a parent can allow, delay, or refuse it:
+
+```tsx
+const [searchOpen, setSearchOpen] = useState(false);
+const [query, setQuery] = useState('');
+
+<Docspot
+  search={search}
+  searchOpen={searchOpen}
+  onSearchOpenChange={setSearchOpen}
+  query={query}
+  onQueryChange={setQuery}
+/>;
+```
+
+Changing the props opens, closes, or fills search as Docspot's own controls do: focus returns to where it was, `onEvent` reports the change, and the URL follows with `syncUrl`. A question asked while a parent keeps chat closed is sent once `chatOpen` turns true.
 
 ### Chat panel layout
 

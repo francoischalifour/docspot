@@ -1,5 +1,5 @@
-import { Component, type ReactNode, useEffect, useRef } from 'react';
-import { expect, it } from 'vitest';
+import { Component, type ReactNode, useEffect, useRef, useState } from 'react';
+import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
@@ -410,4 +410,116 @@ it('keeps useDocspot methods stable across renders', async () => {
     .element(page.getByRole('button', { name: 'Opened' }))
     .toBeVisible();
   expect([...seen]).toHaveLength(2);
+});
+
+it('lets a parent control whether search is open and its query', async () => {
+  const events: string[] = [];
+  const onSearchOpenChange = vi.fn();
+  function Page() {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            setQuery('http');
+            setOpen(true);
+          }}
+        >
+          Find HTTP
+        </button>
+        <output>{`${open ? 'open' : 'closed'}: ${query}`}</output>
+        <Docspot
+          search={() => results}
+          searchOpen={open}
+          onSearchOpenChange={next => {
+            onSearchOpenChange(next);
+            setOpen(next);
+          }}
+          query={query}
+          onQueryChange={setQuery}
+          onEvent={event => events.push(event.type)}
+        />
+      </>
+    );
+  }
+  await render(<Page />);
+  await page.getByRole('button', { name: 'Find HTTP' }).click();
+  await expect.element(searchInput()).toHaveValue('http');
+  await expect.element(searchInput()).toHaveFocus();
+  await userEvent.keyboard(' api');
+  await expect.element(page.getByText('open: http api')).toBeInTheDocument();
+
+  await userEvent.keyboard('{Escape}');
+  await expect.element(searchInput()).toHaveValue('');
+  await userEvent.keyboard('{Escape}');
+  expect(onSearchOpenChange).toHaveBeenLastCalledWith(false);
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+  await expect
+    .element(page.getByRole('button', { name: 'Find HTTP' }))
+    .toHaveFocus();
+  expect(
+    events.filter(
+      type => type.startsWith('search.o') || type === 'search.close'
+    )
+  ).toEqual(['search.open', 'search.close']);
+});
+
+it('only asks to open search when a parent keeps it closed', async () => {
+  const onSearchOpenChange = vi.fn();
+  await render(
+    <Docspot
+      search={() => results}
+      searchOpen={false}
+      onSearchOpenChange={onSearchOpenChange}
+    />
+  );
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  expect(onSearchOpenChange).toHaveBeenCalledWith(true);
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+});
+
+it('sends a question once a parent controlling chat opens it', async () => {
+  const { chat, requests } = createChatServer(question => ({
+    text: `About ${question}.`,
+  }));
+  const onChatOpenChange = vi.fn();
+  function Page() {
+    const [chatOpen, setChatOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setChatOpen(true)}>
+          Allow chat
+        </button>
+        <Docspot
+          search={() => results}
+          chat={chat}
+          chatOpen={chatOpen}
+          onChatOpenChange={next => {
+            onChatOpenChange(next);
+            if (!next) setChatOpen(false);
+          }}
+        />
+      </>
+    );
+  }
+  await render(<Page />);
+  await openSearch();
+  await userEvent.keyboard('How do I query?{Tab}');
+  expect(onChatOpenChange).toHaveBeenLastCalledWith(true);
+  // The panel loads on demand, so it may not exist yet.
+  expect(panel().query()?.checkVisibility() ?? false).toBe(false);
+  expect(requests).toHaveLength(0);
+
+  await page.getByRole('button', { name: 'Allow chat' }).click();
+  await expect
+    .element(answers().getByText('About How do I query?.'))
+    .toBeVisible();
+
+  await panel().getByRole('button', { name: 'Hide Ask AI' }).click();
+  expect(onChatOpenChange).toHaveBeenLastCalledWith(false);
+  await expect
+    .element(page.getByRole('button', { name: 'Hide Ask AI' }))
+    .not.toBeInTheDocument();
 });

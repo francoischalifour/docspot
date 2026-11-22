@@ -229,7 +229,7 @@ export function useChatController(
   }
 
   /** Opens chat and applies the request once the runtime has loaded. */
-  function requestChat(
+  function openNow(
     request?: ChatRequest,
     { focus = true, linkKey }: { focus?: boolean; linkKey?: string } = {}
   ) {
@@ -272,7 +272,7 @@ export function useChatController(
     if (intent.focus) setFocusRequest(count => count + 1);
   }
 
-  function close() {
+  function closeNow() {
     const pending = pendingIntent(lifecycleRef.current);
     if (!dispatch({ type: 'close' })) return;
     consumeLink(pending?.linkKey);
@@ -286,6 +286,60 @@ export function useChatController(
       else triggers.findVisible()?.focus({ preventScroll: true });
     });
   }
+
+  // ── Controlled open state ───────────────────────────────────────────
+  const isControlled = props.chatOpen !== undefined;
+  const chatOpenRef = useRef(props.chatOpen);
+  chatOpenRef.current = props.chatOpen;
+  // A request made while a parent keeps chat closed, applied once it opens.
+  const deferredRef = useRef<{
+    request?: ChatRequest;
+    options: { focus?: boolean; linkKey?: string };
+  } | null>(null);
+
+  /**
+   * Asks to open chat with a request. A parent controlling `chatOpen`
+   * decides; the request waits until it opens chat.
+   */
+  function requestChat(
+    request?: ChatRequest,
+    options: { focus?: boolean; linkKey?: string } = {}
+  ) {
+    if (isControlled && !chatOpenRef.current) {
+      if (!chatLoader) return openNow(request, options);
+      deferredRef.current = { request, options };
+      props.onChatOpenChange?.(true);
+      return;
+    }
+    if (lifecycleRef.current.status === 'closed')
+      props.onChatOpenChange?.(true);
+    openNow(request, options);
+  }
+
+  /** Asks to close chat; a parent controlling `chatOpen` decides. */
+  function close() {
+    deferredRef.current = null;
+    if (isControlled) {
+      if (chatOpenRef.current) props.onChatOpenChange?.(false);
+      return;
+    }
+    if (lifecycleRef.current.status !== 'closed')
+      props.onChatOpenChange?.(false);
+    closeNow();
+  }
+
+  // A parent controlling `chatOpen` opens and closes chat by changing it.
+  const followChatOpen = useEffectEvent((open: boolean) => {
+    if (open) {
+      if (lifecycleRef.current.status !== 'closed') return;
+      const deferred = deferredRef.current;
+      deferredRef.current = null;
+      openNow(deferred?.request, deferred?.options);
+    } else if (lifecycleRef.current.status !== 'closed') closeNow();
+  });
+  useEffect(() => {
+    if (props.chatOpen !== undefined) followChatOpen(props.chatOpen);
+  }, [props.chatOpen]);
 
   function toggle() {
     if (lifecycleRef.current.status === 'closed') requestChat();
@@ -373,7 +427,7 @@ export function useChatController(
     focusStartup: pending?.focus ?? false,
     retryStartup:
       lifecycle.status === 'failed'
-        ? () => requestChat(lifecycle.intent.request, lifecycle.intent)
+        ? () => openNow(lifecycle.intent.request, lifecycle.intent)
         : undefined,
     runtime,
     session,
