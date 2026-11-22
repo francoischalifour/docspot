@@ -121,6 +121,33 @@
     0 20px 48px -16px rgb(0 0 0 / 0.8);
 }
 
+/* Readers who ask for more contrast get stronger secondary text and
+   borders, in either palette. Mixed from each scope's own colors. */
+@media (prefers-contrast: more) {
+  :where(:root, [data-theme], .light, .dark) {
+    --docspot-muted: color-mix(
+      in oklab,
+      var(--docspot-foreground) 85%,
+      var(--docspot-background)
+    );
+    --docspot-subtle: color-mix(
+      in oklab,
+      var(--docspot-foreground) 70%,
+      var(--docspot-background)
+    );
+    --docspot-border: color-mix(
+      in oklab,
+      var(--docspot-foreground) 45%,
+      var(--docspot-background)
+    );
+    --docspot-border-strong: color-mix(
+      in oklab,
+      var(--docspot-foreground) 60%,
+      var(--docspot-background)
+    );
+  }
+}
+
 :where(
   .docspot-search,
   .docspot-chat,
@@ -227,6 +254,9 @@
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
+  /* Key combinations read the same way in right-to-left pages. */
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .docspot-kbd[data-ghost] {
@@ -768,6 +798,18 @@
   border-color: var(--docspot-selected-border, var(--docspot-border));
   background: var(--docspot-selected, var(--docspot-surface-elevated));
   box-shadow: var(--docspot-selected-shadow, 0 1px 2px rgb(0 0 0 / 0.05));
+}
+
+/* In forced colors, such as Windows high contrast, backgrounds are gone and
+   every border shows: only the selected result keeps one, in Highlight. */
+@media (forced-colors: active) {
+  .docspot-result {
+    border-color: Canvas;
+  }
+
+  .docspot-result[aria-selected='true'] {
+    border-color: Highlight;
+  }
 }
 
 .docspot-result-icon,
@@ -1995,5 +2037,19 @@
 @media (pointer: fine) {
   .docspot-menu-row:not(:hover, :focus-within) .docspot-menu-secondary {
     opacity: 0;
+  }
+}
+
+/* Printed pages leave out search and chat, and the room kept for chat. */
+@media print {
+  .docspot-trigger,
+  .docspot-launcher,
+  .docspot-search,
+  .docspot-chat {
+    display: none !important;
+  }
+
+  [data-docspot-chat-open] {
+    --docspot-chat-inset: 0px !important;
   }
 }

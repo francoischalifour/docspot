@@ -1,12 +1,6 @@
 import { afterEach, expect, it } from 'vitest';
 import { commands } from 'vitest/browser';
 
-declare module 'vitest/browser' {
-  interface BrowserCommands {
-    emulateColorScheme: (colorScheme: 'light' | 'dark' | null) => Promise<void>;
-  }
-}
-
 // The color tokens the README documents.
 const colorTokens = [
   'background',
@@ -34,21 +28,21 @@ const palette = () => {
 };
 
 afterEach(async () => {
-  await commands.emulateColorScheme(null);
+  await commands.emulateMedia({ colorScheme: null });
   root.removeAttribute('data-theme');
   root.classList.remove('dark', 'light');
 });
 
 it('applies the same dark palette from the system setting, data-theme, or .dark', async () => {
-  await commands.emulateColorScheme('light');
+  await commands.emulateMedia({ colorScheme: 'light' });
   const light = palette();
   for (const value of Object.values(light)) expect(value).not.toBe('');
 
-  await commands.emulateColorScheme('dark');
+  await commands.emulateMedia({ colorScheme: 'dark' });
   const system = palette();
   expect(system).not.toEqual(light);
 
-  await commands.emulateColorScheme('light');
+  await commands.emulateMedia({ colorScheme: 'light' });
   root.dataset.theme = 'dark';
   expect(palette()).toEqual(system);
   root.removeAttribute('data-theme');
@@ -57,9 +51,9 @@ it('applies the same dark palette from the system setting, data-theme, or .dark'
 });
 
 it('keeps the light palette when a site chooses it over a dark system setting', async () => {
-  await commands.emulateColorScheme('light');
+  await commands.emulateMedia({ colorScheme: 'light' });
   const light = palette();
-  await commands.emulateColorScheme('dark');
+  await commands.emulateMedia({ colorScheme: 'dark' });
   root.dataset.theme = 'light';
   expect(palette()).toEqual(light);
   root.removeAttribute('data-theme');

@@ -37,12 +37,15 @@ export default defineConfig({
       instances: [{ browser: 'chromium' }],
       viewport: { width: 1440, height: 900 },
       commands: {
-        /** Switches the color scheme the way a reader's system setting does. */
-        emulateColorScheme: async (
+        /**
+         * Switches media features the way a reader's system or browser
+         * does: color scheme, forced colors, contrast, or print.
+         */
+        emulateMedia: async (
           context: BrowserCommandContext,
-          colorScheme: 'light' | 'dark' | null
+          options: Parameters<BrowserCommandContext['page']['emulateMedia']>[0]
         ) => {
-          await context.page.emulateMedia({ colorScheme });
+          await context.page.emulateMedia(options);
         },
         /** Turns the real mouse wheel over an element by its role and name. */
         wheel: async (
