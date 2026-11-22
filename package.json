@@ -13,7 +13,7 @@
     "lint": "oxlint -c oxlint.json --type-aware --deny-warnings packages examples",
     "format": "bun fmt",
     "format:check": "bun fmt --check",
-    "check": "bun run format:check && bun run lint && bun run build && bun run typecheck && bun run test && bun run --filter docspot check:package && bun run --filter docspot size && bun run --filter docspot bench",
+    "check": "bun run format:check && bun run build && bun run lint && bun run typecheck && bun run test && bun run --filter docspot check:package && bun run --filter docspot size && bun run --filter docspot bench",
     "size": "bun run --filter docspot size",
     "bench": "bun run --filter docspot bench"
   },
