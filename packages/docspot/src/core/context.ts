@@ -61,6 +61,9 @@ export type DocspotConfig = {
   stores: DocspotStores;
 };
 
+/** Opens a URL with `navigate`, then closes search once it settles. */
+export type SearchLeave = (...args: Parameters<DocspotNavigate>) => void;
+
 export type SearchController = {
   isOpen: boolean;
   query: string;
@@ -70,10 +73,13 @@ export type SearchController = {
   open: (opener?: HTMLElement, query?: string) => void;
   close: () => void;
   /**
-   * Closes search to follow a result. The current history entry keeps the
-   * query, so going back reopens search where it was left.
+   * Opens a URL with `navigate` and closes search once it settles. The
+   * current history entry keeps the query, so going back reopens search
+   * where it was left.
    */
-  leave: () => void;
+  leave: SearchLeave;
+  /** Whether search waits for a navigation before closing. */
+  isLeaving: boolean;
   /** Closes search and opens chat, with a request such as a question. */
   openChat: (request?: ChatRequest) => void;
   registerTrigger: (button: HTMLElement | null) => (() => void) | undefined;

@@ -1,11 +1,11 @@
-import { useDocspotInternal } from '@/core/context';
+import { type SearchLeave, useDocspotInternal } from '@/core/context';
 import type { ItemOption } from '@/search/model';
 import { PreviewErrorBoundary } from '@/search/PreviewErrorBoundary';
 import { PreviewLink } from '@/search/PreviewLink';
 
 type ItemPreviewProps = {
   entry: ItemOption;
-  onLeave: () => void;
+  onLeave: SearchLeave;
   onSelect: (item: ItemOption) => void;
 };
 

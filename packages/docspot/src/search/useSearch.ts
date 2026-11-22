@@ -100,8 +100,7 @@ export function useSearch() {
       )
         return;
       event.preventDefault();
-      latest.current.search.leave();
-      latest.current.config.navigate(url, { event });
+      latest.current.search.leave(url, { event });
     },
     []
   );
@@ -386,8 +385,7 @@ export function useSearch() {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
-    search.leave();
-    config.navigate(url, {});
+    search.leave(url, {});
   }
 
   function selectItem(selected: SearchOption) {
@@ -658,6 +656,7 @@ export function useSearch() {
     query,
     status: state.status,
     isLoading,
+    isLeaving: search.isLeaving,
     hasError,
     hasVisiblePages,
     resultCount: pageItems.length,

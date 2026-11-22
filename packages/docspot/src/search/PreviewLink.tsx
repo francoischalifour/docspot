@@ -1,11 +1,11 @@
-import { useDocspotInternal } from '@/core/context';
+import { type SearchLeave, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { ExternalIcon } from '@/ui/icons';
 
 type PreviewLinkProps = {
   url: string;
   onSelect: () => void;
-  onLeave: () => void;
+  onLeave: SearchLeave;
 };
 
 /** Records the selection and leaves modified clicks to the browser. */
@@ -22,8 +22,7 @@ export function PreviewLink({ url, onSelect, onLeave }: PreviewLinkProps) {
         onSelect();
         if (external || event.button !== 0 || hasModifierKey(event)) return;
         event.preventDefault();
-        onLeave();
-        config.navigate(url, { event });
+        onLeave(url, { event });
       }}
     >
       {external

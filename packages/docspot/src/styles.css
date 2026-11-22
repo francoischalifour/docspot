@@ -545,6 +545,11 @@
   overflow: clip;
 }
 
+/* While the next page loads, search stays and says so. */
+.docspot-search[aria-busy='true'] {
+  cursor: progress;
+}
+
 .docspot-search::backdrop {
   background: var(--docspot-background);
 }

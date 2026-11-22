@@ -34,6 +34,7 @@ export function SearchDialogFrame() {
         className="docspot-search"
         aria-labelledby={`${id}-title`}
         aria-describedby={`${id}-description`}
+        aria-busy={search.isLeaving || undefined}
         onCancel={event => {
           event.preventDefault();
           search.goBack();

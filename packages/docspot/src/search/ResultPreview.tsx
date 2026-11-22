@@ -1,6 +1,6 @@
 import { useEffectEvent, useLayoutEffect } from 'react';
 
-import { useDocspotInternal } from '@/core/context';
+import { type SearchLeave, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { stripHash } from '@/core/url';
 import type { DocspotResult } from '@/types';
@@ -13,7 +13,7 @@ type ResultPreviewProps = {
   result: DocspotResult;
   query: string;
   onClose: () => void;
-  onLeave: () => void;
+  onLeave: SearchLeave;
   onNotify: (message: string) => void;
   onSelect: () => void;
 };
@@ -62,8 +62,7 @@ export function ResultPreview({
   }, [result.url]);
 
   function navigate(url: string) {
-    onLeave();
-    config.navigate(url, {});
+    onLeave(url, {});
   }
 
   // Shown when the preview fails to render.

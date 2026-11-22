@@ -41,13 +41,15 @@ export function SearchFooter() {
         aria-live="polite"
         aria-atomic="true"
       >
-        {search.isLoading
-          ? messages.searching
-          : search.hasError
-            ? messages.unavailable
-            : search.query
-              ? messages.resultCount(search.resultCount)
-              : messages.title}
+        {search.isLeaving
+          ? messages.opening
+          : search.isLoading
+            ? messages.searching
+            : search.hasError
+              ? messages.unavailable
+              : search.query
+                ? messages.resultCount(search.resultCount)
+                : messages.title}
       </span>
       {search.statusMessage && (
         <span className="docspot-toast" role="status">
