@@ -1,6 +1,8 @@
 import {
   type ComponentProps,
   type ReactNode,
+  type Ref,
+  type RefCallback,
   useEffect,
   useId,
   useRef,
@@ -9,6 +11,39 @@ import {
 
 import { useIsMac } from '@/core/platform';
 import { CheckIcon, CopyIcon } from '@/ui/icons';
+
+/** Sets every ref to the same element, and clears them on detach. */
+export function mergeRefs<T>(
+  ...refs: Array<Ref<T> | undefined>
+): RefCallback<T> {
+  return value => {
+    const cleanups = refs.map(ref => {
+      if (typeof ref === 'function') {
+        const cleanup = ref(value);
+        return typeof cleanup === 'function' ? cleanup : () => ref(null);
+      }
+      if (ref) {
+        ref.current = value;
+        return () => {
+          ref.current = null;
+        };
+      }
+      return undefined;
+    });
+    return () => cleanups.forEach(cleanup => cleanup?.());
+  };
+}
+
+/** Runs the consumer's handler, then Docspot's own. */
+export function chain<E>(
+  own: (event: E) => void,
+  theirs: ((event: E) => void) | undefined
+) {
+  return (event: E) => {
+    theirs?.(event);
+    own(event);
+  };
+}
 
 export function cx(...names: Array<string | false | null | undefined>) {
   return names.filter(Boolean).join(' ');
@@ -42,7 +77,13 @@ export function Kbd({
     >
       {keys.map(key => (
         <span key={key}>
-          {key === 'mod' ? (isMac ? '⌘' : 'Ctrl') : (keyLabels[key] ?? key)}
+          {key === 'mod'
+            ? isMac
+              ? '⌘'
+              : 'Ctrl'
+            : (keyLabels[key] ??
+              // Letters print as on the keycap: ⌘K, not ⌘k.
+              (key.length === 1 ? key.toUpperCase() : key))}
         </span>
       ))}
     </kbd>

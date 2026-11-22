@@ -604,3 +604,53 @@ it('warms search when a reader shows intent to search', async () => {
   await expect.element(searchInput()).toHaveFocus();
   expect(search.preload).toHaveBeenCalledTimes(2);
 });
+
+it('keeps trigger behavior when consumers pass a ref and handlers', async () => {
+  const search: DocspotSearch = Object.assign(() => results, {
+    preload: vi.fn(),
+  });
+  const ref = { current: null as HTMLButtonElement | null };
+  const onFocus = vi.fn();
+  const onPointerEnter = vi.fn();
+  await render(
+    <Docspot.Root search={search}>
+      <Docspot.SearchTrigger
+        ref={ref}
+        onFocus={onFocus}
+        onPointerEnter={onPointerEnter}
+      />
+      <Docspot.SearchDialog />
+    </Docspot.Root>
+  );
+  const trigger = page.getByRole('button', { name: 'Search docs' });
+  expect(ref.current).toBe(trigger.element());
+  await trigger.hover();
+  expect(onPointerEnter).toHaveBeenCalledTimes(1);
+  expect(search.preload).toHaveBeenCalledTimes(1);
+
+  // Focus still returns to the trigger, which its own ref also holds.
+  await userEvent.keyboard('/');
+  await expect.element(searchInput()).toHaveFocus();
+  await userEvent.keyboard('{Escape}');
+  await expect.element(trigger).toHaveFocus();
+  expect(onFocus).toHaveBeenCalled();
+  expect(search.preload).toHaveBeenCalledTimes(3);
+});
+
+it('applies a base message override when its WithAsk variant is not overridden', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  await render(
+    <Docspot
+      search={() => []}
+      chat={chat}
+      messages={{
+        trigger: { search: 'Find in docs' },
+        search: { placeholder: 'Find a page…' },
+      }}
+    />
+  );
+  await openSearch('Find in docs');
+  await expect
+    .element(searchInput())
+    .toHaveAttribute('placeholder', 'Find a page…');
+});

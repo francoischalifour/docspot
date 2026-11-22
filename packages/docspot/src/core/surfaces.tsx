@@ -4,7 +4,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   Suspense,
   lazy,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -12,7 +11,14 @@ import {
 import { flushSync } from 'react-dom';
 
 import { CloseIcon, SearchIcon } from '@/ui/icons';
-import { IconButton, Kbd, Shimmer, cx } from '@/ui/primitives';
+import {
+  IconButton,
+  Kbd,
+  Shimmer,
+  chain,
+  cx,
+  mergeRefs,
+} from '@/ui/primitives';
 import { searchDialogLoader, useDocspotInternal } from '@/core/Root';
 import {
   isChatBesidePage,
@@ -42,30 +48,30 @@ type ButtonProps = Omit<ComponentProps<'button'>, 'type'>;
 
 /** Opens search. Renders nothing without `search`. */
 export function SearchTrigger({
+  ref,
   className,
   children,
   onClick,
+  onFocus,
+  onPointerEnter,
   ...props
 }: ButtonProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchTrigger');
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const { registerTrigger } = search;
-  // The button mounts with `search`; the registry itself never changes.
-  useEffect(() => registerTrigger(buttonRef.current), [config.canSearch]);
   if (!config.canSearch) return null;
   const label = config.canChat
     ? config.messages.trigger.searchAndAsk
     : config.messages.trigger.search;
   return (
     <button
-      ref={buttonRef}
       type="button"
-      aria-keyshortcuts="Meta+K Control+K"
+      aria-keyshortcuts="Meta+K Control+K /"
       aria-haspopup="dialog"
-      className={cx('docspot-trigger', className)}
-      onPointerEnter={search.preload}
-      onFocus={search.preload}
       {...props}
+      // Focus returns to a visible trigger when search closes.
+      ref={mergeRefs(ref, search.registerTrigger)}
+      className={cx('docspot-trigger', className)}
+      onPointerEnter={chain(search.preload, onPointerEnter)}
+      onFocus={chain(search.preload, onFocus)}
       onClick={event => {
         onClick?.(event);
         if (!event.defaultPrevented) search.open(event.currentTarget);
@@ -93,6 +99,8 @@ export function ChatTrigger({
   className,
   children,
   onClick,
+  onFocus,
+  onPointerEnter,
   ...props
 }: ButtonProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatTrigger');
@@ -100,13 +108,13 @@ export function ChatTrigger({
   return (
     <button
       type="button"
+      aria-keyshortcuts="Meta+J Control+J"
+      {...props}
       aria-expanded={chat.isOpen}
       aria-controls={config.chatPanelId}
-      aria-keyshortcuts="Meta+J Control+J"
       className={cx('docspot-trigger docspot-chat-trigger', className)}
-      onPointerEnter={chat.preload}
-      onFocus={chat.preload}
-      {...props}
+      onPointerEnter={chain(chat.preload, onPointerEnter)}
+      onFocus={chain(chat.preload, onFocus)}
       onClick={event => {
         onClick?.(event);
         if (!event.defaultPrevented) chat.toggle();

@@ -1,10 +1,12 @@
 /**
  * English interface text. Override any part through the `messages` prop.
- * Keys ending in `WithAsk` replace their base key when chat is available.
+ * Keys ending in `WithAsk` replace their base key when chat is available;
+ * overriding only the base key overrides both.
  */
 export const defaultMessages = {
   trigger: {
     search: 'Search docs',
+    /** The search trigger's label when chat is available. */
     searchAndAsk: 'Search or ask docs',
     chat: 'Ask AI',
   },
@@ -81,7 +83,7 @@ export const defaultMessages = {
     answerInProgress: 'Answer in progress',
     answerReady: 'Answer ready',
     answerFailed: 'Answer failed',
-    error: "Couldn't get an answer.",
+    error: 'Couldn’t get an answer.',
     retry: 'Try again',
     retryAnswer: 'Retry answer',
     retryShort: 'Retry',
@@ -124,13 +126,36 @@ type DeepPartial<T> = {
 
 export type DocspotMessagesInput = DeepPartial<DocspotMessages>;
 
+/**
+ * A `WithAsk` key replaces its base key when chat is available. Overriding
+ * only the base key overrides both, so a custom text never disappears when
+ * chat is added.
+ */
+function withAskFallbacks<T extends object>(
+  defaults: T,
+  overrides: Partial<T> | undefined,
+  variants: Record<string, string> = {}
+): T {
+  if (!overrides) return defaults;
+  const resolved: Record<string, unknown> = { ...defaults, ...overrides };
+  for (const key of Object.keys(overrides)) {
+    const variant = variants[key] ?? `${key}WithAsk`;
+    if (variant in defaults && !(variant in overrides))
+      resolved[variant] = resolved[key];
+  }
+  return resolved as T;
+}
+
 export function resolveMessages(
   overrides: DocspotMessagesInput | undefined
 ): DocspotMessages {
   if (!overrides) return defaultMessages;
   return {
-    trigger: { ...defaultMessages.trigger, ...overrides.trigger },
-    search: { ...defaultMessages.search, ...overrides.search },
-    chat: { ...defaultMessages.chat, ...overrides.chat },
+    // `searchAndAsk` is the trigger's label when chat is available.
+    trigger: withAskFallbacks(defaultMessages.trigger, overrides.trigger, {
+      search: 'searchAndAsk',
+    }),
+    search: withAskFallbacks(defaultMessages.search, overrides.search),
+    chat: withAskFallbacks(defaultMessages.chat, overrides.chat),
   };
 }
