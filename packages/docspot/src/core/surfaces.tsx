@@ -6,7 +6,7 @@ import {
   chatFrameLoader,
   searchDialogLoader,
   useDocspotInternal,
-} from '@/core/Root';
+} from '@/core/context';
 
 const LazySearchDialog = /* @__PURE__ */ lazy(() =>
   searchDialogLoader.load().then(module => ({ default: module.SearchDialog }))

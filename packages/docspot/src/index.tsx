@@ -36,8 +36,8 @@ export const Docspot = /* @__PURE__ */ Object.assign(DocspotComponent, {
   ChatPanel,
 });
 
-export { useDocspot } from '@/core/Root';
-export type { DocspotApi } from '@/core/Root';
+export { useDocspot } from '@/core/useDocspot';
+export type { DocspotApi } from '@/core/useDocspot';
 export type {
   ChatPanelProps,
   ChatTriggerProps,

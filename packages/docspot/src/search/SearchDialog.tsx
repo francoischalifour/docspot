@@ -16,7 +16,7 @@ import {
   useState,
 } from 'react';
 
-import { type ChatRequest, useDocspotInternal } from '@/core/Root';
+import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import {
   hasModifierKey,
   isCommandKey,

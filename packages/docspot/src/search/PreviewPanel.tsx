@@ -7,7 +7,7 @@ import {
   useLayoutEffect,
 } from 'react';
 
-import { type ChatRequest, useDocspotInternal } from '@/core/Root';
+import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { stripHash } from '@/core/url';
 import type { DocspotResult } from '@/types';

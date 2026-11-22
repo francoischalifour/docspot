@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 
-import { useDocspotInternal } from '@/core/Root';
+import { useDocspotInternal } from '@/core/context';
 import type { ChatPanelProps } from '@/core/surfaces';
 import {
   isChatBesidePage,

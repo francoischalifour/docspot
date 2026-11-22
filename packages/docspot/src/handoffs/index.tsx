@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { useDocspotInternal } from '@/core/Root';
+import { useDocspotInternal } from '@/core/context';
 import type {
   DocspotHandoff,
   DocspotHandoffContext,
