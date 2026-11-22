@@ -10,7 +10,11 @@ const IDLE_PRELOAD_DELAY_MS = 3_000;
 // A page that never idles, such as one running animations, still preloads.
 const IDLE_PRELOAD_TIMEOUT_MS = 2_000;
 
-export function isMacPlatform() {
+/**
+ * Whether this is an Apple platform (macOS, iOS, or iPadOS), whose
+ * keyboards label the command key ⌘.
+ */
+export function isApplePlatform() {
   return (
     typeof navigator !== 'undefined' &&
     /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent)
@@ -20,18 +24,18 @@ export function isMacPlatform() {
 const subscribeToNothing = () => () => {};
 
 /**
- * Whether this platform labels the command key ⌘. The server and hydration
- * render Ctrl, so the markup matches before the platform is read.
+ * `isApplePlatform` for rendering. The server and hydration render Ctrl, so
+ * the markup matches before the platform is read.
  */
-export function useIsMac() {
-  return useSyncExternalStore(subscribeToNothing, isMacPlatform, () => false);
+export function useIsApplePlatform() {
+  return useSyncExternalStore(subscribeToNothing, isApplePlatform, () => false);
 }
 
 export function hasModifierKey(event: MouseEvent | KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 }
 
-/** True for Cmd (Mac) or Ctrl (elsewhere) plus `key`, without Alt or Shift. */
+/** True for ⌘ or Ctrl plus `key`, on any platform, without Alt or Shift. */
 export function isCommandKey(
   event: KeyboardEvent | ReactKeyboardEvent,
   key: string

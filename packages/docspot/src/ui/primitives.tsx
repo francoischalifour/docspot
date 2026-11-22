@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { useIsMac } from '@/core/platform';
+import { useIsApplePlatform } from '@/core/platform';
 import { CheckIcon, CopyIcon } from '@/ui/icons';
 
 /** Sets every ref to the same element, and clears them on detach. */
@@ -68,7 +68,7 @@ export function Kbd({
   keys: string[];
   variant?: 'default' | 'ghost';
 }) {
-  const isMac = useIsMac();
+  const isApple = useIsApplePlatform();
   return (
     <kbd
       data-ghost={variant === 'ghost' || undefined}
@@ -78,7 +78,7 @@ export function Kbd({
       {keys.map(key => (
         <span key={key}>
           {key === 'mod'
-            ? isMac
+            ? isApple
               ? '⌘'
               : 'Ctrl'
             : (keyLabels[key] ??
