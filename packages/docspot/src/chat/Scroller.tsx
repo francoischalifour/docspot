@@ -37,6 +37,23 @@ function distanceToEnd(viewport: HTMLElement) {
 }
 
 /**
+ * How far the conversation's content reaches below the visible area. An
+ * anchored answer reserves a viewport of space below it so its start can
+ * sit at the top; that space is not content to scroll to.
+ */
+function distanceToContentEnd(
+  viewport: HTMLElement,
+  anchor: HTMLElement | null
+) {
+  const content = anchor?.lastElementChild;
+  if (!anchor || !content) return distanceToEnd(viewport);
+  const reserved =
+    anchor.getBoundingClientRect().bottom -
+    content.getBoundingClientRect().bottom;
+  return distanceToEnd(viewport) - Math.max(0, reserved);
+}
+
+/**
  * A conversation that opens at its end, follows a new question's answer
  * until the reader scrolls, and anchors a streamed answer's start at the
  * top so it reads from the beginning.
@@ -61,6 +78,8 @@ export function Scroller({
   const anchorRef = useRef<HTMLElement | null>(null);
   // Whether the anchored answer's start is still aligned to the top.
   const alignedRef = useRef(false);
+  // Follows the anchored answer's growth inside its reserved space.
+  const anchorObserverRef = useRef<ResizeObserver | null>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
   const [resumeKey, setResumeKey] = useState(0);
 
@@ -68,7 +87,8 @@ export function Scroller({
     const viewport = viewportRef.current;
     if (!viewport) return;
     const start = viewport.scrollTop > 1;
-    const end = distanceToEnd(viewport) > END_TOLERANCE;
+    const end =
+      distanceToContentEnd(viewport, anchorRef.current) > END_TOLERANCE;
     setEdges(current =>
       current.start === start && current.end === end ? current : { start, end }
     );
@@ -77,12 +97,16 @@ export function Scroller({
   function releaseAnchor() {
     const viewport = viewportRef.current;
     alignedRef.current = false;
+    anchorObserverRef.current?.disconnect();
+    anchorObserverRef.current = null;
     if (anchorRef.current) {
       anchorRef.current.style.minHeight = '';
       anchorRef.current = null;
     }
     if (viewport) viewport.style.overflowAnchor = '';
   }
+
+  useLayoutEffect(() => () => anchorObserverRef.current?.disconnect(), []);
 
   // Opens at the end of a saved conversation.
   useLayoutEffect(() => {
@@ -158,6 +182,10 @@ export function Scroller({
       alignedRef.current = true;
       element.style.minHeight = `${viewport.clientHeight}px`;
       viewport.style.overflowAnchor = 'none';
+      anchorObserverRef.current?.disconnect();
+      anchorObserverRef.current = new ResizeObserver(updateEdges);
+      if (element.lastElementChild)
+        anchorObserverRef.current.observe(element.lastElementChild);
       viewport.scrollTo({
         top: getAnchorTop(viewport, element),
         behavior: prefersReducedMotion() ? 'instant' : 'smooth',

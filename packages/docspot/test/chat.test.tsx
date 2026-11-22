@@ -147,7 +147,7 @@ it('recovers from a failed answer', async () => {
   const alert = panel().getByRole('alert');
   await expect
     .element(alert)
-    .toHaveTextContent("Couldn't get an answer.Try again");
+    .toHaveTextContent('Couldn’t get an answer.Try again');
   await expect
     .element(panel().getByRole('status').getByText('Answer failed'))
     .toBeInTheDocument();
@@ -397,6 +397,11 @@ it('anchors a streamed answer at its start instead of following its end', async 
     },
     { timeout: 4000 }
   );
+  // The rest of a long answer is below, so jumping to it is offered.
+  const jump = panel()
+    .element()
+    .querySelector<HTMLButtonElement>('.docspot-jump')!;
+  await vi.waitFor(() => expect(jump.dataset.active).toBe('true'));
 });
 
 it('starts a fresh session when the chat transport changes', async () => {
@@ -477,4 +482,46 @@ it('drops a pending linked question when chat closes during startup', async () =
     .element(panel().getByText('Ask AI about these docs'))
     .toBeVisible();
   expect(requests).toHaveLength(0);
+});
+
+it('opens sources on this site in place and others in a new tab', async () => {
+  const { chat } = createChatServer(() => ({
+    text: 'See the guide.',
+    sources: [
+      { url: '/docs/guides/zoom', title: 'Zoom guide' },
+      { url: 'https://example.org/zoom', title: 'Elsewhere' },
+    ],
+  }));
+  const navigate = vi.fn();
+  await render(<Docspot chat={chat} navigate={navigate} />);
+  await openChat();
+  await userEvent.keyboard('Where is zoom?{Enter}');
+  const internal = answers().getByRole('link', { name: 'Zoom guide' });
+  await expect.element(internal).not.toHaveAttribute('target');
+  await expect
+    .element(answers().getByRole('link', { name: 'Elsewhere' }))
+    .toHaveAttribute('target', '_blank');
+  await internal.click();
+  expect(navigate).toHaveBeenCalledWith(
+    '/docs/guides/zoom',
+    expect.objectContaining({ event: expect.anything() })
+  );
+});
+
+it('offers to jump only when more of the answer is below', async () => {
+  const { chat } = createChatServer(() => ({
+    chunks: ['A short answer.', ' It fits.'],
+    chunkDelayMs: 100,
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('Is it short?{Enter}');
+  await expect
+    .element(panel().getByRole('button', { name: 'Copy answer' }))
+    .toBeInTheDocument();
+  // The space kept below a short answer for reading is not more to read.
+  const jump = panel()
+    .element()
+    .querySelector<HTMLButtonElement>('.docspot-jump')!;
+  await vi.waitFor(() => expect(jump.dataset.active).toBe('false'));
 });

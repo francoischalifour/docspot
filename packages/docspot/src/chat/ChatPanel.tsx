@@ -3,6 +3,7 @@ import type { UIMessage } from 'ai';
 import {
   type CSSProperties,
   type MouseEvent,
+  type ReactNode,
   type Ref,
   useEffect,
   useLayoutEffect,
@@ -430,14 +431,15 @@ function ChatMessage({
             <ul>
               {sources.map(source => (
                 <li key={source.sourceId}>
-                  <a
-                    href={toInternalUrl(source.url) ?? source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <DocsLink
+                    href={source.url}
+                    onNavigate={onNavigate}
+                    toInternalUrl={toInternalUrl}
+                    externalIcon={null}
                   >
                     {source.title ?? messages.sourceFallback}
                     <ArrowUpRightIcon size={12} />
-                  </a>
+                  </DocsLink>
                 </li>
               ))}
             </ul>
@@ -481,26 +483,18 @@ function Markdown({
   toInternalUrl: (url: string) => string | null;
 }) {
   const components: Components = {
-    // Links to this site open in place, like links in the docs themselves.
-    a: ({ href, children }) => {
-      const internal = href ? toInternalUrl(href) : null;
-      return internal ? (
-        <a
-          href={internal}
-          onClick={event => {
-            if (event.button !== 0 || hasModifierKey(event)) return;
-            onNavigate(internal, event);
-          }}
-        >
-          {children}
-        </a>
-      ) : (
-        <a href={href} target="_blank" rel="noopener noreferrer">
-          {children}
+    a: ({ href, children }) => (
+      <DocsLink
+        href={href}
+        onNavigate={onNavigate}
+        toInternalUrl={toInternalUrl}
+        externalIcon={
           <ExternalIcon size={12} className="docspot-external-icon" />
-        </a>
-      );
-    },
+        }
+      >
+        {children}
+      </DocsLink>
+    ),
   };
   return (
     <div className="docspot-markdown">
@@ -508,6 +502,42 @@ function Markdown({
         {streaming ? completeStreamingMarkdown(text) : text}
       </ReactMarkdown>
     </div>
+  );
+}
+
+/**
+ * Links to this site open in place, like links in the docs themselves;
+ * links elsewhere open in a new tab.
+ */
+function DocsLink({
+  href,
+  onNavigate,
+  toInternalUrl,
+  externalIcon,
+  children,
+}: {
+  href: string | undefined;
+  onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
+  toInternalUrl: (url: string) => string | null;
+  externalIcon: ReactNode;
+  children: ReactNode;
+}) {
+  const internal = href ? toInternalUrl(href) : null;
+  return internal ? (
+    <a
+      href={internal}
+      onClick={event => {
+        if (event.button !== 0 || hasModifierKey(event)) return;
+        onNavigate(internal, event);
+      }}
+    >
+      {children}
+    </a>
+  ) : (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+      {externalIcon}
+    </a>
   );
 }
 
