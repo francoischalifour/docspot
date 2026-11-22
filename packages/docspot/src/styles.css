@@ -2,6 +2,9 @@
  * Docspot styles. Customize with the --docspot-* variables on :root or any
  * ancestor; dark values apply under prefers-color-scheme, [data-theme='dark'],
  * or the .dark class. Defaults have no specificity, so any rule overrides them.
+ *
+ * The dark palette appears twice, for the media query and for the explicit
+ * theme. test/styles.test.ts keeps both copies identical.
  */
 :where(:root) {
   --docspot-font:
@@ -10,7 +13,7 @@
   --docspot-background: #ffffff;
   --docspot-foreground: #18181b;
   --docspot-muted: #6b6b76;
-  --docspot-subtle: #9a9aa4;
+  --docspot-subtle: #8a8a94;
   --docspot-border: #e7e7ea;
   --docspot-border-strong: #d4d4d8;
   --docspot-surface: #f7f7f8;
@@ -19,7 +22,7 @@
   --docspot-accent-active: #e6e6ea;
   --docspot-primary: #18181b;
   --docspot-primary-foreground: #ffffff;
-  --docspot-danger: #d92d20;
+  --docspot-danger: #c8291c;
   /* Matched text: a tint and weight by default, or an underline. */
   --docspot-mark: color-mix(
     in oklab,
@@ -73,9 +76,10 @@
     --docspot-surface-elevated: #1c1c1f;
     --docspot-accent: #232327;
     --docspot-accent-active: #2e2e33;
-    --docspot-selected: #232327;
+    --docspot-selected: var(--docspot-accent);
     --docspot-primary: #ededf0;
     --docspot-primary-foreground: #111113;
+    --docspot-danger: #f97066;
     --docspot-overlay: rgb(0 0 0 / 0.6);
     --docspot-shadow-floating:
       inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.4),
@@ -94,9 +98,10 @@
   --docspot-surface-elevated: #1c1c1f;
   --docspot-accent: #232327;
   --docspot-accent-active: #2e2e33;
-  --docspot-selected: #232327;
+  --docspot-selected: var(--docspot-accent);
   --docspot-primary: #ededf0;
   --docspot-primary-foreground: #111113;
+  --docspot-danger: #f97066;
   --docspot-overlay: rgb(0 0 0 / 0.6);
   --docspot-shadow-floating:
     inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.4),

@@ -418,7 +418,7 @@ Search is a modal dialog in the browser's top layer. Popups that slots open must
 
 ### Theme
 
-Override CSS variables on `:root` or any ancestor:
+Docspot is themed with CSS variables. Most sites only set a few colors and the font:
 
 ```css
 :root {
@@ -427,21 +427,72 @@ Override CSS variables on `:root` or any ancestor:
   --docspot-foreground: #111;
   --docspot-muted: #666;
   --docspot-border: #e5e5e5;
-  --docspot-accent: #f4f4f5; /* Hover and selection */
-  --docspot-primary: #111; /* Send button */
-  --docspot-radius-floating: 12px;
-  --docspot-tracking: -0.01em;
-  --docspot-text-md: 0.9375rem; /* Type scale, from --docspot-text-2xs to 2xl */
-  --docspot-mark: transparent; /* Matched text */
-  --docspot-mark-weight: 500;
-  --docspot-mark-decoration: underline;
-  --docspot-chat-top: 64px; /* Space above the docked chat panel */
+  --docspot-accent: #f4f4f5;
+  --docspot-primary: #111;
 }
 ```
 
-Docspot's defaults have no specificity, so any rule overrides them. Dark values apply under `prefers-color-scheme: dark`, `[data-theme='dark']`, or `.dark` on the root element. See [`styles.css`](https://github.com/francoischalifour/docspot/blob/main/packages/docspot/src/styles.css) for every variable.
+Set variables on `:root` or any ancestor. Docspot's defaults have no specificity, so any rule overrides them, cascade layers included. The dark palette applies under `prefers-color-scheme: dark`, `[data-theme='dark']`, or `.dark` on the root element; `[data-theme='light']` or `.light` keeps the light palette.
 
-These optional variables go further, and fall back to the ones above when unset:
+#### Color
+
+| Variable                       | Default    | Used for                                                 |
+| ------------------------------ | ---------- | -------------------------------------------------------- |
+| `--docspot-background`         | `#ffffff`  | Surfaces: the dialog, the chat panel, and menus          |
+| `--docspot-foreground`         | `#18181b`  | Text and icons                                           |
+| `--docspot-muted`              | `#6b6b76`  | Secondary text, such as breadcrumbs and hints            |
+| `--docspot-subtle`             | `#8a8a94`  | Decorative icons and disabled controls                   |
+| `--docspot-border`             | `#e7e7ea`  | Dividers and control borders                             |
+| `--docspot-border-strong`      | `#d4d4d8`  | Borders that stand out, such as buttons and the composer |
+| `--docspot-surface`            | `#f7f7f8`  | Recessed areas, such as the results list and code        |
+| `--docspot-surface-elevated`   | `#ffffff`  | Raised areas, such as the selected result                |
+| `--docspot-accent`             | `#f0f0f2`  | Hover and selection backgrounds                          |
+| `--docspot-accent-active`      | `#e6e6ea`  | Pressed and current backgrounds                          |
+| `--docspot-primary`            | `#18181b`  | The send button and other primary actions                |
+| `--docspot-primary-foreground` | `#ffffff`  | Text and icons on `--docspot-primary`                    |
+| `--docspot-danger`             | `#c8291c`  | Destructive actions                                      |
+| `--docspot-focus`              | Blue, 60%  | Focus outlines                                           |
+| `--docspot-overlay`            | Black, 40% | Behind the search dialog                                 |
+| `--docspot-mark`               | Text tint  | Background of matched text                               |
+| `--docspot-mark-weight`        | `600`      | Weight of matched text                                   |
+| `--docspot-mark-decoration`    | `none`     | Decoration of matched text, such as `underline`          |
+
+In both palettes, text colors meet WCAG AA (4.5:1) on every Docspot background, and `--docspot-subtle` meets 3:1 for icons. Keep these ratios when you change them.
+
+#### Type
+
+| Variable                                    | Default                | Used for                                                           |
+| ------------------------------------------- | ---------------------- | ------------------------------------------------------------------ |
+| `--docspot-font`                            | `system-ui` stack      | All text                                                           |
+| `--docspot-font-mono`                       | `ui-monospace` stack   | Code in answers                                                    |
+| `--docspot-tracking`                        | `normal`               | Letter spacing; tighten it for wide fonts                          |
+| `--docspot-text-2xs` … `--docspot-text-2xl` | `0.6875rem` … `1.5rem` | The type scale: `2xs`, `xs`, `sm`, `md`, `base`, `lg`, `xl`, `2xl` |
+
+Map the type scale to your site's own sizes to match its text.
+
+#### Shape and elevation
+
+| Variable                    | Default    | Used for                                   |
+| --------------------------- | ---------- | ------------------------------------------ |
+| `--docspot-radius-control`  | `0.375rem` | Buttons, inputs, keys, and tooltips        |
+| `--docspot-radius-item`     | `0.375rem` | Results and menu items                     |
+| `--docspot-radius-surface`  | `0.75rem`  | Cards inside surfaces, such as code blocks |
+| `--docspot-radius-floating` | `0.75rem`  | The floating search dialog and chat panel  |
+| `--docspot-shadow-raised`   | Soft       | The composer and raised cards              |
+| `--docspot-shadow-floating` | Deep       | The floating search dialog and chat panel  |
+
+#### Layout
+
+| Variable             | Default | Used for                                                  |
+| -------------------- | ------- | --------------------------------------------------------- |
+| `--docspot-chat-top` | `0px`   | Space above the docked chat panel, such as a fixed header |
+| `--docspot-z-index`  | `50`    | Stacking of the chat panel and its launcher               |
+
+The search dialog renders in the browser's top layer, above every `z-index`.
+
+#### Optional
+
+These have no default. Unset, they fall back to the tokens above, so a theme that only sets those still applies.
 
 | Variable                                                                       | Styles                                                         |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------- |
@@ -449,6 +500,15 @@ These optional variables go further, and fall back to the ones above when unset:
 | `--docspot-results-background`                                                 | Behind the results. Accepts any background, gradients included |
 | `--docspot-kbd-background`, `--docspot-kbd-border`, `--docspot-kbd-shadow`     | Key hints                                                      |
 | `--docspot-scrollbar-color`                                                    | `scrollbar-color` of the chat transcript                       |
+
+#### Set by Docspot
+
+Docspot sets these on the owner element (the document root by default) for your layout to read. Don't set them yourself.
+
+| Variable               | Value                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| `--docspot-chat-inset` | The panel's width while it is docked beside the page (1280 px and wider) with `dock="fixed"` |
+| `--docspot-chat-width` | The panel's resized width, once the reader resizes it                                        |
 
 ### Styling hooks
 
