@@ -33,7 +33,7 @@ export function AnswerSources({
               externalIcon={null}
             >
               {source.title ?? messages.sourceFallback}
-              <ArrowUpRightIcon size={12} />
+              <ArrowUpRightIcon size={14} />
             </AnswerLink>
           </li>
         ))}

@@ -113,7 +113,7 @@ export const ArrowDownIcon = (props: IconProps) => (
 
 export const ArrowUpRightIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M8 16 16 8M9 8h7v7" />
+    <path d="M7 17 17 7M8 7h9v9" />
   </Icon>
 );
 
