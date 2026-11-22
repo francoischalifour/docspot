@@ -787,33 +787,67 @@ export type DocspotApi = {
   close: () => void;
 };
 
-/** Controls Docspot from anywhere inside `<Docspot.Root>`. */
-export function useDocspot(): DocspotApi {
-  const { config, search, chat } = useDocspotInternal('useDocspot');
-  return {
-    capabilities: { search: config.canSearch, chat: config.canChat },
-    isSearchOpen: search.isOpen,
-    isChatOpen: chat.isOpen,
-    openSearch(query) {
-      search.open(undefined, query);
-    },
-    closeSearch: search.close,
-    openChat: () => chat.ask(),
-    closeChat: chat.close,
-    toggleChat: chat.toggle,
+type DocspotActions = Omit<
+  DocspotApi,
+  'capabilities' | 'isSearchOpen' | 'isChatOpen'
+>;
+
+/**
+ * Methods that keep their identity for the instance's lifetime and always
+ * act on its latest state, so they are safe in effect dependencies.
+ */
+function useStableActions(state: DocspotInternalState): DocspotActions {
+  const latest = useRef(state);
+  useLayoutEffect(() => {
+    latest.current = state;
+  });
+  const [actions] = useState((): DocspotActions => ({
+    openSearch: query => latest.current.search.open(undefined, query),
+    closeSearch: () => latest.current.search.close(),
+    openChat: () => latest.current.chat.ask(),
+    closeChat: () => latest.current.chat.close(),
+    toggleChat: () => latest.current.chat.toggle(),
     setDraft: (text, options) =>
-      chat.ask({ action: 'draft', text, page: options?.page, source: 'api' }),
+      latest.current.chat.ask({
+        action: 'draft',
+        text,
+        page: options?.page,
+        source: 'api',
+      }),
     submitQuestion: (question, options) =>
-      chat.ask({
+      latest.current.chat.ask({
         action: 'submit',
         text: question,
         page: options?.page,
         source: 'api',
       }),
-    startConversation: () => chat.ask({ action: 'reset' }),
+    startConversation: () => latest.current.chat.ask({ action: 'reset' }),
     close() {
+      const { search, chat } = latest.current;
       if (search.isOpen) search.close();
       chat.close();
     },
-  };
+  }));
+  return actions;
+}
+
+/**
+ * Reads and controls Docspot from anywhere inside `<Docspot>` or
+ * `<Docspot.Root>`. Its methods keep their identity across renders.
+ */
+export function useDocspot(): DocspotApi {
+  const state = useDocspotInternal('useDocspot');
+  const actions = useStableActions(state);
+  const { canSearch, canChat } = state.config;
+  const isSearchOpen = state.search.isOpen;
+  const isChatOpen = state.chat.isOpen;
+  return useMemo(
+    () => ({
+      capabilities: { search: canSearch, chat: canChat },
+      isSearchOpen,
+      isChatOpen,
+      ...actions,
+    }),
+    [actions, canSearch, canChat, isSearchOpen, isChatOpen]
+  );
 }

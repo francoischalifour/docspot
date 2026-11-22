@@ -1,4 +1,4 @@
-import { Component, type ReactNode, useRef } from 'react';
+import { Component, type ReactNode, useEffect, useRef } from 'react';
 import { expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -379,4 +379,35 @@ it('reopens search with its query when going back from a result', async () => {
   history.back();
   await expect.element(searchInput()).toHaveValue('http');
   expect(location.search).toBe('?q=http');
+});
+
+it('keeps useDocspot methods stable across renders', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const seen = new Set<unknown>();
+  function Probe() {
+    const docspot = useDocspot();
+    const { openSearch } = docspot;
+    seen.add(openSearch);
+    useEffect(() => {
+      // An effect that depends on a method runs once, not on every render.
+      seen.add('effect');
+    }, [openSearch]);
+    return (
+      <button type="button" onClick={() => docspot.openChat()}>
+        {docspot.isChatOpen ? 'Opened' : 'Open'}
+      </button>
+    );
+  }
+  await render(
+    <Docspot.Root search={() => results} chat={chat}>
+      <Probe />
+      <Docspot.SearchDialog />
+      <Docspot.ChatPanel launcher={false} />
+    </Docspot.Root>
+  );
+  await page.getByRole('button', { name: 'Open' }).click();
+  await expect
+    .element(page.getByRole('button', { name: 'Opened' }))
+    .toBeVisible();
+  expect([...seen]).toHaveLength(2);
 });
