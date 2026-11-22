@@ -655,3 +655,21 @@ it('shows tools without a renderer only as progress', async () => {
   await expect.element(answers().getByText('Found it.')).toBeVisible();
   expect(answers().element().textContent).not.toContain('hits');
 });
+
+it('shows a search for the question as asked as thinking', async () => {
+  const { chat } = createChatServer(() => ({
+    toolQuery: 'How do I change the port?',
+    text: 'Set port in acme.json.',
+    chunkDelayMs: 400,
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('How do I change the port?{Enter}');
+  await expect
+    .element(panel().getByRole('status').getByText('Thinking'))
+    .toBeInTheDocument();
+  expect(panel().element().textContent).not.toContain('Searching for');
+  await expect
+    .element(answers().getByText('Set port in acme.json.'))
+    .toBeVisible();
+});

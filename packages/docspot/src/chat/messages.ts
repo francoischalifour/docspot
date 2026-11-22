@@ -40,10 +40,25 @@ export function getMessageText(
     .join('\n');
 }
 
-/** What the agent is doing before its answer text arrives. */
+const TRAILING_PUNCTUATION = /[\s?!.]+$/;
+const WHITESPACE = /\s+/g;
+
+/** Text compared for meaning: case, spacing, and final punctuation aside. */
+function normalizeQuery(text: string) {
+  return text
+    .toLowerCase()
+    .replace(TRAILING_PUNCTUATION, '')
+    .replace(WHITESPACE, ' ');
+}
+
+/**
+ * What the agent is doing before its answer text arrives. A search for the
+ * question as asked says nothing new, so it shows as thinking.
+ */
 export function getAnswerProgress(
   message: UIMessage | undefined,
-  messages: DocspotMessages['chat']
+  messages: DocspotMessages['chat'],
+  question: string
 ): string {
   const tool =
     message?.role === 'assistant'
@@ -54,7 +69,9 @@ export function getAnswerProgress(
     input && typeof input === 'object' && 'query' in input
       ? input.query
       : undefined;
-  return typeof query === 'string' && query.trim()
+  return typeof query === 'string' &&
+    query.trim() &&
+    normalizeQuery(query) !== normalizeQuery(question)
     ? messages.searchingFor(query.trim())
     : messages.thinking;
 }

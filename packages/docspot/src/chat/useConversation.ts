@@ -60,6 +60,10 @@ export function useConversation(props: ConversationProps) {
   } = useChat({ chat, experimental_throttle: 40 });
   const busy = status === 'submitted' || status === 'streaming';
   const lastMessage = chatMessages.at(-1);
+  const lastQuestion = chatMessages.findLast(
+    message => message.role === 'user'
+  );
+  const question = lastQuestion ? getMessageText(lastQuestion) : '';
   const hasVisibleAnswer =
     lastMessage?.role === 'assistant' &&
     Boolean(
@@ -104,7 +108,7 @@ export function useConversation(props: ConversationProps) {
     error,
     hasVisibleAnswer,
     /** What the agent is doing before its answer text arrives. */
-    progress: getAnswerProgress(lastMessage, messages),
+    progress: getAnswerProgress(lastMessage, messages, question),
     /**
      * Whether to show progress: while an answer has no text yet, unless a
      * tool's renderer shows its own.
