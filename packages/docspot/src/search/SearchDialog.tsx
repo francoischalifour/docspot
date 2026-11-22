@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   useEffect,
+  useCallback,
   useEffectEvent,
   useId,
   useLayoutEffect,
@@ -74,10 +75,29 @@ export function SearchDialog() {
     status: 'idle',
   });
   // Autocomplete keeps its options for its lifetime; these read the latest.
-  const latest = useRef({ navigateItem, selectItem, chat, config });
+  const latest = useRef({ navigateItem, selectItem, chat, config, search });
   useLayoutEffect(() => {
-    latest.current = { navigateItem, selectItem, chat, config };
+    latest.current = { navigateItem, selectItem, chat, config, search };
   });
+  // Stable, so result rows skip rendering when only the selection moves.
+  const selectEntry = useCallback(
+    (item: SearchItem) => latest.current.selectItem(item),
+    []
+  );
+  const openEntry = useCallback(
+    (url: string, event: MouseEvent<HTMLAnchorElement>) => {
+      if (
+        event.button !== 0 ||
+        hasModifierKey(event) ||
+        event.currentTarget.target === '_blank'
+      )
+        return;
+      event.preventDefault();
+      latest.current.search.leave();
+      latest.current.config.navigate(url, { event });
+    },
+    []
+  );
   const abortRef = useRef<AbortController | null>(null);
   const latestSources = useRef<Promise<AutocompleteSource<SearchItem>[]>>(
     Promise.resolve([])
@@ -742,19 +762,11 @@ export function SearchDialog() {
                             item,
                             source: collection.source,
                           })}
+                          messages={messages}
+                          slots={config.slots}
                           // Asking and actions do not wait for pending results.
-                          onSelect={() => selectItem(item)}
-                          onNavigate={(url, event) => {
-                            if (
-                              event.button !== 0 ||
-                              hasModifierKey(event) ||
-                              event.currentTarget.target === '_blank'
-                            )
-                              return;
-                            event.preventDefault();
-                            search.leave();
-                            config.navigate(url, { event });
-                          }}
+                          onSelect={selectEntry}
+                          onNavigate={openEntry}
                         />
                       ))}
                     </ul>

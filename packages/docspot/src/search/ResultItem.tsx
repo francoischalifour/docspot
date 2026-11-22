@@ -1,7 +1,7 @@
-import type { HTMLAttributes, MouseEvent } from 'react';
+import { type HTMLAttributes, type MouseEvent, memo } from 'react';
 
-import { useDocspotInternal } from '@/core/Root';
-import type { HighlightedText } from '@/types';
+import type { DocspotMessages } from '@/messages';
+import type { DocspotSlots, HighlightedText } from '@/types';
 import {
   CommandIcon,
   EnterIcon,
@@ -56,9 +56,14 @@ const shortcutKeys: Record<string, string> = {
 };
 
 /** An item's shortcut, `Meta+S` as ⌘ S, unless the `shortcut` slot draws it. */
-function Shortcut({ shortcut }: { shortcut: string }) {
-  const { config } = useDocspotInternal('Docspot.SearchDialog');
-  const Slot = config.slots.shortcut;
+function Shortcut({
+  shortcut,
+  slots,
+}: {
+  shortcut: string;
+  slots: DocspotSlots;
+}) {
+  const Slot = slots.shortcut;
   if (Slot) return <Slot shortcut={shortcut} />;
   return (
     <Kbd
@@ -70,24 +75,46 @@ function Shortcut({ shortcut }: { shortcut: string }) {
   );
 }
 
-export function ResultItem({
-  item,
-  itemProps,
-  onNavigate,
-  onSelect,
-}: {
+type ResultItemProps = {
   item: SearchItem;
   itemProps: HTMLAttributes<HTMLElement>;
+  messages: DocspotMessages['search'];
+  slots: DocspotSlots;
+  /** Stable: reads the dialog's latest state. */
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
-  /** Chooses an item that opens no URL: asking AI, or a function action. */
-  onSelect: () => void;
-}) {
-  const { config } = useDocspotInternal('Docspot.SearchDialog');
-  const messages = config.messages.search;
-  const ResultIcon = config.slots.resultIcon;
-  const isActive =
-    itemProps['aria-selected'] === true ||
-    itemProps['aria-selected'] === 'true';
+  /**
+   * Chooses an item that opens no URL: asking AI, or a function action.
+   * Stable: reads the dialog's latest state.
+   */
+  onSelect: (item: SearchItem) => void;
+};
+
+/**
+ * A row renders when its item or its selection changes, not when another
+ * row is selected. Autocomplete's handlers in `itemProps` act on its own
+ * store, so a row's earlier handlers stay valid.
+ */
+export const ResultItem = memo(
+  ResultItemRow,
+  (previous, next) =>
+    previous.item === next.item &&
+    previous.messages === next.messages &&
+    previous.slots === next.slots &&
+    previous.onNavigate === next.onNavigate &&
+    previous.onSelect === next.onSelect &&
+    previous.itemProps.id === next.itemProps.id &&
+    previous.itemProps['aria-selected'] === next.itemProps['aria-selected']
+);
+
+function ResultItemRow({
+  item,
+  itemProps,
+  messages,
+  slots,
+  onNavigate,
+  onSelect,
+}: ResultItemProps) {
+  const ResultIcon = slots.resultIcon;
 
   const url = getEntryUrl(item);
   const result = item.kind === 'result' ? item.result : undefined;
@@ -122,7 +149,7 @@ export function ResultItem({
             </span>
             {shortcut && (
               <span className="docspot-result-shortcut">
-                <Shortcut shortcut={shortcut} />
+                <Shortcut shortcut={shortcut} slots={slots} />
               </span>
             )}
           </>
@@ -140,7 +167,7 @@ export function ResultItem({
         : item.kind === 'ask' &&
           !item.prompt && (
             <p className="docspot-result-path" data-ask="">
-              {item.query && !config.slots.preview
+              {item.query && !slots.preview
                 ? messages.quotedQuery(item.query)
                 : item.conversation
                   ? messages.continueChat
@@ -158,11 +185,11 @@ export function ResultItem({
         {isExternal ? (
           <ExternalIcon size={14} />
         ) : (
-          isActive && (
-            <span data-docspot-hints="">
-              <EnterIcon size={14} />
-            </span>
-          )
+          // Shown on the selected row by CSS, so moving the selection
+          // renders only the rows it leaves and reaches.
+          <span data-docspot-hints="" className="docspot-result-enter">
+            <EnterIcon size={14} />
+          </span>
         )}
       </span>
     </>
@@ -187,7 +214,11 @@ export function ResultItem({
           {content}
         </a>
       ) : (
-        <div {...itemProps} className="docspot-result" onClick={onSelect}>
+        <div
+          {...itemProps}
+          className="docspot-result"
+          onClick={() => onSelect(item)}
+        >
           {content}
         </div>
       )}

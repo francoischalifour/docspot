@@ -106,7 +106,14 @@ it('shows the Enter hint only on the selected result, beside its title', async (
     titleBounds.top + titleBounds.height / 2,
     0
   );
-  expect(enterHint(second)).toBeNull();
+  // Hidden by CSS on other rows, so moving the selection renders less.
+  const isShown = (option: typeof first) =>
+    (enterHint(option)?.getClientRects().length ?? 0) > 0;
+  expect(isShown(second)).toBe(false);
+  await userEvent.keyboard('{ArrowDown}');
+  await expect.element(second!).toHaveAttribute('aria-selected', 'true');
+  expect(isShown(first)).toBe(false);
+  expect(isShown(second)).toBe(true);
 });
 
 it('keeps native link behavior for modified clicks', async () => {

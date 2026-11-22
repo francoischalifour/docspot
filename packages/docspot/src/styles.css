@@ -791,6 +791,10 @@
   color: var(--docspot-foreground);
 }
 
+.docspot-result:not([aria-selected='true']) .docspot-result-enter {
+  display: none;
+}
+
 .docspot-result-title {
   grid-column: 2;
   grid-row: 1;

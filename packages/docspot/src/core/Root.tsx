@@ -156,6 +156,10 @@ export function useDocspotInternal(component: string) {
   return state;
 }
 
+// Defaults keep their identity, so memoized parts skip rendering.
+const noSlots: DocspotSlots = {};
+const noEntries: never[] = [];
+
 const defaultNavigate: DocspotNavigate = url => window.location.assign(url);
 
 function warnMissing(capability: string, method: string) {
@@ -232,9 +236,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     canChat,
     currentPage,
     prompts: context?.prompts ?? [],
-    defaultItems: defaultItems ?? [],
-    handoffs: handoffs ?? [],
-    items: items ?? [],
+    defaultItems: defaultItems ?? noEntries,
+    handoffs: handoffs ?? noEntries,
+    items: items ?? noEntries,
     navigate: navigate ?? defaultNavigate,
     toSiteUrl: url => new URL(url, siteUrl ?? window.location.href).href,
     toInternalUrl(url) {
@@ -251,7 +255,7 @@ export function DocspotRoot(props: DocspotRootProps) {
         return null;
       }
     },
-    slots: slots ?? {},
+    slots: slots ?? noSlots,
     messages,
     emit,
     stores,

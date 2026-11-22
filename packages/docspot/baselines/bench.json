@@ -5,11 +5,11 @@
   },
   "search: type a query over 30 results": {
     "commits": 72,
-    "renders": 8953
+    "renders": 4088
   },
   "search: arrow through 20 results": {
     "commits": 40,
-    "renders": 5060
+    "renders": 560
   },
   "chat: type 20 characters after 8 answers": {
     "commits": 20,
