@@ -615,6 +615,8 @@ it('renders tool calls with their renderers, and continues once the reader answe
   await expect
     .element(answers().first().getByText('Looking up the option'))
     .toBeVisible();
+  // The renderer shows the tool's progress, so the generic line doesn't.
+  expect(panel().element().textContent).not.toContain('Thinking');
   await expect
     .element(answers().first().getByText('port defaults to 3000'))
     .toBeVisible();

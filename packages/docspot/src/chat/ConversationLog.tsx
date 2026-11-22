@@ -64,7 +64,7 @@ export function ConversationLog() {
             </div>
           );
         })}
-        {busy && !conversation.hasVisibleAnswer && (
+        {conversation.showsProgress && (
           <div role="status" className="docspot-chat-progress">
             <Shimmer>{conversation.progress}</Shimmer>
           </div>

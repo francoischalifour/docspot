@@ -4,6 +4,7 @@ import { type MouseEvent, useCallback, useLayoutEffect, useRef } from 'react';
 import { isSamePage } from '@/core/url';
 import type { ConversationProps } from '@/chat/contract';
 import { getAnswerProgress, getMessageText } from '@/chat/messages';
+import { isRenderedToolRunning } from '@/chat/tools';
 import {
   type Session,
   ask as askSession,
@@ -104,6 +105,17 @@ export function useConversation(props: ConversationProps) {
     hasVisibleAnswer,
     /** What the agent is doing before its answer text arrives. */
     progress: getAnswerProgress(lastMessage, messages),
+    /**
+     * Whether to show progress: while an answer has no text yet, unless a
+     * tool's renderer shows its own.
+     */
+    showsProgress:
+      busy &&
+      !hasVisibleAnswer &&
+      !(
+        lastMessage?.role === 'assistant' &&
+        isRenderedToolRunning(lastMessage.parts, props.tools)
+      ),
     pageSuggestions,
     current: toConversation(chat.id, chatMessages),
     navigate,

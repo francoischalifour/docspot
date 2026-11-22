@@ -61,6 +61,22 @@ export function getToolName(part: { type: string; toolName?: unknown }) {
   return part.type.startsWith('tool-') ? part.type.slice(5) : undefined;
 }
 
+const RUNNING_STATES = new Set<DocspotToolState>([
+  'input-streaming',
+  'input-available',
+  'approval-requested',
+]);
+
+/** Whether a rendered tool call is still running, showing its own progress. */
+export function isRenderedToolRunning(
+  parts: ReadonlyArray<{ type: string }>,
+  tools: DocspotTools
+) {
+  return getRenderedToolCalls(parts, tools).some(call =>
+    RUNNING_STATES.has(call.state)
+  );
+}
+
 /** The tool calls in a message that have a renderer, in order. */
 export function getRenderedToolCalls(
   parts: ReadonlyArray<{ type: string }>,
