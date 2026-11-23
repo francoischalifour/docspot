@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { type ComponentProps, Suspense, lazy } from 'react';
 
 import {
   type SearchController,
@@ -13,8 +13,18 @@ const LazySearchDialog = /* @__PURE__ */ lazy(() =>
     .then(module => ({ default: module.SearchDialogFrame }))
 );
 
+/**
+ * `<dialog>` props, including `ref`, except its content and `open`, which
+ * Docspot owns. Handlers run before Docspot's; calling `preventDefault`
+ * skips Docspot's.
+ */
+export type SearchDialogProps = Omit<
+  ComponentProps<'dialog'>,
+  'open' | 'children'
+>;
+
 /** The search dialog, rendered while search is open. */
-export function SearchDialog() {
+export function SearchDialog(props: SearchDialogProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchDialog');
   if (!config.canSearch || !search.isOpen) return null;
   // Once preloaded, the dialog renders in the same frame; lazy would wait one.
@@ -22,7 +32,7 @@ export function SearchDialog() {
     searchDialogFrameLoader.get()?.SearchDialogFrame ?? LazySearchDialog;
   return (
     <Suspense fallback={<TypedQuery search={search} />}>
-      <Dialog />
+      <Dialog {...props} />
     </Suspense>
   );
 }

@@ -3,7 +3,7 @@
 ## Principles
 
 - **Boundaries stay clear.** Each entry point in [`package.json`](packages/docspot/package.json) loads only its own code and peer dependencies. Search-only pages never load chat, and chat-only pages never load search. `check:package` enforces this.
-- **Primitives compose.** `<Docspot>` is `<Docspot.Root>` with default surfaces. Everything it does is possible with the parts, `useDocspot()`, slots, and props. Parts accept the props of the element they render and pass consumer refs and handlers through.
+- **Primitives compose.** `<Docspot>` is `<Docspot.Root>` with default surfaces. Everything it does is possible with the parts, `useDocspot()`, slots, and props. Parts accept the props of the element they render and merge them with `mergeProps`: classes join, styles merge, refs both receive the element, and consumer handlers run first, skipping Docspot's after `preventDefault()`. `test/parts.test.tsx` lists every part and checks this, so a new part fails to type-check until it is added there.
 - **The interface is the contract.** Variables, the stable selectors listed in the README, and the public types are the API. Other class names are internal.
 - **Accessible by default.** Every surface works with the keyboard and a screen reader, respects reduced motion and forced colors, and fits a phone. Tests query by role and accessible name.
 - **Every change reports its cost.** Bundle sizes and render counts are measured against recorded baselines. Raising one is a decision, not a fix.
@@ -53,7 +53,7 @@ To record an intended change, run `bun run --filter docspot size --update` or `b
 
 ## Write
 
-- Interface text lives in `packages/docspot/src/messages.ts`. Keep it short, in sentence case, with typographic quotes and apostrophes.
+- Interface text lives in `packages/docspot/src/locale`, written first in `en.ts`. Keep it short, in sentence case, with typographic quotes and apostrophes. Add a key to every locale: their types require it. Write the assistant's name as `{assistant}` wherever the text shows it.
 - Use the shared `Shimmer` component for visible text that describes work in progress. Write a short label such as “Opening chat” or “Searching” without a trailing ellipsis. Wrap only the label, so hints, errors, and retry actions stay still. Keep live-region semantics on the surrounding status. Screen-reader-only announcements use plain text. `Shimmer` shows static text when reduced motion or forced colors are active.
 - Change the public API, its README section, and its examples together.
 

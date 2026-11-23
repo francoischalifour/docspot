@@ -21,7 +21,7 @@ import { CloseIcon } from '@/ui/icons';
 import { SlotIcon } from '@/ui/SlotIcon';
 import { IconButton } from '@/ui/IconButton';
 import { Shimmer } from '@/ui/Shimmer';
-import { cx } from '@/ui/cx';
+import { mergeProps } from '@/ui/renderElement';
 
 import {
   PANEL_SLIDE_EASING,
@@ -42,7 +42,7 @@ const SETTLE_DURATION_MS = 200;
 const HIDE_DURATION_MS = 150;
 
 /** The chat panel, loaded with chat: its frame, resizing, and startup state. */
-export function ChatPanelFrame({ dock = 'fixed', className }: ChatPanelProps) {
+export function ChatPanelFrame({ dock = 'fixed', ...props }: ChatPanelProps) {
   const { config, search, chat } = useDocspotInternal('Docspot.ChatPanel');
   const { messages, canSearch } = config;
   const { isOpen, runtime, session } = chat;
@@ -131,43 +131,49 @@ export function ChatPanelFrame({ dock = 'fixed', className }: ChatPanelProps) {
 
   return (
     <aside
+      {...mergeProps<ChatPanelProps>(
+        {
+          ref: setElement,
+          'aria-label': messages.chat.title,
+          className: 'docspot-chat',
+          // Global shortcuts pause while typing, so the panel handles its own.
+          onKeyDown: event => {
+            // Menus may render elsewhere but still bubble through React.
+            if (
+              event.defaultPrevented ||
+              event.nativeEvent.isComposing ||
+              !event.currentTarget.contains(event.target as Node)
+            )
+              return;
+            if (event.key === 'Escape') chat.close();
+            else if (canSearch && isCommandKey(event, 'k')) {
+              if (!event.repeat) search.open();
+            } else if (isCommandKey(event, 'j')) {
+              if (!event.repeat) chat.close();
+            } else return;
+            event.preventDefault();
+            event.stopPropagation();
+          },
+        },
+        props
+      )}
       id={config.chatPanelId}
-      ref={setElement}
       data-docspot-chat=""
       data-dock={dock}
       data-open={isOpen || undefined}
       data-resizing={resize !== null || undefined}
       data-sliding-out={gesture.status === 'hiding' || undefined}
-      aria-label={messages.chat.title}
-      className={cx('docspot-chat', className)}
       // Past its minimum width, the panel follows the pointer out.
       style={
         overshoot
           ? ({
+              ...props.style,
               ...getPanelOffsetStyle(toward * overshoot),
               '--docspot-chat-content-opacity':
                 getPanelContentOpacity(overshoot),
             } as CSSProperties)
-          : undefined
+          : props.style
       }
-      // Global shortcuts pause while typing, so the panel handles its own.
-      onKeyDown={event => {
-        // Menus may render elsewhere but still bubble through React.
-        if (
-          event.defaultPrevented ||
-          event.nativeEvent.isComposing ||
-          !event.currentTarget.contains(event.target as Node)
-        )
-          return;
-        if (event.key === 'Escape') chat.close();
-        else if (canSearch && isCommandKey(event, 'k')) {
-          if (!event.repeat) search.open();
-        } else if (isCommandKey(event, 'j')) {
-          if (!event.repeat) chat.close();
-        } else return;
-        event.preventDefault();
-        event.stopPropagation();
-      }}
     >
       <ResizeHandle width={width} onGesture={dispatchGesture} />
       {isOpen && !session && (

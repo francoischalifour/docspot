@@ -6,7 +6,7 @@ import type {
   RefObject,
 } from 'react';
 
-import type { DocspotMessagesInput } from '@/messages';
+import type { DocspotLocale, DocspotMessagesInput } from '@/messages';
 import type { recentItems } from '@/search/items';
 
 /** A run of text, marked when it matched the query. */
@@ -399,6 +399,12 @@ type DocspotSharedProps = {
   /** Called when Docspot asks to open or close chat. */
   onChatOpenChange?: (open: boolean) => void;
   slots?: DocspotSlots;
+  /**
+   * The interface's language, from `docspot/locale` or your own. Defaults
+   * to English.
+   */
+  locale?: DocspotLocale;
+  /** Replaces any of the locale's text, such as `assistant`. */
   messages?: DocspotMessagesInput;
   onEvent?: (event: DocspotEvent) => void;
   children?: ReactNode;

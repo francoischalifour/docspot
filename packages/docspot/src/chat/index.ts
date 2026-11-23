@@ -6,6 +6,5 @@ export type {
   DocspotToolState,
   DocspotTools,
 } from '@/chat/tools';
-export { CONTEXT_FIELD } from '@/chat/contract';
 export type { DocspotRequestContext } from '@/chat/contract';
 export type { DocspotQuestionMetadata } from '@/chat/session';

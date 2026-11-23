@@ -22,6 +22,7 @@ const forbidden = {
   'algolia-chat.js': providerDependencies,
   'minisearch.js': providerDependencies,
   'handoffs.js': optionalFeatures,
+  'locale.js': providerDependencies,
 };
 
 const transpiler = new Bun.Transpiler({ loader: 'js' });
