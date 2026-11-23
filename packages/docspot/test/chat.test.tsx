@@ -507,6 +507,29 @@ it('opens sources on this site in place and others in a new tab', async () => {
   );
 });
 
+it('covers the page on a phone until the page a source opens shows', async () => {
+  await page.viewport(390, 800);
+  try {
+    const { chat } = createChatServer(() => ({
+      text: 'See the guide.',
+      sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
+    }));
+    const navigations: Array<() => void> = [];
+    const navigate = () =>
+      new Promise<void>(resolve => navigations.push(resolve));
+    await render(<Docspot chat={chat} navigate={navigate} />);
+    await openChat();
+    await userEvent.keyboard('Where is zoom?{Enter}');
+    await answers().getByRole('link', { name: 'Zoom guide' }).click();
+    // The full-screen panel stays over the page being left.
+    await expect.element(panel()).toBeVisible();
+    navigations[0]?.();
+    await expect.element(panel()).not.toBeInTheDocument();
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
+
 it('offers to jump only when more of the answer is below', async () => {
   const { chat } = createChatServer(() => ({
     chunks: ['A short answer.', ' It fits.'],

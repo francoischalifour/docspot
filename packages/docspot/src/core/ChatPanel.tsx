@@ -1,7 +1,12 @@
 import { Suspense, lazy } from 'react';
 
-import { chatFrameLoader, useDocspotInternal } from '@/core/context';
+import {
+  type ChatController,
+  chatFrameLoader,
+  useDocspotInternal,
+} from '@/core/context';
 import { ChatLauncher } from '@/core/ChatLauncher';
+import { useTypedText } from '@/core/platform';
 
 const LazyChatPanelFrame = /* @__PURE__ */ lazy(() =>
   chatFrameLoader.load().then(module => ({ default: module.ChatPanelFrame }))
@@ -28,9 +33,16 @@ export function ChatPanel({ launcher = true, ...props }: ChatPanelProps) {
   return (
     <>
       {launcher && <ChatLauncher hidden={chat.isOpen} />}
+      {chat.keepsTyping && <TypedDraft chat={chat} />}
       <Suspense>
         <Frame {...props} />
       </Suspense>
     </>
   );
+}
+
+/** Keeps what is typed while chat starts, for the composer it opens with. */
+function TypedDraft({ chat }: { chat: ChatController }) {
+  useTypedText(chat.draft, chat.setDraft, chat.close);
+  return null;
 }

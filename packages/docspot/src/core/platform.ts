@@ -179,6 +179,37 @@ export function useVisualViewport(element: HTMLElement | null) {
   }, [element]);
 }
 
+/**
+ * Keeps what is typed while a field is still loading: printable keys and
+ * Backspace edit `text`, starting from its value on mount, and Escape
+ * calls `onEscape`.
+ */
+export function useTypedText(
+  text: string,
+  onText: (text: string) => void,
+  onEscape: () => void
+) {
+  useLayoutEffect(() => {
+    let typed = text;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onEscape();
+        return;
+      }
+      if (event.key === 'Backspace') typed = typed.slice(0, -1);
+      else if (event.key.length === 1) typed += event.key;
+      else return;
+      event.preventDefault();
+      onText(typed);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+}
+
 /** Deduplicates a module import and remembers its result once loaded. */
 export function createModuleLoader<T>(load: () => Promise<T>) {
   let promise: Promise<T> | undefined;

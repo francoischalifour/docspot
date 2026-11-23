@@ -5,16 +5,16 @@
       "lazy": 0
     },
     "search": {
-      "eager": 10406,
-      "lazy": 10817
+      "eager": 10504,
+      "lazy": 10858
     },
     "chat": {
-      "eager": 10942,
-      "lazy": 17935
+      "eager": 11038,
+      "lazy": 17989
     },
     "search and chat": {
-      "eager": 11226,
-      "lazy": 17935
+      "eager": 11319,
+      "lazy": 17989
     },
     "docspot/algolia": {
       "eager": 2290,
