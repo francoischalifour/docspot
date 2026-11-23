@@ -125,6 +125,45 @@ it('runs an action on click, with actions its only matches, in a group of its ow
   await expect.element(searchDialog()).not.toBeInTheDocument();
 });
 
+it('runs an action and keeps search open with its query, with the modifier key', async () => {
+  const { list, runs } = commands();
+  await render(
+    <Docspot
+      search={search}
+      items={list}
+      slots={{ preview: () => <p>Page preview</p> }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('map');
+  const map = page.getByRole('option', { name: 'Map' });
+  await expect.element(map).toBeVisible();
+
+  // As a link opens in a new tab: the action runs, and search stays.
+  await userEvent.keyboard(`{${modifier}>}`);
+  await map.click();
+  await userEvent.keyboard(`{/${modifier}}`);
+  expect(runs.map).toHaveBeenCalledOnce();
+  await expect.element(searchInput()).toHaveValue('map');
+  await expect.element(searchInput()).toHaveFocus();
+
+  await userEvent.keyboard(`{${modifier}>}{Enter}{/${modifier}}`);
+  expect(runs.map).toHaveBeenCalledTimes(2);
+  await expect.element(searchInput()).toHaveValue('map');
+
+  const preview = page.getByRole('region', { name: 'Result preview' });
+  await userEvent.keyboard(`{${modifier}>}`);
+  await preview.getByRole('button', { name: 'Run' }).click();
+  await userEvent.keyboard(`{/${modifier}}`);
+  expect(runs.map).toHaveBeenCalledTimes(3);
+  await expect.element(searchInput()).toHaveValue('map');
+
+  // Without it, the action closes search.
+  await userEvent.keyboard('{Enter}');
+  expect(runs.map).toHaveBeenCalledTimes(4);
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+});
+
 it('shows a shortcut beside its item, drawn by the shortcut slot when given', async () => {
   const { list } = commands();
   const screen = await render(<Docspot search={search} items={list} />);

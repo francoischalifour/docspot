@@ -252,3 +252,14 @@ function localize(
   const action = toLocalUrl(entry.action);
   return action === entry.action ? entry : { ...entry, action };
 }
+
+/**
+ * How an option is chosen. With ⌘ or Ctrl, an action runs and search stays
+ * open with its query, as a link opens in a new tab.
+ */
+export type SelectOptions = { keepOpen?: boolean };
+
+/** Whether a click or Enter asks to stay, with ⌘ or Ctrl. */
+export function keepsOpen(event: { metaKey: boolean; ctrlKey: boolean }) {
+  return event.metaKey || event.ctrlKey;
+}
