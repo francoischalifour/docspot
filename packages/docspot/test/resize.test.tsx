@@ -86,6 +86,20 @@ it('resizes by dragging, and hides when dragged far past its minimum', async () 
     .toHaveAttribute('aria-expanded', 'false');
 });
 
+it('keeps the latest width when a drag interrupts settling', async () => {
+  await openDockedChat();
+  await commands.dragBy('separator', 'Resize Ask AI', 81, { steps: 1 });
+  await commands.dragBy('separator', 'Resize Ask AI', -80, { steps: 1 });
+  await Promise.all(
+    panel()
+      .element()
+      .getAnimations()
+      .map(animation => animation.finished.catch(() => {}))
+  );
+  await expect.element(handle()).toHaveAttribute('aria-valuenow', '400');
+  expect(chatWidth()).toBe('400px');
+});
+
 it('docks on the left and mirrors resizing in right-to-left pages', async () => {
   document.documentElement.dir = 'rtl';
   try {

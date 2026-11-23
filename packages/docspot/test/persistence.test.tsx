@@ -184,6 +184,27 @@ it('refreshes when another tab changes history', async () => {
     .toBeVisible();
 });
 
+it('ignores session storage events when syncing persisted history', async () => {
+  await render(<Docspot search={search} navigate={() => {}} history />);
+  await visit('HTTP API');
+  await openSearch();
+  localStorage.removeItem('docspot:recent-pages');
+  dispatchEvent(
+    new StorageEvent('storage', {
+      key: 'docspot:recent-pages',
+      storageArea: sessionStorage,
+    })
+  );
+  await userEvent.fill(searchInput(), 'http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  await userEvent.fill(searchInput(), '');
+  await expect
+    .element(recent().getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+});
+
 it('updates the open conversation menu when another tab saves a chat', async () => {
   const { chat } = createChatServer(() => ({ text: 'Answer' }));
   await render(<Docspot chat={chat} history />);

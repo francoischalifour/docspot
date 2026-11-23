@@ -119,6 +119,7 @@ function createStore<T>({
   }
 
   function onStorage(event: StorageEvent) {
+    if (event.storageArea && event.storageArea !== getStorage()) return;
     if (event.key !== key && event.key !== null) return;
     value = read();
     notify();

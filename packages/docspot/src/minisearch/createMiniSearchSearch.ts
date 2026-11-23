@@ -3,12 +3,7 @@ import type { SearchResult } from 'minisearch';
 
 import { createSearch } from '@/search/createSearch';
 import { highlightTerms } from '@/search/model';
-import {
-  COMBINING_MARKS,
-  WORD,
-  cachedRegExp,
-  escapeRegExp,
-} from '@/search/text';
+import { COMBINING_MARKS, WORD } from '@/search/text';
 import type { DocspotResult, DocspotSearch } from '@/types';
 
 /** What a MiniSearch document becomes in results: a page. */
@@ -68,11 +63,12 @@ function createExcerpt(text: string, terms: string[], maxLength = 180) {
     }
   }
   if (best.length <= maxLength) return best;
-  const position = terms.length
-    ? best
-        .toLowerCase()
-        .search(cachedRegExp(terms.map(escapeRegExp).join('|'), 'u'))
-    : 0;
+  let position = 0;
+  for (const segment of highlightTerms(best, terms)) {
+    if (segment.highlighted) break;
+    position += segment.text.length;
+  }
+  if (position === best.length) position = 0;
   const offset = Math.max(0, position - Math.floor(maxLength / 3));
   const start = offset ? best.lastIndexOf(' ', offset) + 1 : 0;
   const end = best.lastIndexOf(' ', start + maxLength - 3);

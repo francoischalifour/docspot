@@ -28,6 +28,30 @@ async function openChat() {
   await expect.element(composer()).toHaveFocus();
 }
 
+it('loads chat only on opening when automatic preload is disabled', async () => {
+  const { transport } = createChatServer(() => ({ text: 'Hi.' }));
+  let loads = 0;
+  const chat = createChat({
+    transport: async () => {
+      loads += 1;
+      return transport;
+    },
+  });
+  await render(
+    <Docspot.Root chat={chat} preload={false}>
+      <Docspot.ChatPanel />
+    </Docspot.Root>
+  );
+  const launcher = page.getByRole('button', { name: 'Ask AI' });
+  await launcher.hover();
+  await userEvent.keyboard('{Tab}');
+  await expect.element(launcher).toHaveFocus();
+  expect(loads).toBe(0);
+  await launcher.click();
+  await expect.element(composer()).toHaveFocus();
+  expect(loads).toBe(1);
+});
+
 it('works without search: prompts, page context, streaming Markdown, and sources', async () => {
   const { chat, requests } = createChatServer(() => ({
     chunks: ['Call **zoom', '()** on the image.'],
@@ -516,6 +540,36 @@ it('opens sources on this site in place and others in a new tab', async () => {
     expect.objectContaining({ event: expect.anything() })
   );
 });
+
+it.each([390, 1440])(
+  'keeps chat usable when a source fails at %i px',
+  async width => {
+    await page.viewport(width, 900);
+    try {
+      const { chat } = createChatServer(() => ({
+        text: 'See the guide.',
+        sources: [{ url: '/docs/guide', title: 'Guide' }],
+      }));
+      await render(
+        <Docspot
+          chat={chat}
+          navigate={async () => {
+            throw new Error('Navigation failed');
+          }}
+        />
+      );
+      await openChat();
+      await userEvent.keyboard('Where is the guide?{Enter}');
+      await answers().getByRole('link', { name: 'Guide', exact: true }).click();
+      await expect.element(panel()).toBeVisible();
+      await composer().click();
+      await userEvent.keyboard('Another question');
+      await expect.element(composer()).toHaveValue('Another question');
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  }
+);
 
 it('keeps the draft when starting a new chat', async () => {
   const { chat } = createChatServer(question => ({

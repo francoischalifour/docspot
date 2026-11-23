@@ -99,6 +99,50 @@ it('stays closed when closed while a navigation is pending', async () => {
   await expect.element(searchDialog()).not.toHaveAttribute('aria-busy');
 });
 
+it('keeps search usable when navigation fails', async () => {
+  let attempts = 0;
+  await render(
+    <Docspot
+      search={() => results}
+      navigate={async () => {
+        if (++attempts === 1) throw new Error('Navigation failed');
+      }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('http{Enter}');
+  await expect.element(searchDialog()).toBeVisible();
+  await expect.element(searchDialog()).not.toHaveAttribute('aria-busy');
+  await expect.element(searchInput()).toHaveValue('http');
+  await userEvent.keyboard('{Enter}');
+  await expect.element(searchDialog()).not.toBeInTheDocument();
+  expect(attempts).toBe(2);
+});
+
+it('aborts an early search when its root unmounts', async () => {
+  const signals: AbortSignal[] = [];
+  function OpenSearch() {
+    const { openSearch } = useDocspot();
+    return <button onClick={() => openSearch('http')}>Find HTTP</button>;
+  }
+  const screen = await render(
+    <Docspot.Root
+      search={({ signal }) => {
+        signals.push(signal);
+        return new Promise(() => {});
+      }}
+      preload={false}
+    >
+      <OpenSearch />
+    </Docspot.Root>
+  );
+  await page.getByRole('button', { name: 'Find HTTP' }).click();
+  expect(signals).toHaveLength(1);
+  expect(signals[0]?.aborted).toBe(false);
+  await screen.unmount();
+  expect(signals[0]?.aborted).toBe(true);
+});
+
 it('is ready again when the page it left comes back from memory', async () => {
   const navigate = () => new Promise<void>(() => {});
   await render(<Docspot search={() => results} navigate={navigate} />);
