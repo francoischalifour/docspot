@@ -1,3 +1,4 @@
+import { pluralize } from '@/locale/plural';
 import type { DocspotLocale } from '@/messages';
 
 // Guillemets take a narrow no-break space inside, and `:`, `?`, and `!` one
@@ -42,7 +43,8 @@ export const fr: DocspotLocale = {
       toClose: 'pour fermer',
       toNavigate: 'pour naviguer',
       toOpen: 'pour ouvrir',
-      resultCount: count => `${count} ${count <= 1 ? 'résultat' : 'résultats'}`,
+      resultCount: (count: number): string =>
+        `${count} ${pluralize(count, { one: 'résultat', other: 'résultats' }, 'fr')}`,
       searching: 'Recherche',
       opening: 'Ouverture de la page',
       unavailable: 'Recherche indisponible',

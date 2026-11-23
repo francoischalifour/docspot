@@ -2,16 +2,24 @@ import { expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot } from '@/index';
-import * as locales from '@/locale';
+import { Docspot, type DocspotLocale } from '@/index';
+import * as entry from '@/locale';
+import { pluralize } from '@/locale';
 import { createChatServer, results } from '@test/fixtures';
+
+/** Every locale `docspot/locale` exports, by name, without its helpers. */
+const locales = Object.fromEntries(
+  Object.entries(entry).filter(
+    (pair): pair is [string, DocspotLocale] => typeof pair[1] === 'object'
+  )
+);
 
 const panel = (name: string) => page.getByRole('complementary', { name });
 
 it('shows the interface in the locale’s language', async () => {
   const { chat } = createChatServer(() => ({ text: 'Réponse.' }));
   await render(
-    <Docspot search={() => results} chat={chat} locale={locales.fr} />
+    <Docspot search={() => results} chat={chat} locale={entry.fr} />
   );
   await page.getByRole('button', { name: 'Rechercher ou demander' }).click();
   const dialog = page.getByRole('dialog', {
@@ -48,7 +56,7 @@ it('applies the site’s text over a locale, keeping the rest of it', async () =
   await render(
     <Docspot
       chat={chat}
-      locale={locales.fr}
+      locale={entry.fr}
       messages={{ assistant: 'Kapa', chat: { newChat: 'Nouveau fil' } }}
     />
   );
@@ -66,7 +74,7 @@ it('applies the site’s text over a locale, keeping the rest of it', async () =
 
 it('formats times in the locale’s language', async () => {
   const { chat } = createChatServer(() => ({ text: 'Réponse.' }));
-  await render(<Docspot chat={chat} locale={locales.fr} />);
+  await render(<Docspot chat={chat} locale={entry.fr} />);
   await page.getByRole('button', { name: 'Demander à l’IA' }).click();
   await userEvent.keyboard('Bonjour{Enter}');
   const chatPanel = panel('Demander à l’IA');
@@ -80,6 +88,43 @@ it('formats times in the locale’s language', async () => {
 });
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
+
+it('counts results with the locale’s plural rules', async () => {
+  await render(
+    <Docspot
+      search={({ query }) => results.slice(0, query.length - 1)}
+      locale={entry.fr}
+    />
+  );
+  await page.getByRole('button', { name: 'Rechercher dans la doc' }).click();
+  const status = page
+    .getByRole('dialog')
+    .getByRole('status')
+    .filter({ hasText: 'résultat' });
+  // French counts 0 and 1 in the singular.
+  await userEvent.keyboard('ab');
+  await expect.element(status).toHaveTextContent('1 résultat');
+  await userEvent.keyboard('c');
+  await expect.element(status).toHaveTextContent('2 résultats');
+});
+
+it('picks each plural category a language has, else `other`', () => {
+  const polish = {
+    one: 'wynik',
+    few: 'wyniki',
+    many: 'wyników',
+    other: 'wyniku',
+  };
+  expect(pluralize(1, polish, 'pl')).toBe('wynik');
+  expect(pluralize(3, polish, 'pl')).toBe('wyniki');
+  expect(pluralize(5, polish, 'pl')).toBe('wyników');
+  expect(pluralize(1.5, polish, 'pl')).toBe('wyniku');
+  expect(pluralize(0, { one: 'page', other: 'pages' }, 'en')).toBe('pages');
+  expect(pluralize(0, { one: 'page', other: 'pages' }, 'fr')).toBe('page');
+  // Arabic has a form for two; without one, `other` is used.
+  expect(pluralize(2, { two: 'صفحتان', other: 'صفحات' }, 'ar')).toBe('صفحتان');
+  expect(pluralize(2, { other: 'صفحات' }, 'ar')).toBe('صفحات');
+});
 
 it.each(Object.entries(locales))(
   'fills every placeholder in %s',

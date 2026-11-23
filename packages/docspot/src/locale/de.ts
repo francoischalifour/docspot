@@ -1,3 +1,4 @@
+import { pluralize } from '@/locale/plural';
 import type { DocspotLocale } from '@/messages';
 
 const quote = (text: string) => `„${text}“`;
@@ -40,8 +41,8 @@ export const de: DocspotLocale = {
       toClose: 'zum Schließen',
       toNavigate: 'zum Navigieren',
       toOpen: 'zum Öffnen',
-      resultCount: count =>
-        `${count} ${count === 1 ? 'Ergebnis' : 'Ergebnisse'}`,
+      resultCount: (count: number): string =>
+        `${count} ${pluralize(count, { one: 'Ergebnis', other: 'Ergebnisse' }, 'de')}`,
       searching: 'Suche läuft',
       opening: 'Seite wird geöffnet',
       unavailable: 'Suche nicht verfügbar',

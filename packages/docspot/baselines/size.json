@@ -5,15 +5,15 @@
       "lazy": 0
     },
     "search": {
-      "eager": 10747,
-      "lazy": 11913
+      "eager": 10827,
+      "lazy": 11912
     },
     "chat": {
-      "eager": 11498,
+      "eager": 11583,
       "lazy": 19401
     },
     "search and chat": {
-      "eager": 11801,
+      "eager": 11880,
       "lazy": 19406
     },
     "docspot/algolia": {
@@ -33,7 +33,7 @@
       "lazy": 0
     },
     "docspot/locale, one locale": {
-      "eager": 1611,
+      "eager": 1722,
       "lazy": 0
     }
   },
