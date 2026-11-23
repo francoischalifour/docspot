@@ -25,6 +25,7 @@ export default defineConfig({
       'react-dom',
       'react/jsx-runtime',
       'vitest-browser-react',
+      'axe-core',
     ],
   },
   test: {
