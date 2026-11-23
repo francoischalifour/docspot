@@ -35,10 +35,14 @@ export function SearchTrigger({
   onClick,
   onFocus,
   onPointerEnter,
+  onPointerDown,
   ...props
 }: SearchTriggerProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchTrigger');
   if (!config.canSearch) return null;
+  const preload = () => {
+    if (config.preload) search.preload();
+  };
   const label = config.canChat
     ? config.messages.trigger.searchAndAsk
     : config.messages.trigger.search;
@@ -52,8 +56,10 @@ export function SearchTrigger({
       // Focus returns to a visible trigger when search closes.
       ref: mergeRefs(ref, search.registerTrigger),
       className: cx('docspot-trigger', className),
-      onPointerEnter: composeHandlers(search.preload, onPointerEnter),
-      onFocus: composeHandlers(search.preload, onFocus),
+      onPointerEnter: composeHandlers(preload, onPointerEnter),
+      // Touch has no hover; a press comes before its click.
+      onPointerDown: composeHandlers(preload, onPointerDown),
+      onFocus: composeHandlers(preload, onFocus),
       onClick: event => {
         onClick?.(event);
         if (!event.defaultPrevented) search.open(event.currentTarget);

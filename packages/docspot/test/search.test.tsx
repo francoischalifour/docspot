@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotResult, createSearch } from '@/index';
+import { Docspot, type DocspotResult, createSearch, useDocspot } from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
 import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
@@ -678,9 +678,56 @@ it('warms search when a reader shows intent to search', async () => {
   await render(<Docspot search={search} />);
   await page.getByRole('button', { name: 'Search docs' }).hover();
   expect(preload).toHaveBeenCalledTimes(1);
-  await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
-  await expect.element(searchInput()).toHaveFocus();
+  // The shortcut's modifier comes first, then opening runs it again.
+  await userEvent.keyboard(`{${modifier}>}`);
   expect(preload).toHaveBeenCalledTimes(2);
+  await userEvent.keyboard(`k{/${modifier}}`);
+  await expect.element(searchInput()).toHaveFocus();
+  expect(preload).toHaveBeenCalledTimes(3);
+});
+
+it('warms search only when asked to, without preload', async () => {
+  const preload = vi.fn();
+  const search = createSearch(() => results, { preload });
+  function CustomTrigger() {
+    const { preloadSearch, openSearch } = useDocspot();
+    return (
+      <button
+        type="button"
+        onPointerEnter={preloadSearch}
+        onClick={() => openSearch()}
+      >
+        Find
+      </button>
+    );
+  }
+  await render(
+    <Docspot.Root search={search} preload={false}>
+      <Docspot.SearchTrigger />
+      <CustomTrigger />
+      <Docspot.SearchDialog />
+    </Docspot.Root>
+  );
+  await page.getByRole('button', { name: 'Search docs' }).hover();
+  await userEvent.keyboard(`{${modifier}}`);
+  expect(preload).not.toHaveBeenCalled();
+
+  await page.getByRole('button', { name: 'Find' }).hover();
+  expect(preload).toHaveBeenCalledTimes(1);
+});
+
+it('searches for the query search opens with once, while the dialog loads', async () => {
+  const search = vi.fn(() => results);
+  history.replaceState(null, '', '/?q=http');
+  await render(<Docspot search={search} syncUrl />);
+  await expect.element(searchInput()).toHaveValue('http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  expect(search).toHaveBeenCalledTimes(1);
+  expect(search).toHaveBeenCalledWith(
+    expect.objectContaining({ query: 'http' })
+  );
 });
 
 it('keeps trigger behavior when consumers pass a ref and handlers', async () => {

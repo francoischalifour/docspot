@@ -25,10 +25,14 @@ export function ChatTrigger({
   onClick,
   onFocus,
   onPointerEnter,
+  onPointerDown,
   ...props
 }: ChatTriggerProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatTrigger');
   if (!config.canChat) return null;
+  const preload = () => {
+    if (config.preload) chat.preload();
+  };
   return renderElement(
     render,
     {
@@ -38,8 +42,10 @@ export function ChatTrigger({
       'aria-expanded': chat.isOpen,
       'aria-controls': config.chatPanelId,
       className: cx('docspot-trigger docspot-chat-trigger', className),
-      onPointerEnter: composeHandlers(chat.preload, onPointerEnter),
-      onFocus: composeHandlers(chat.preload, onFocus),
+      onPointerEnter: composeHandlers(preload, onPointerEnter),
+      // Touch has no hover; a press comes before its click.
+      onPointerDown: composeHandlers(preload, onPointerDown),
+      onFocus: composeHandlers(preload, onFocus),
       onClick: event => {
         onClick?.(event);
         if (!event.defaultPrevented) chat.toggle();

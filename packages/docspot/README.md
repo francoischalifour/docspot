@@ -207,6 +207,7 @@ Triggers accept button props, including `ref`, typed as `SearchTriggerProps`, `C
 | `submitQuestion(text, { page? })`           | Opens chat and sends a question, replacing any answer in progress |
 | `startConversation()`                       | Opens chat on a new conversation                                  |
 | `close()`                                   | Closes search and chat                                            |
+| `preloadSearch()`, `preloadChat()`          | Loads search or chat ahead of opening it, such as on hover        |
 
 `page` attaches a page to the question; `null` attaches none. Without it, the current page stays attached.
 
@@ -229,6 +230,7 @@ The methods keep their identity across renders, so they are safe in effect depen
 | `id`           | Scopes persisted history, for several instances on one origin                                                                        |
 | `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                              |
 | `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
+| `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                            |
 | `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                |
 | `query`        | Controls the search query, with `onQueryChange`                                                                                      |
 | `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                               |
@@ -690,9 +692,29 @@ syncUrl={{
 
 Docspot gets ready before it's needed, so the first open and the first query don't wait:
 
-- Once the page is idle, and when a trigger is hovered or focused, the search dialog and chat load, and the search function's `preload` runs. Opening search runs it too.
-- Once loaded, the dialog opens in the same frame.
+- Once the page is idle, the search dialog and chat load, and the search function's `preload` runs. A reader saving data or on a slow connection skips this.
+- They also load when a trigger is hovered, pressed, or focused, and when ⌘ or Ctrl is pressed before a shortcut. Opening search runs `preload` too.
+- Once loaded, the dialog opens in the same frame. Opened sooner, it keeps what is typed while it loads.
+- A query search opens with, from `?q=` or `openSearch(query)`, is searched while the dialog loads.
 - `createMiniSearchSearch` loads and builds its index on `preload`, and `createAlgoliaSearch` opens its connection. Algolia requests skip the CORS preflight.
+
+`preload={false}` turns this off, so search and chat load only when opened or when you call `preloadSearch()` and `preloadChat()` from `useDocspot()`, such as from your own trigger or a router's prefetch:
+
+```tsx
+function SearchButton() {
+  const { openSearch, preloadSearch } = useDocspot();
+  return (
+    <button onPointerEnter={preloadSearch} onClick={() => openSearch()}>
+      Search
+    </button>
+  );
+}
+
+<Docspot.Root search={search} preload={false}>
+  <SearchButton />
+  <Docspot.SearchDialog />
+</Docspot.Root>;
+```
 
 Give your own search a `preload` to do the same:
 

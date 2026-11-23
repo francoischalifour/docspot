@@ -94,13 +94,24 @@ export function isExternalUrl(url: string) {
   }
 }
 
+function isSavingData() {
+  const connection = (
+    navigator as { connection?: { saveData?: boolean; effectiveType?: string } }
+  ).connection;
+  return Boolean(
+    connection?.saveData || connection?.effectiveType?.endsWith('2g')
+  );
+}
+
 /**
  * Runs `preload` once the page has settled and the browser is idle, so
- * optional code doesn't compete with the first render.
+ * optional code doesn't compete with the first render. Skipped when the
+ * reader saves data or has a slow connection.
  */
 export function useIdlePreload(preload: (() => void) | undefined) {
   useEffect(() => {
-    if (!preload) return;
+    // A reader saving data loads search and chat only when about to use them.
+    if (!preload || isSavingData()) return;
     let cancelIdle: (() => void) | undefined;
     const timeout = setTimeout(() => {
       if (typeof requestIdleCallback === 'function') {

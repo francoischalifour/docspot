@@ -14,7 +14,7 @@ import { afterAll, expect, inject, it, vi } from 'vitest';
 import { commands, page, userEvent } from 'vitest/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotResult, createSearch } from '@/index';
+import { Docspot, type DocspotResult, createSearch, useDocspot } from '@/index';
 import { createChatServer } from '@test/fixtures';
 
 type Counts = { commits: number; renders: number };
@@ -143,6 +143,36 @@ it('search: open', async () => {
     async () => {
       await page.getByRole('button', { name: 'Search docs' }).click();
       await expect.element(searchInput()).toHaveFocus();
+    }
+  );
+});
+
+it('search: open with a query over 30 results', async () => {
+  function OpenWithQuery() {
+    const { openSearch } = useDocspot();
+    return (
+      <button type="button" onClick={() => openSearch('search words')}>
+        Open with a query
+      </button>
+    );
+  }
+  await workload(
+    'search: open with a query over 30 results',
+    async () => {
+      await render(
+        <Measured>
+          <Docspot.Root search={createSearch(() => manyResults)}>
+            <OpenWithQuery />
+            <Docspot.SearchDialog />
+          </Docspot.Root>
+        </Measured>
+      );
+    },
+    async () => {
+      await page.getByRole('button', { name: 'Open with a query' }).click();
+      await expect
+        .element(page.getByRole('option').nth(20))
+        .toBeInTheDocument();
     }
   );
 });
