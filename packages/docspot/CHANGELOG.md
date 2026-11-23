@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/francoischalifour/docspot/compare/0.2.0...0.3.0) (2026-11-23)
+
+
+### Features
+
+* open search faster and let integrators control preloading ([#22](https://github.com/francoischalifour/docspot/issues/22)) ([cb30d5d](https://github.com/francoischalifour/docspot/commit/cb30d5dfb7e8913e9ef38663c8e3f111ede01bc9))
+* **search:** keep search open until navigation settles ([#20](https://github.com/francoischalifour/docspot/issues/20)) ([08da5dc](https://github.com/francoischalifour/docspot/commit/08da5dc3210e1b29db8e9ab41f50a8f94c37d003))
+
+
+### Bug Fixes
+
+* follow client router links, keep inline URL adapters stable, and explain misuse ([#24](https://github.com/francoischalifour/docspot/issues/24)) ([1d2f37f](https://github.com/francoischalifour/docspot/commit/1d2f37f71343ef3fef0c80c76aa5dc9d2b0aa4d3))
+* keep input, focus, and place through chat startup and common interactions ([#23](https://github.com/francoischalifour/docspot/issues/23)) ([f733ba7](https://github.com/francoischalifour/docspot/commit/f733ba7417ac52ed1a946b8af2ada5eb85b10696))
+* open site results in place, mark stopped answers, keep switcher focus, and tighten types ([#25](https://github.com/francoischalifour/docspot/issues/25)) ([9e42408](https://github.com/francoischalifour/docspot/commit/9e42408c84727913d3b044eed351f161d802c198))
+
 ## [0.2.0](https://github.com/francoischalifour/docspot/compare/0.1.0...0.2.0) (2026-11-22)
 
 
