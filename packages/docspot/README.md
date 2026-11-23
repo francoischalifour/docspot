@@ -692,7 +692,7 @@ syncUrl={{
 
 Docspot gets ready before it's needed, so the first open and the first query don't wait:
 
-- Once the page is idle, the search dialog and chat load, and the search function's `preload` runs. A reader saving data or on a slow connection skips this.
+- Once the page has loaded and the browser is idle, the search dialog and chat load, and the search function's `preload` runs. A reader saving data or on a slow connection skips this.
 - They also load when a trigger is hovered, pressed, or focused, and when ⌘ or Ctrl is pressed before a shortcut. Opening search runs `preload` too.
 - Once loaded, the dialog opens in the same frame. Opened sooner, it keeps what is typed while it loads.
 - A query search opens with, from `?q=` or `openSearch(query)`, is searched while the dialog loads.

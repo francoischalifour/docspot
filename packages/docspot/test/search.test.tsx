@@ -13,6 +13,12 @@ const searchInput = () =>
 const searchDialog = () =>
   page.getByRole('dialog', { name: 'Search documentation' });
 
+/** Waits for the preload once the page is idle, then counts from zero. */
+async function idlePreload(preload: ReturnType<typeof vi.fn>) {
+  await vi.waitFor(() => expect(preload).toHaveBeenCalled());
+  preload.mockClear();
+}
+
 async function openSearch(name = 'Search docs') {
   await page.getByRole('button', { name }).click();
   await expect.element(searchInput()).toHaveFocus();
@@ -676,6 +682,7 @@ it('warms search when a reader shows intent to search', async () => {
   const preload = vi.fn();
   const search = createSearch(() => results, { preload });
   await render(<Docspot search={search} />);
+  await idlePreload(preload);
   await page.getByRole('button', { name: 'Search docs' }).hover();
   expect(preload).toHaveBeenCalledTimes(1);
   // The shortcut's modifier comes first, then opening runs it again.
@@ -684,6 +691,15 @@ it('warms search when a reader shows intent to search', async () => {
   await userEvent.keyboard(`k{/${modifier}}`);
   await expect.element(searchInput()).toHaveFocus();
   expect(preload).toHaveBeenCalledTimes(3);
+});
+
+it('warms search once the page has loaded and the browser is idle', async () => {
+  const preload = vi.fn();
+  await render(<Docspot search={createSearch(() => results, { preload })} />);
+  // Well before a fixed delay would have run it.
+  await vi.waitFor(() => expect(preload).toHaveBeenCalled(), {
+    timeout: 1_000,
+  });
 });
 
 it('warms search only when asked to, without preload', async () => {
@@ -748,6 +764,7 @@ it('keeps trigger behavior when consumers pass a ref and handlers', async () => 
   );
   const trigger = page.getByRole('button', { name: 'Search docs' });
   expect(ref.current).toBe(trigger.element());
+  await idlePreload(preload);
   await trigger.hover();
   expect(onPointerEnter).toHaveBeenCalledTimes(1);
   expect(preload).toHaveBeenCalledTimes(1);
