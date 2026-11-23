@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.0](https://github.com/francoischalifour/docspot/compare/0.3.0...0.4.0) (2026-11-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* `defaultMessages` is removed; import `en` from `docspot/locale` instead, and read its `messages`. Messages naming the assistant default to `{assistant}` templates. `CONTEXT_FIELD` is no longer exported. Calling `preventDefault()` in a handler passed to a part, or to a `render` element, now skips Docspot's handler for that event.
+* `<Docspot.ChatPanel launcher />` becomes `<Docspot.ChatLauncher />` beside `<Docspot.ChatPanel />`. The `loadPage` prop becomes `context.loadPage`. `createDocspotUrl(url, { search })` becomes `createDocspotUrl(url, { query })`. `messages.trigger.searchAndAsk` becomes `messages.trigger.searchWithAsk`.
+
+### Features
+
+* add locales, a name for the assistant, and props on every part ([0366499](https://github.com/francoischalifour/docspot/commit/0366499ec4522dc8726189aeeb7a5a4b95f960b7))
+* let sites replace icons with slots.icons, and set their stroke ([#30](https://github.com/francoischalifour/docspot/issues/30)) ([d312f94](https://github.com/francoischalifour/docspot/commit/d312f941a31ca41a9669958a1e3c3eccf4b93669))
+* **locale:** follow the locale's language beyond its text, and add Arabic ([7a8688a](https://github.com/francoischalifour/docspot/commit/7a8688a0eda55f0770c99b5e1708042478f74beb))
+* **locale:** pluralize counted words with Intl.PluralRules ([7b86a0c](https://github.com/francoischalifour/docspot/commit/7b86a0c9f0becbc0dbbda20603e9175cb99116fa))
+
+
+### Bug Fixes
+
+* preserve search context in excerpts and docs navigation ([#32](https://github.com/francoischalifour/docspot/issues/32)) ([d9e694f](https://github.com/francoischalifour/docspot/commit/d9e694f1775848fba46e5e918793255d2b7179d5))
+* preserve state across failed and interrupted interactions ([#26](https://github.com/francoischalifour/docspot/issues/26)) ([9283140](https://github.com/francoischalifour/docspot/commit/928314012a69d4f87d9ca36fda1683250c8a180d))
+* **search:** keep search open with its query when an action runs with ⌘ or Ctrl ([#28](https://github.com/francoischalifour/docspot/issues/28)) ([b93b7dd](https://github.com/francoischalifour/docspot/commit/b93b7dd5cbcb6cfde16c1ce5c117aee4de9c726a))
+* **ui:** draw every icon at the same stroke weight, and refine the switcher ([#29](https://github.com/francoischalifour/docspot/issues/29)) ([cf359c2](https://github.com/francoischalifour/docspot/commit/cf359c2c254c1043d593b5cea6be992934043de4))
+* **ui:** keep tooltips and menus beside their trigger, and let sites draw tooltips ([#31](https://github.com/francoischalifour/docspot/issues/31)) ([d496deb](https://github.com/francoischalifour/docspot/commit/d496deb9b8393bc14849cb5259916f949b33e950))
+
+
+### Code Refactoring
+
+* tighten the API so each part and option does one thing ([513f8b6](https://github.com/francoischalifour/docspot/commit/513f8b6fbac78efc5745a7af48303d48f43d69aa))
+
 ## [0.3.0](https://github.com/francoischalifour/docspot/compare/0.2.0...0.3.0) (2026-11-23)
 
 
