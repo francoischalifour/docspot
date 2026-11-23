@@ -213,9 +213,14 @@ export function useSearchController(
     const leaving = {};
     leavingRef.current = leaving;
     setIsLeaving(true);
-    void navigation.finally(() => {
-      if (leavingRef.current === leaving) close({ writeUrl: false });
-    });
+    void navigation.then(
+      () => {
+        if (leavingRef.current === leaving) close({ writeUrl: false });
+      },
+      () => {
+        if (leavingRef.current === leaving) stopLeaving();
+      }
+    );
   };
 
   // Back from a page kept in memory, search is as it was left, ready again.
@@ -238,7 +243,13 @@ export function useSearchController(
     }, QUERY_URL_DELAY_MS);
   }
 
-  useEffect(() => () => clearTimeout(queryWriteRef.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(queryWriteRef.current);
+      earlySearchRef.current?.controller.abort();
+    },
+    []
+  );
 
   // A query that changes other than by typing replaces what the input shows.
   useEffect(() => {

@@ -65,11 +65,7 @@ export function ChatPanelFrame({
   const overshoot = resize?.overshoot ?? 0;
 
   /** Animates the panel to an offset, then applies the resulting state. */
-  async function slideTo(
-    offset: number,
-    duration: number,
-    onSettled: () => void
-  ) {
+  function slideTo(offset: number, duration: number, onSettled: () => void) {
     const animation =
       element && !prefersReducedMotion()
         ? element.animate([getPanelOffsetStyle(offset)], {
@@ -78,9 +74,19 @@ export function ChatPanelFrame({
             fill: 'forwards',
           })
         : undefined;
-    await animation?.finished.catch(() => {});
-    flushSync(onSettled);
-    animation?.cancel();
+    let cancelled = false;
+    void (animation?.finished ?? Promise.resolve()).then(
+      () => {
+        if (cancelled) return;
+        flushSync(onSettled);
+        animation?.cancel();
+      },
+      () => {}
+    );
+    return () => {
+      cancelled = true;
+      animation?.cancel();
+    };
   }
 
   // A gesture that ends animates first, then saves the width or closes.
@@ -92,10 +98,11 @@ export function ChatPanelFrame({
         dispatchGesture({ type: 'settled' });
       };
       // Only a panel dragged past its minimum width has somewhere to slide.
-      if (gesture.resize?.overshoot) void slideTo(0, SETTLE_DURATION_MS, save);
+      if (gesture.resize?.overshoot)
+        return slideTo(0, SETTLE_DURATION_MS, save);
       else save();
     } else if (gesture.status === 'hiding') {
-      void slideTo(
+      return slideTo(
         toward * (element?.offsetWidth ?? 0),
         HIDE_DURATION_MS,
         () => {
@@ -105,9 +112,7 @@ export function ChatPanelFrame({
       );
     }
   });
-  useEffect(() => {
-    finishGesture();
-  }, [gesture.status]);
+  useEffect(() => finishGesture(), [gesture.status]);
 
   // Pages beside the docked panel read these to make room for it.
   useLayoutEffect(() => {
@@ -239,12 +244,14 @@ export function ChatPanelFrame({
             const navigation = config.navigate(url, { event });
             // A full-screen panel would hide the page the link opens. It
             // stays until that page shows, without a flash of this one.
-            if (isChatBesidePage()) return;
-            if (!navigation) return chat.close();
-            const leaving = {};
+            const leaving = isChatBesidePage() ? null : {};
             leavingRef.current = leaving;
-            void navigation.finally(() => {
-              if (leavingRef.current === leaving) chat.close();
+            const closeAfterNavigation = () => {
+              if (leaving && leavingRef.current === leaving) chat.close();
+            };
+            if (!navigation) return closeAfterNavigation();
+            void navigation.then(closeAfterNavigation, () => {
+              if (leavingRef.current === leaving) leavingRef.current = null;
             });
           }}
           toInternalUrl={config.toInternalUrl}

@@ -215,28 +215,28 @@ The methods keep their identity across renders, so they are safe in effect depen
 
 ## Props
 
-| Prop           | Description                                                                                                                          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `search`       | From `createSearch()` or a provider integration                                                                                      |
-| `chat`         | From `createChat()` or a provider integration                                                                                        |
-| `context`      | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL           |
-| `loadPage`     | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation |
-| `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                  |
-| `items`        | Items found by typing their title or keywords, such as switching the theme. See [Results and items](#results-and-items)              |
-| `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                    |
-| `navigate`     | `(url, { event }) => void \| Promise`. Search closes once a returned promise settles. Defaults to `window.location.assign`           |
-| `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                           |
-| `history`      | Persists history. Without it, history lasts until the page reloads                                                                   |
-| `id`           | Scopes persisted history, for several instances on one origin                                                                        |
-| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                              |
-| `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                |
-| `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                            |
-| `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                |
-| `query`        | Controls the search query, with `onQueryChange`                                                                                      |
-| `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                               |
-| `slots`        | Components that replace parts of the interface                                                                                       |
-| `messages`     | Interface text overrides                                                                                                             |
-| `onEvent`      | Receives interaction events, for analytics                                                                                           |
+| Prop           | Description                                                                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search`       | From `createSearch()` or a provider integration                                                                                                      |
+| `chat`         | From `createChat()` or a provider integration                                                                                                        |
+| `context`      | `{ page, prompts, resolvePage }`: the page being read, default suggested questions, and how to describe pages named by URL                           |
+| `loadPage`     | `(page, { signal }) => Promise<string \| { content, title? } \| null>`: page content for chat, loaded once per page and conversation                 |
+| `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                                  |
+| `items`        | Items found by typing their title or keywords, such as switching the theme. See [Results and items](#results-and-items)                              |
+| `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                                    |
+| `navigate`     | `(url, { event }) => void \| Promise`. Search closes once a returned promise resolves; rejection keeps it open. Defaults to `window.location.assign` |
+| `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                                           |
+| `history`      | Persists history. Without it, history lasts until the page reloads                                                                                   |
+| `id`           | Scopes persisted history, for several instances on one origin                                                                                        |
+| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                                              |
+| `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                                |
+| `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                                            |
+| `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                                |
+| `query`        | Controls the search query, with `onQueryChange`                                                                                                      |
+| `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                                               |
+| `slots`        | Components that replace parts of the interface                                                                                                       |
+| `messages`     | Interface text overrides                                                                                                                             |
+| `onEvent`      | Receives interaction events, for analytics                                                                                                           |
 
 ### Results and items
 

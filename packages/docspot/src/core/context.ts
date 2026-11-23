@@ -64,7 +64,7 @@ export type DocspotConfig = {
   stores: DocspotStores;
 };
 
-/** Opens a URL with `navigate`, then closes search once it settles. */
+/** Opens a URL with `navigate`, then closes search once it succeeds. */
 export type SearchLeave = (...args: Parameters<DocspotNavigate>) => void;
 
 export type SearchController = {
@@ -76,7 +76,7 @@ export type SearchController = {
   open: (opener?: HTMLElement, query?: string) => void;
   close: () => void;
   /**
-   * Opens a URL with `navigate` and closes search once it settles. The
+   * Opens a URL with `navigate` and closes search once it succeeds. The
    * current history entry keeps the query, so going back reopens search
    * where it was left.
    */

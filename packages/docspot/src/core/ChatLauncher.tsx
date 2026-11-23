@@ -6,6 +6,9 @@ type ChatLauncherProps = { hidden: boolean };
 /** Sits where the panel opens, so the chat's place on screen is clear. */
 export function ChatLauncher({ hidden }: ChatLauncherProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatPanel');
+  const preload = () => {
+    if (config.preload) chat.preload();
+  };
   return (
     <span
       className="docspot-tooltip-anchor docspot-launcher-anchor"
@@ -18,8 +21,8 @@ export function ChatLauncher({ hidden }: ChatLauncherProps) {
         aria-expanded={false}
         aria-controls={config.chatPanelId}
         aria-keyshortcuts="Meta+J Control+J"
-        onPointerEnter={chat.preload}
-        onFocus={chat.preload}
+        onPointerEnter={preload}
+        onFocus={preload}
         onClick={() => chat.open()}
         // Stays mounted while hidden, so focus can return to it.
         hidden={hidden}

@@ -370,6 +370,37 @@ it('searches a MiniSearch index synchronously with highlights and excerpts', () 
   ]);
 });
 
+it('keeps accent-insensitive matches in a shortened MiniSearch excerpt', () => {
+  const index = new MiniSearch<Doc>({
+    fields: ['title', 'content'],
+    storeFields: ['title', 'section', 'content'],
+    processTerm: term =>
+      term.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(),
+  });
+  index.add({
+    id: '/docs/coffee',
+    title: 'Coffee',
+    section: 'Guides',
+    content: `${'An introduction to coffee '.repeat(12)}at the café near the station with outdoor seating.`,
+  });
+  const search = createMiniSearchSearch({
+    index,
+    getDocument,
+    excerptLength: 60,
+  });
+  const response = search({
+    query: 'cafe',
+    signal: new AbortController().signal,
+  });
+  if (!Array.isArray(response)) throw new Error('Expected synchronous results');
+  expect(response[0]?.excerpt).toContain('café');
+  expect(response[0]?.excerpt?.length).toBeLessThanOrEqual(60);
+  expect(response[0]?.highlights?.excerpt).toContainEqual({
+    text: 'café',
+    highlighted: true,
+  });
+});
+
 it('loads a MiniSearch index on the first search', async () => {
   const load = vi.fn(async () => createIndex());
   const search = createMiniSearchSearch({
