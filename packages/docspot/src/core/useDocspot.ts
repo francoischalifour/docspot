@@ -23,8 +23,6 @@ export type DocspotApi = {
   ) => void;
   /** Opens chat on a new, empty conversation. */
   startConversation: () => void;
-  /** Closes search and chat. */
-  close: () => void;
   /** Loads search ahead of opening it, such as when a custom trigger is hovered. */
   preloadSearch: () => void;
   /** Loads chat ahead of opening it. */
@@ -66,11 +64,6 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
         source: 'api',
       }),
     startConversation: () => latest.current.chat.open({ action: 'reset' }),
-    close() {
-      const { search, chat } = latest.current;
-      if (search.isOpen) search.close();
-      chat.close();
-    },
     preloadSearch: () => latest.current.search.preload(),
     preloadChat: () => latest.current.chat.preload(),
   }));

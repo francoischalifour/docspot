@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 import type { ChatRuntime, ChatSession } from '@/chat/contract';
-import type { DocspotPage, DocspotRootProps, DocspotUrlAdapter } from '@/types';
+import type { DocspotPage, DocspotProps, DocspotUrlAdapter } from '@/types';
 import {
   type ChatIntent,
   type ChatLifecycle,
@@ -53,7 +53,7 @@ const STARTUP_RETRY_DELAY_MS = 350;
  * effects of its transitions.
  */
 export function useChatController(
-  props: DocspotRootProps,
+  props: DocspotProps,
   config: DocspotConfig,
   url: DocspotUrlAdapter | null,
   chatLoader: ChatLoader | null,

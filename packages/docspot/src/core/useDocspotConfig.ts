@@ -12,7 +12,7 @@ import { resolveMessages } from '@/messages';
 import type {
   DocspotEvent,
   DocspotNavigate,
-  DocspotRootProps,
+  DocspotProps,
   DocspotSlots,
   DocspotUrlAdapter,
 } from '@/types';
@@ -40,7 +40,7 @@ const defaultNavigate: DocspotNavigate = url => {
  * Turns `<Docspot.Root>` props into what its parts share: the configuration,
  * the history stores, the URL adapter, and the chat runtime's loader.
  */
-export function useDocspotConfig(props: DocspotRootProps) {
+export function useDocspotConfig(props: DocspotProps) {
   const {
     search,
     chat,

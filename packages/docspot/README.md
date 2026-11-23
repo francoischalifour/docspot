@@ -212,7 +212,6 @@ Every part accepts the props of the element it renders, including `ref`: trigger
 | `setDraft(text, { page? })`                 | Opens chat with text to edit                                      |
 | `submitQuestion(text, { page? })`           | Opens chat and sends a question, replacing any answer in progress |
 | `startConversation()`                       | Opens chat on a new conversation                                  |
-| `close()`                                   | Closes search and chat                                            |
 | `preloadSearch()`, `preloadChat()`          | Loads search or chat ahead of opening it, such as on hover        |
 
 `page` attaches a page to the question; `null` attaches none. Without it, the current page stays attached.

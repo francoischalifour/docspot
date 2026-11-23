@@ -1,6 +1,5 @@
 // The `docspot` entry point.
 export { Docspot } from '@/core/Docspot';
-export type { DocspotProps } from '@/core/Docspot';
 export { useDocspot } from '@/core/useDocspot';
 export type { DocspotApi } from '@/core/useDocspot';
 export type { ChatPanelProps } from '@/core/ChatPanel';

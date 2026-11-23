@@ -468,7 +468,7 @@ type DocspotSharedProps = {
  * At least one of `search` or `chat` is required. Search's own props need
  * `search`, even if it may be undefined, so chat alone can't take them.
  */
-export type DocspotRootProps = DocspotSharedProps &
+export type DocspotProps = DocspotSharedProps &
   (
     | ({ search: DocspotSearch; chat?: DocspotChat } & DocspotSearchProps)
     | ({
