@@ -5,6 +5,7 @@ import type { DocspotMessages } from '@/messages';
 import { AnswerActions } from '@/chat/AnswerActions';
 import { AnswerSources } from '@/chat/AnswerSources';
 import { AnswerTools } from '@/chat/AnswerTools';
+import { isStopped } from '@/chat/messages';
 import type { DocspotTools } from '@/chat/tools';
 import { Markdown } from '@/chat/Markdown';
 import { ReadingAnchor } from '@/chat/ReadingAnchor';
@@ -65,6 +66,9 @@ export function AnswerMessage({
           onNavigate={onNavigate}
           toInternalUrl={toInternalUrl}
         />
+        {text && !streaming && isStopped(message) && (
+          <p className="docspot-answer-stopped">{messages.stopped}</p>
+        )}
         {text && !streaming && (
           <AnswerActions
             message={message}

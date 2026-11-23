@@ -84,6 +84,8 @@ export const defaultMessages = {
     answerInProgress: 'Answer in progress',
     answerReady: 'Answer ready',
     answerFailed: 'Answer failed',
+    answerStopped: 'Answer stopped',
+    stopped: 'Stopped',
     error: 'Couldn’t get an answer.',
     retry: 'Try again',
     retryAnswer: 'Retry answer',

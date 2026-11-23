@@ -2,6 +2,7 @@ import {
   type ComponentProps,
   type ReactNode,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -47,6 +48,18 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  // Where focus goes once a secondary action, such as delete, removes its row.
+  const refocusRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const index = refocusRef.current;
+    if (index === null) return;
+    refocusRef.current = null;
+    if (menuRef.current?.contains(document.activeElement)) return;
+    const elements = getItems();
+    const next = elements[Math.min(index, elements.length - 1)];
+    if (next) next.focus();
+    else close();
+  });
 
   function getItems() {
     return [
@@ -185,7 +198,14 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
                   tabIndex={-1}
                   aria-label={item.secondary.label}
                   className="docspot-menu-secondary"
-                  onClick={item.secondary.onSelect}
+                  onClick={event => {
+                    // The row's item, or the next row's once this one goes.
+                    refocusRef.current = Math.max(
+                      0,
+                      getItems().indexOf(event.currentTarget) - 1
+                    );
+                    item.secondary!.onSelect();
+                  }}
                 >
                   {item.secondary.icon}
                 </button>

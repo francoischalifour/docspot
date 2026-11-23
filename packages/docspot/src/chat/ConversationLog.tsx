@@ -1,5 +1,5 @@
 import { Shimmer } from '@/ui/Shimmer';
-import { hasMessageContent } from '@/chat/messages';
+import { hasMessageContent, isStopped } from '@/chat/messages';
 import { ChatMessage } from '@/chat/ChatMessage';
 import { Scroller } from '@/chat/Scroller';
 import { useConversationContext } from '@/chat/ConversationContext';
@@ -20,6 +20,17 @@ export function ConversationLog() {
     holdFirstStep,
     tools,
   } = conversation;
+  // Stopped before any of the answer showed.
+  const unanswered =
+    !busy &&
+    !error &&
+    (lastMessage?.role === 'user' ||
+      (isStopped(lastMessage) &&
+        !hasMessageContent(lastMessage!, {
+          streaming: false,
+          holdFirstStep,
+          tools,
+        })));
   return (
     <Scroller
       follow={busy}
@@ -69,6 +80,19 @@ export function ConversationLog() {
             <Shimmer>{conversation.progress}</Shimmer>
           </div>
         )}
+        {/* Stopped before any answer: the question waits for a retry. */}
+        {unanswered && (
+          <div className="docspot-chat-stopped">
+            <p>{messages.stopped}</p>
+            <button
+              type="button"
+              className="docspot-button"
+              onClick={conversation.retryAnswer}
+            >
+              {messages.retry}
+            </button>
+          </div>
+        )}
         {error && (
           <div role="alert" className="docspot-chat-error">
             <p>{messages.error}</p>
@@ -86,9 +110,11 @@ export function ConversationLog() {
             ? messages.answerInProgress
             : error
               ? messages.answerFailed
-              : chatMessages.length
-                ? messages.answerReady
-                : ''}
+              : unanswered || isStopped(lastMessage)
+                ? messages.answerStopped
+                : chatMessages.length
+                  ? messages.answerReady
+                  : ''}
         </span>
       </div>
     </Scroller>

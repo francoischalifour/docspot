@@ -143,7 +143,12 @@ export function createSession(
         candidate.id === message.id
           ? {
               ...candidate,
-              metadata: { ...(candidate.metadata as object), answeredAt },
+              metadata: {
+                ...(candidate.metadata as object),
+                answeredAt,
+                // A stopped answer says so, rather than looking complete.
+                ...(isAbort && { stopped: true }),
+              },
             }
           : candidate
       );

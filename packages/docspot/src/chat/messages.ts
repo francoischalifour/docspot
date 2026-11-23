@@ -90,6 +90,13 @@ export function hasMessageContent(
   );
 }
 
+/** Whether the reader stopped this answer before it finished. */
+export function isStopped(message: UIMessage | undefined) {
+  return (
+    (message?.metadata as Record<string, unknown> | undefined)?.stopped === true
+  );
+}
+
 export function getMetadataTime(
   message: UIMessage,
   key: 'askedAt' | 'answeredAt'
