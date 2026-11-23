@@ -5,8 +5,42 @@ const quote = (text: string) => `「${text}」`;
 /** Japanese. */
 export const ja: DocspotLocale = {
   code: 'ja',
+  // Lowercase and without accents, as queries are compared.
+  questions: {
+    starts: [
+      'どう',
+      'どうやって',
+      'どうすれば',
+      'なぜ',
+      '何',
+      'なに',
+      'なん',
+      'どこ',
+      'いつ',
+      'どれ',
+      'どの',
+      '誰',
+    ],
+    requests: ['教えて', '説明して', '比較して'],
+    markers: ['か', 'ですか', 'ますか', 'でしょうか'],
+    stop: [
+      'の',
+      'は',
+      'が',
+      'を',
+      'に',
+      'で',
+      'と',
+      'も',
+      'へ',
+      'や',
+      'から',
+      'まで',
+    ],
+  },
   messages: {
     assistant: 'AI',
+    keys: { control: 'Ctrl', escape: 'Esc' },
     trigger: {
       search: 'ドキュメントを検索',
       searchWithAsk: '検索または質問',
@@ -40,7 +74,7 @@ export const ja: DocspotLocale = {
       toClose: 'で閉じる',
       toNavigate: 'で移動',
       toOpen: 'で開く',
-      resultCount: count => `${count}件の結果`,
+      resultCount: count => `${count.toLocaleString('ja')}件の結果`,
       searching: '検索中',
       opening: 'ページを開いています',
       unavailable: '検索を利用できません',
@@ -115,7 +149,7 @@ export const ja: DocspotLocale = {
       resize: '{assistant}パネルのサイズを変更',
       resizeHint:
         'ドラッグしてサイズを変更します。ダブルクリックで幅をリセットします。',
-      pixels: width => `${width}ピクセル`,
+      pixels: width => `${width.toLocaleString('ja')}ピクセル`,
     },
   },
 };

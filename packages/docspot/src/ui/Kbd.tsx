@@ -1,11 +1,11 @@
-import type { ComponentProps } from 'react';
+import { type ComponentProps, use } from 'react';
 
 import { useIsApplePlatform } from '@/core/platform';
 import { cx } from '@/ui/cx';
+import { LocaleContext } from '@/ui/LocaleContext';
 
-const keyLabels: Record<string, string> = {
+const keySymbols: Record<string, string> = {
   enter: '↵',
-  esc: 'Esc',
   tab: '⇥',
   shift: '⇧',
   up: '↑',
@@ -25,6 +25,7 @@ export function Kbd({
   ...props
 }: KbdProps) {
   const isApple = useIsApplePlatform();
+  const labels = use(LocaleContext).keys;
   return (
     <kbd
       data-ghost={variant === 'ghost' || undefined}
@@ -36,10 +37,12 @@ export function Kbd({
           {key === 'mod'
             ? isApple
               ? '⌘'
-              : 'Ctrl'
-            : (keyLabels[key] ??
-              // Letters print as on the keycap: ⌘K, not ⌘k.
-              (key.length === 1 ? key.toUpperCase() : key))}
+              : labels.control
+            : key === 'esc'
+              ? labels.escape
+              : (keySymbols[key] ??
+                // Letters print as on the keycap: ⌘K, not ⌘k.
+                (key.length === 1 ? key.toUpperCase() : key))}
         </span>
       ))}
     </kbd>

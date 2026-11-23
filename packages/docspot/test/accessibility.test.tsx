@@ -15,7 +15,7 @@ import {
   type DocspotSearch,
   defineItem,
 } from '@/index';
-import { de, en } from '@/locale';
+import { ar, de, en } from '@/locale';
 import { results } from '@test/fixtures';
 import { createTestChat } from '@test/testing';
 
@@ -24,6 +24,7 @@ const root = document.documentElement;
 
 afterEach(() => {
   root.classList.remove('dark');
+  root.removeAttribute('dir');
 });
 
 /** Fails with each violation's rule, help, and the elements it found. */
@@ -59,21 +60,28 @@ const toggleTheme = defineItem({
   action: () => {},
 });
 
-type Setting = { name: string; dark?: boolean; locale?: DocspotLocale };
+type Setting = {
+  name: string;
+  dark?: boolean;
+  locale?: DocspotLocale;
+  rtl?: boolean;
+};
 
 const settings: Setting[] = [
   { name: 'light' },
   { name: 'dark', dark: true },
   { name: 'German, with longer text', locale: de },
+  { name: 'Arabic, right to left', locale: ar, rtl: true },
 ];
 
-describe.each(settings)('in $name', ({ dark, locale }) => {
+describe.each(settings)('in $name', ({ dark, locale, rtl }) => {
   // Controls are found by the names the locale gives them.
   const messages = (locale ?? en).messages;
   const named = (text: string) =>
     text.replaceAll('{assistant}', messages.assistant);
   async function setUp(search: DocspotSearch = () => results) {
     if (dark) root.classList.add('dark');
+    if (rtl) root.dir = 'rtl';
     const backend = createTestChat({
       answer: ({ index }) =>
         index === 0

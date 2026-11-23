@@ -1,6 +1,9 @@
 import { expect, it } from 'vitest';
 
 import { highlightTerms, isQuestion, shouldPrioritizeChat } from '@/index';
+import { ar, de, es, fr, ja, zhCN } from '@/locale';
+
+const locales = { ar, de, es, fr, ja, zhCN };
 
 it('highlights text regardless of case or accents', () => {
   expect(highlightTerms('Thème sombre', ['theme'])).toEqual([
@@ -70,4 +73,36 @@ it('lets chat lead only when no result answers the question', () => {
       hasCompleteMatch: false,
     })
   ).toBe(false);
+});
+
+it.each([
+  ['fr', 'Comment exporter un tableau ?'],
+  ['fr', 'pourquoi mes requêtes sont lentes'],
+  ['de', 'Wie installiere ich das Paket'],
+  ['es', '¿Cómo exporto los datos'],
+  ['es', 'como exportar datos a csv'],
+  ['ja', 'データをエクスポートするにはどうすればいいですか'],
+  ['zhCN', '如何导出数据'],
+  ['zhCN', '这个功能支持导出吗'],
+  ['ar', 'كيف أصدّر البيانات'],
+  ['ar', 'هل يدعم التصدير؟'],
+  // Readers search in English whatever the interface's language.
+  ['fr', 'how do I export data'],
+] as const)('treats a %s question, “%s”, as one', (name, query) => {
+  expect(isQuestion(query, locales[name])).toBe(true);
+});
+
+it.each([
+  ['fr', 'export tableau csv'],
+  ['de', 'Paket installieren'],
+  ['ja', 'データ エクスポート'],
+  ['zhCN', '导出数据'],
+] as const)('treats %s keywords, “%s”, as keywords', (name, query) => {
+  expect(isQuestion(query, locales[name])).toBe(false);
+});
+
+it('recognizes questions in a language a site’s own locale describes', () => {
+  const italian = { code: 'it', questions: { starts: ['come', 'perche'] } };
+  expect(isQuestion('come esporto i dati', italian)).toBe(true);
+  expect(isQuestion('come esporto i dati')).toBe(false);
 });

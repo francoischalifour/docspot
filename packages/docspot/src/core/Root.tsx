@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import type { DocspotRootProps } from '@/types';
 import { DocspotInternalContext, type SearchController } from '@/core/context';
 import { useChatController } from '@/core/useChatController';
@@ -6,7 +8,7 @@ import { useSearchController } from '@/core/useSearchController';
 import { useShortcuts } from '@/core/useShortcuts';
 import { useTriggerRegistry } from '@/core/useTriggerRegistry';
 import { useUrlSync } from '@/core/useUrlSync';
-import { LanguageContext } from '@/ui/LanguageContext';
+import { LocaleContext } from '@/ui/LocaleContext';
 import { SlotsContext } from '@/ui/SlotsContext';
 
 /**
@@ -18,6 +20,12 @@ export function DocspotRoot(props: DocspotRootProps) {
   const triggers = useTriggerRegistry();
   const search = useSearchController(props, config, url, triggers);
   const chat = useChatController(props, config, url, chatLoader, triggers);
+
+  const { language, messages } = config;
+  const locale = useMemo(
+    () => ({ language, keys: messages.keys }),
+    [language, messages.keys]
+  );
 
   const searchController: SearchController = {
     ...search.controller,
@@ -46,9 +54,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     <DocspotInternalContext
       value={{ config, search: searchController, chat: chat.controller }}
     >
-      <LanguageContext value={config.language}>
+      <LocaleContext value={locale}>
         <SlotsContext value={config.slots}>{props.children}</SlotsContext>
-      </LanguageContext>
+      </LocaleContext>
     </DocspotInternalContext>
   );
 }

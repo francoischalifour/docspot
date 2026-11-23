@@ -1,4 +1,5 @@
 import { en, type EnglishMessages } from '@/locale/en';
+import type { DocspotQuestionWords } from '@/types';
 
 /**
  * Interface text. Strings may contain `{assistant}`, which is replaced by
@@ -10,7 +11,12 @@ export type DocspotMessages = EnglishMessages;
  * A language for Docspot's interface: its BCP 47 code, used to format dates,
  * and every message. `docspot/locale` provides several.
  */
-export type DocspotLocale = { code: string; messages: DocspotMessages };
+export type DocspotLocale = {
+  code: string;
+  messages: DocspotMessages;
+  /** How the language asks, to recognize questions besides English ones. */
+  questions?: DocspotQuestionWords;
+};
 
 type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends (...args: never[]) => unknown
@@ -65,6 +71,7 @@ export function resolveMessages(
   const assistant = overrides?.assistant ?? base.assistant;
   const resolved: DocspotMessages = {
     assistant,
+    keys: { ...base.keys, ...overrides?.keys },
     trigger: fillAssistant(
       withAskFallbacks(base.trigger, overrides?.trigger),
       assistant

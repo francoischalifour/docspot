@@ -5,8 +5,30 @@ const quote = (text: string) => `“${text}”`;
 /** Chinese, simplified, as written in mainland China. */
 export const zhCN: DocspotLocale = {
   code: 'zh-CN',
+  // Lowercase and without accents, as queries are compared.
+  questions: {
+    starts: [
+      '怎么',
+      '怎样',
+      '如何',
+      '为什么',
+      '什么',
+      '哪',
+      '哪里',
+      '哪个',
+      '谁',
+      '是否',
+      '能否',
+      '可以',
+      '能不能',
+    ],
+    requests: ['告诉', '解释', '比较', '介绍'],
+    markers: ['吗', '呢', '怎么', '如何', '为什么', '什么'],
+    stop: ['的', '了', '是', '在', '和', '我', '你', '吧'],
+  },
   messages: {
     assistant: 'AI',
+    keys: { control: 'Ctrl', escape: 'Esc' },
     trigger: {
       search: '搜索文档',
       searchWithAsk: '搜索或提问',
@@ -38,7 +60,7 @@ export const zhCN: DocspotLocale = {
       toClose: '关闭',
       toNavigate: '导航',
       toOpen: '打开',
-      resultCount: count => `${count} 个结果`,
+      resultCount: count => `${count.toLocaleString('zh-CN')} 个结果`,
       searching: '正在搜索',
       opening: '正在打开页面',
       unavailable: '搜索不可用',
@@ -110,7 +132,7 @@ export const zhCN: DocspotLocale = {
       suggestionsAbout: title => `关于${title}的推荐问题`,
       resize: '调整 {assistant} 面板大小',
       resizeHint: '拖动以调整大小。双击以重置宽度。',
-      pixels: width => `${width} 像素`,
+      pixels: width => `${width.toLocaleString('zh-CN')} 像素`,
     },
   },
 };

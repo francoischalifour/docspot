@@ -1,46 +1,98 @@
-import { NON_WORD } from '@/search/text';
+import type { DocspotQuestionWords, DocspotSearchLocale } from '@/types';
+import { COMBINING_MARKS, NON_WORD, segmentWords } from '@/search/text';
 
-const QUESTION_START =
-  /^(how|what|why|where|when|which|who|whose|can|could|should|would|will|do|does|did|is|are|was|were|has|have)\b/i;
-const REQUEST_START =
-  /^(show|explain|tell|help|teach|walk|compare|describe)\b|^i('m|'ve| am| want| need| have)\b/i;
+// English applies in every language: readers often search in English.
+// Other languages bring their words with their locale.
+const ENGLISH: Required<Omit<DocspotQuestionWords, 'markers'>> = {
+  starts:
+    'how what why where when which who whose can could should would will do does did is are was were has have'.split(
+      ' '
+    ),
+  requests: 'show explain tell help teach walk compare describe'.split(' '),
+  stop: 'a an and are can could did do does for from has have how i in is it my of on or our should the there to was we were what when where which who why will with would you your'.split(
+    ' '
+  ),
+};
+
+type Intent = {
+  starts: Set<string>;
+  requests: Set<string>;
+  markers: Set<string>;
+  stop: Set<string>;
+};
+
+const english: Intent = {
+  starts: new Set(ENGLISH.starts),
+  requests: new Set(ENGLISH.requests),
+  markers: new Set(),
+  stop: new Set(ENGLISH.stop),
+};
+const intents = new WeakMap<DocspotQuestionWords, Intent>();
+
+/** A language's question words, with English's. */
+function getIntent(locale: DocspotSearchLocale | undefined): Intent {
+  const words = locale?.questions;
+  if (!words) return english;
+  let intent = intents.get(words);
+  if (!intent) {
+    intent = {
+      starts: new Set([...ENGLISH.starts, ...words.starts]),
+      requests: new Set([...ENGLISH.requests, ...(words.requests ?? [])]),
+      markers: new Set(words.markers),
+      stop: new Set([...ENGLISH.stop, ...(words.stop ?? [])]),
+    };
+    intents.set(words, intent);
+  }
+  return intent;
+}
+
 const COMPARISON = /\b(difference between|best way|vs\.?|versus)\b/i;
 const PERSONAL = /\b(i|my|we|our|you|your)\b/i;
+const FIRST_PERSON_REQUEST = /^i('m|'ve| am| want| need| have)\b/i;
 const CODE_LIKE = /[_(){}=<>`]|[a-z][A-Z]|\w\.\w/;
-/** Words, keeping contractions such as "don't" whole. */
-const QUERY_WORD = /[\p{L}\p{N}]+(?:'[\p{L}]+)?/gu;
-const STOP_WORDS = new Set(
-  'a an and are can could did do does for from has have how i in is it my of on or our should the there to was we were what when where which who why will with would you your'.split(
-    ' '
-  )
-);
+/** Question marks in Latin, Arabic, and full-width scripts. */
+const QUESTION_MARK = /[?？؟]$/;
+const INVERTED_QUESTION_MARK = /^¿/;
 
-export function getWords(query: string) {
-  return query.toLowerCase().match(QUERY_WORD) ?? [];
+/** Lowercase, without accents, as the word lists are written. */
+function fold(word: string) {
+  return word.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
+}
+
+/** The query's words, lowercase and without accents. */
+export function getWords(query: string, locale?: DocspotSearchLocale) {
+  return segmentWords(query, locale?.code ?? 'en').map(fold);
 }
 
 /** Words that carry meaning, without question words and stop words. */
-export function countContentWords(query: string) {
-  return getWords(query).filter(word => !STOP_WORDS.has(word)).length;
+export function countContentWords(query: string, locale?: DocspotSearchLocale) {
+  const { stop } = getIntent(locale);
+  return getWords(query, locale).filter(word => !stop.has(word)).length;
 }
 
-function getQuestionScore(query: string) {
+function getQuestionScore(query: string, locale?: DocspotSearchLocale) {
   const text = query.trim();
-  const wordCount = getWords(text).length;
-  if (wordCount < 2 || CODE_LIKE.test(text)) return 0;
+  const words = getWords(text, locale);
+  if (words.length < 2 || CODE_LIKE.test(text)) return 0;
+  const intent = getIntent(locale);
+  const first = words[0]!;
   let score = 0;
-  if (text.endsWith('?')) score += 3;
-  if (QUESTION_START.test(text)) score += wordCount >= 3 ? 2 : 1;
-  if (REQUEST_START.test(text)) score += 2;
+  if (QUESTION_MARK.test(text) || INVERTED_QUESTION_MARK.test(text)) score += 3;
+  if (intent.starts.has(first)) score += words.length >= 3 ? 2 : 1;
+  if (intent.requests.has(first) || FIRST_PERSON_REQUEST.test(text)) score += 2;
+  if (words.some(word => intent.markers.has(word))) score += 2;
   if (COMPARISON.test(text)) score += 2;
   if (PERSONAL.test(text)) score += 1;
-  if (wordCount >= 5) score += 1;
+  if (words.length >= 5) score += 1;
   return score;
 }
 
-/** Whether a query reads as a natural-language question, not keywords. */
-export function isQuestion(query: string) {
-  return getQuestionScore(query) >= 2;
+/**
+ * Whether a query reads as a natural-language question, not keywords: in
+ * English, or in the locale's language, such as `DocspotSearchParams`'s.
+ */
+export function isQuestion(query: string, locale?: DocspotSearchLocale) {
+  return getQuestionScore(query, locale) >= 2;
 }
 
 function normalize(text: string) {
@@ -69,6 +121,7 @@ export function shouldPrioritizeChat({
   pageTitles,
   hasResults,
   hasCompleteMatch,
+  locale,
 }: {
   query: string;
   /** Titles of the pages the results belong to. */
@@ -76,12 +129,14 @@ export function shouldPrioritizeChat({
   hasResults: boolean;
   /** Whether the top result matches every content word without typos. */
   hasCompleteMatch: boolean;
+  /** The interface's language, as `DocspotSearchParams` gives it. */
+  locale?: DocspotSearchLocale;
 }) {
   if (namesPage(query, pageTitles) || hasCompleteMatch) return false;
-  const isLongQuery = getWords(query).length >= 3;
+  const isLongQuery = getWords(query, locale).length >= 3;
   return (
-    isQuestion(query) ||
+    isQuestion(query, locale) ||
     (!hasResults && isLongQuery) ||
-    countContentWords(query) >= 4
+    countContentWords(query, locale) >= 4
   );
 }

@@ -170,12 +170,16 @@ export function useSearch() {
     };
     if (trimmed) {
       // Items found by name come first: few, and named by what is typed.
-      const matched = matchItems(config.items, trimmed);
+      const matched = matchItems(config.items, trimmed, config.language);
       try {
         const { signal } = controller;
         const response = normalizeResponse(
           await (latest.current.search.takeEarlySearch(trimmed, signal) ??
-            config.search!({ query: trimmed, signal }))
+            config.search!({
+              query: trimmed,
+              signal,
+              locale: config.searchLocale,
+            }))
         );
         // A search that ignores the signal may still resolve.
         if (controller.signal.aborted) return await supersede(controller);
