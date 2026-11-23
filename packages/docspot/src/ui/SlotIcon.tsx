@@ -1,11 +1,7 @@
-import { type ComponentType, createContext, use } from 'react';
+import { type ComponentType, use } from 'react';
 
-import type { DocspotIconProps, DocspotIcons } from '@/types';
-
-/** The icons `slots.icons` replaces, provided by `<Docspot.Root>`. */
-export const IconsContext = /* @__PURE__ */ createContext<
-  Partial<DocspotIcons> | undefined
->(undefined);
+import type { DocspotIconProps, DocspotIcons, DocspotPage } from '@/types';
+import { SlotsContext } from '@/ui/SlotsContext';
 
 type SlotIconProps = {
   /** What the icon means, as `slots.icons` names it. */
@@ -26,7 +22,7 @@ export function SlotIcon({
   size = 16,
   className,
 }: SlotIconProps) {
-  const Custom = use(IconsContext)?.[name];
+  const Custom = use(SlotsContext)?.icons?.[name];
   if (!Custom) return <Default size={size} className={className} />;
   const props: DocspotIconProps = {
     size,
@@ -35,4 +31,32 @@ export function SlotIcon({
     focusable: 'false',
   };
   return <Custom {...props} />;
+}
+
+/** A page's icon: the site's through `slots.pageIcon`, else `page`. */
+export function PageSlotIcon({
+  page,
+  icon,
+  size = 16,
+  className,
+}: {
+  page: DocspotPage;
+  icon: SlotIconProps['icon'];
+  size?: number;
+  className?: string;
+}) {
+  const PageIcon = use(SlotsContext)?.pageIcon;
+  if (!PageIcon)
+    return (
+      <SlotIcon name="page" icon={icon} size={size} className={className} />
+    );
+  return (
+    <PageIcon
+      page={page}
+      size={size}
+      className={className}
+      aria-hidden
+      focusable="false"
+    />
+  );
 }

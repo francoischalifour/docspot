@@ -454,9 +454,33 @@ For a tool that runs in the browser, such as a confirmation, call `addOutput` wi
 | `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                                                                         |
 | `resultIcon`  | `{ result, recent }`. Replaces the icons of results                                                                                                                                                                                                                                                                                      |
 | `icons`       | Icons by what they mean. See [Icons](#icons)                                                                                                                                                                                                                                                                                             |
+| `pageIcon`    | `{ page, size, className, 'aria-hidden', focusable }`. Draws the icon of the page a question uses, such as its section's                                                                                                                                                                                                                 |
+| `tooltip`     | `{ label, shortcut, side, children }`. Replaces Docspot's tooltips. See [Tooltips](#tooltips)                                                                                                                                                                                                                                            |
 | `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                                                                         |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
+
+#### Tooltips
+
+Docspot's tooltips show on hover and keyboard focus, in the top layer so no panel cuts them off, beside their button inside the viewport. `slots.tooltip` replaces them with your site's own. It receives the trigger as `children`, to render as is, and the `label` to show, which the trigger already has as its accessible name:
+
+```tsx
+import * as Tooltip from '@radix-ui/react-tooltip';
+
+function SiteTooltip({ label, side, children }: DocspotTooltipProps) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      {/* Not in a portal: inside search, the dialog is in the top layer. */}
+      <Tooltip.Content side={side}>{label}</Tooltip.Content>
+    </Tooltip.Root>
+  );
+}
+
+<Docspot slots={{ tooltip: SiteTooltip }} />;
+```
+
+`shortcut` is Docspot's key hint for the trigger, such as <kbd>Esc</kbd>, to show beside the label.
 
 #### Icons
 

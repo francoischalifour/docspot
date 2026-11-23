@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 
 import { cx } from '@/ui/cx';
 import { Kbd } from '@/ui/Kbd';
+import { useTooltip } from '@/ui/Tooltip';
 
 type IconButtonProps = ComponentProps<'button'> & {
   label: string;
@@ -23,20 +24,19 @@ export function IconButton({
   side = 'bottom',
   ...props
 }: IconButtonProps) {
-  return (
-    <span className="docspot-tooltip-anchor" data-side={side}>
-      <button
-        type="button"
-        aria-label={label}
-        className={cx('docspot-icon-button', className)}
-        {...props}
-      >
-        {children}
-      </button>
-      <span className="docspot-tooltip" aria-hidden="true">
-        {tooltip ?? label}
-        {shortcut && <Kbd variant="ghost" keys={shortcut} />}
-      </span>
-    </span>
+  const withTooltip = useTooltip({
+    label: tooltip ?? label,
+    side,
+    shortcut: shortcut && <Kbd variant="ghost" keys={shortcut} />,
+  });
+  return withTooltip(
+    <button
+      type="button"
+      aria-label={label}
+      className={cx('docspot-icon-button', className)}
+      {...props}
+    >
+      {children}
+    </button>
   );
 }

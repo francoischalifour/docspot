@@ -1,7 +1,8 @@
 import type { DocspotMessages } from '@/messages';
 import type { DocspotPage } from '@/types';
 import { CloseIcon, PageIcon } from '@/ui/icons';
-import { SlotIcon } from '@/ui/SlotIcon';
+import { PageSlotIcon, SlotIcon } from '@/ui/SlotIcon';
+import { useTooltip } from '@/ui/Tooltip';
 
 type PageContextChipProps = {
   page: DocspotPage | undefined;
@@ -15,14 +16,18 @@ export function PageContextChip({
   onRemove,
   messages,
 }: PageContextChipProps) {
+  const withTooltip = useTooltip({
+    label: messages.pageContextHint,
+    side: 'top',
+  });
   if (!page) return null;
   const title = page.title ?? page.url;
   return (
     <span className="docspot-context-chip">
-      <span className="docspot-tooltip-anchor" data-side="top">
+      {withTooltip(
         <span className="docspot-context-chip-label">
-          <SlotIcon
-            name="page"
+          <PageSlotIcon
+            page={page}
             icon={PageIcon}
             size={12}
             className="docspot-muted"
@@ -32,10 +37,7 @@ export function PageContextChip({
             {title}
           </span>
         </span>
-        <span className="docspot-tooltip" aria-hidden="true">
-          {messages.pageContextHint}
-        </span>
-      </span>
+      )}
       <button
         type="button"
         className="docspot-context-chip-remove"
