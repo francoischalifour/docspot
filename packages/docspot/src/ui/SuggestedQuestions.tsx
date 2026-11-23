@@ -24,7 +24,7 @@ export function SuggestedQuestions({
             onClick={() => onChoose(question)}
           >
             <span className="docspot-suggestion-icon">
-              <QuestionIcon size={14} />
+              <QuestionIcon />
             </span>
             <span>{question}</span>
           </button>

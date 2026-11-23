@@ -2,6 +2,12 @@ import type { SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
+/**
+ * The stroke as drawn, in pixels. Icons are drawn on a 24-unit grid, so the
+ * stroke scales with each one's size; this keeps their weight the same.
+ */
+const STROKE_PX = 1.3;
+
 function Icon({ size = 16, children, ...props }: IconProps) {
   return (
     <svg
@@ -12,7 +18,7 @@ function Icon({ size = 16, children, ...props }: IconProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={(STROKE_PX * 24) / size}
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}

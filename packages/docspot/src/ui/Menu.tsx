@@ -19,6 +19,8 @@ export type MenuItem =
       danger?: boolean;
       /** Keeps the menu open after selecting. */
       keepOpen?: boolean;
+      /** Muted, for an item less used than the others. */
+      quiet?: boolean;
       onSelect: () => void;
       /** A secondary action shown at the end of the row. */
       secondary?: {
@@ -182,6 +184,7 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
                 tabIndex={-1}
                 aria-current={item.current || undefined}
                 data-danger={item.danger || undefined}
+                data-quiet={item.quiet || undefined}
                 className="docspot-menu-item"
                 onClick={() => {
                   item.onSelect();
