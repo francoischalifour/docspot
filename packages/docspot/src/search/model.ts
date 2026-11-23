@@ -87,16 +87,19 @@ export function normalizeResponse(response: DocspotSearchResponse) {
 export function groupEntries(
   entries: ReadonlyArray<DocspotResult | DocspotItem | typeof recentItems>,
   labels: { result: string; item: string },
-  seen: EntryDedupe
+  seen: EntryDedupe,
+  /** This site's URLs as paths, so they open in place with `navigate`. */
+  toLocalUrl: (url: string) => string
 ): ItemSection[] {
   const sections: ItemSection[] = [];
   const groups = new Map<string, Array<DocspotResult | DocspotItem>>();
-  for (const entry of entries) {
-    if (entry === recentItems) {
+  for (const listed of entries) {
+    if (listed === recentItems) {
       if (!sections.some(section => section.kind === 'recent'))
         sections.push({ kind: 'recent' });
       continue;
     }
+    const entry = localize(listed, toLocalUrl);
     // A URL is listed once, whether a result or an item opens it.
     if (isResult(entry)) {
       if (seen.urls.has(entry.url)) continue;
@@ -235,4 +238,17 @@ export function highlightTerms(text: string, terms: string[]): HighlightedText {
   if (cursor < text.length)
     segments.push({ text: text.slice(cursor), highlighted: false });
   return segments;
+}
+
+function localize(
+  entry: DocspotResult | DocspotItem,
+  toLocalUrl: (url: string) => string
+): DocspotResult | DocspotItem {
+  if (isResult(entry)) {
+    const url = toLocalUrl(entry.url);
+    return url === entry.url ? entry : { ...entry, url };
+  }
+  if (typeof entry.action !== 'string') return entry;
+  const action = toLocalUrl(entry.action);
+  return action === entry.action ? entry : { ...entry, action };
 }

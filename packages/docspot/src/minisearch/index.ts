@@ -2,5 +2,6 @@
 export { createMiniSearchSearch } from '@/minisearch/createMiniSearchSearch';
 export type {
   MiniSearchDocument,
+  MiniSearchHit,
   MiniSearchSearchOptions,
 } from '@/minisearch/createMiniSearchSearch';

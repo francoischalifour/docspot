@@ -355,12 +355,11 @@ const search = createAlgoliaSearch({
   apiKey: 'SEARCH_ONLY_KEY',
   indices: ['docs'],
   // Optional: adjust each result, or drop it with null.
-  transformResult: result => ({
-    ...result,
-    url: result.url.replace('https://example.com', ''),
-  }),
+  transformResult: result => (result.url.includes('/archive/') ? null : result),
 });
 ```
+
+Records can keep absolute URLs: results on `siteUrl` or the current origin open in place, and `navigate` receives their path, so preview deploys work too.
 
 It reads DocSearch-style records (`hierarchy.lvl0`…`lvl6`, `content`, `type`, `url`), groups results by their top-level section, keeps highlights and snippets (marked on whatever text `transformResult` returns), and lets chat lead when a question has no complete match. Requests go to the API over `fetch` as simple requests, without a CORS preflight, retrying other hosts on network and server errors. `preload` opens the connection.
 

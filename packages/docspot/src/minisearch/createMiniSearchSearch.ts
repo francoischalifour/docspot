@@ -20,11 +20,20 @@ export type MiniSearchDocument = Omit<
   content?: string;
 };
 
+/**
+ * A hit: how it matched, and the document's stored fields, typed as the
+ * index's documents. Store the fields `getDocument` reads.
+ */
+export type MiniSearchHit<T> = Pick<
+  SearchResult,
+  'terms' | 'queryTerms' | 'score' | 'match'
+> & { id: unknown } & T;
+
 export type MiniSearchSearchOptions<T> = {
   /** The index, or a function that loads it on the first search. */
   index: MiniSearch<T> | (() => MiniSearch<T> | Promise<MiniSearch<T>>);
   /** Maps a hit, with its stored fields, to a result. */
-  getDocument: (hit: SearchResult) => MiniSearchDocument;
+  getDocument: (hit: MiniSearchHit<T>) => MiniSearchDocument;
   /** Runs the query. Defaults to `index.search(query)`. */
   search?: (params: { index: MiniSearch<T>; query: string }) => SearchResult[];
   /** Maximum results. Defaults to 10. */
@@ -89,7 +98,8 @@ export function createMiniSearchSearch<T>({
     return search({ index: miniSearch, query })
       .slice(0, limit)
       .map(hit => {
-        const { content, ...document } = getDocument(hit);
+        // MiniSearch types stored fields loosely; they are the documents'.
+        const { content, ...document } = getDocument(hit as MiniSearchHit<T>);
         // Matched document terms, plus the typed words for prefix matches.
         const terms = [...new Set([...hit.terms, ...queryTerms])];
         const excerpt = content

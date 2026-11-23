@@ -58,6 +58,8 @@ export function useDocspotConfig(props: DocspotRootProps) {
     messages: messageOverrides,
     onEvent,
   } = props;
+  // Types require one; this guards callers without them.
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!search && !chat)
     throw new Error('Docspot: configure `search`, `chat`, or both.');
   if (siteUrl !== undefined && !isOrigin(siteUrl))

@@ -280,6 +280,14 @@ it('switches, deletes, and clears conversations', async () => {
   await expect
     .element(menu.getByRole('menuitem', { name: 'Beta', exact: true }))
     .not.toBeInTheDocument();
+  // Focus moves on to the next row, so the keyboard keeps working.
+  await expect
+    .element(menu.getByRole('menuitem', { name: 'Alpha', exact: true }))
+    .toHaveFocus();
+  await userEvent.keyboard('{End}');
+  await expect
+    .element(menu.getByRole('menuitem', { name: 'Clear history…' }))
+    .toHaveFocus();
   await menu.getByRole('menuitem', { name: 'Clear history…' }).click();
   await menu.getByRole('menuitem', { name: 'Confirm clear history' }).click();
   await expect
@@ -580,6 +588,50 @@ it('covers the page on a phone until the page a source opens shows', async () =>
   } finally {
     await page.viewport(1440, 900);
   }
+});
+
+it('says when an answer was stopped, and offers to retry it', async () => {
+  const { chat, requests } = createChatServer((_, index) =>
+    index === 0
+      ? { toolQuery: 'zoom margin', chunks: ['Never'], chunkDelayMs: 2000 }
+      : index === 1
+        ? { chunks: ['Partial answer', ' never', ' ends.'], chunkDelayMs: 1000 }
+        : { text: 'Full answer.' }
+  );
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  const log = () => panel().getByRole('log');
+  const announcement = () =>
+    panel()
+      .getByRole('status')
+      .filter({ hasText: /^Answer / });
+
+  // Stopped before any text: the question waits with a way to retry it.
+  await userEvent.keyboard('What is the margin?{Enter}');
+  await expect
+    .element(panel().getByText('Searching for “zoom margin”'))
+    .toBeVisible();
+  await panel().getByRole('button', { name: 'Stop response' }).click();
+  await expect
+    .element(log().getByText('Stopped', { exact: true }))
+    .toBeVisible();
+  await expect.element(announcement()).toHaveTextContent('Answer stopped');
+  await log().getByRole('button', { name: 'Try again' }).click();
+
+  // Stopped part-way: the answer says so rather than looking complete.
+  await expect.element(answers().getByText('Partial answer')).toBeVisible();
+  await panel().getByRole('button', { name: 'Stop response' }).click();
+  await expect
+    .element(answers().getByText('Stopped', { exact: true }))
+    .toBeVisible();
+  await expect.element(announcement()).toHaveTextContent('Answer stopped');
+  await panel().getByRole('button', { name: 'Retry answer' }).click();
+  await expect.element(answers().getByText('Full answer.')).toBeVisible();
+  await expect
+    .element(answers().getByText('Stopped', { exact: true }))
+    .not.toBeInTheDocument();
+  await expect.element(announcement()).toHaveTextContent('Answer ready');
+  expect(lastQuestion(requests[2])).toBe('What is the margin?');
 });
 
 it('offers to jump only when more of the answer is below', async () => {

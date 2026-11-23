@@ -262,6 +262,17 @@ it('rejects a configuration without search or chat, or with a relative site URL'
   await expect
     .element(page.getByText('Docspot: configure `search`, `chat`, or both.'))
     .toBeVisible();
+
+  // Search's own props need search, which may be undefined.
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const maybeSearch = undefined as DocspotSearch | undefined;
+  void (
+    <>
+      {/* @ts-expect-error Items need search. */}
+      <Docspot chat={chat} items={[]} />
+      <Docspot chat={chat} search={maybeSearch} items={[]} />
+    </>
+  );
   await render(
     <Boundary>
       <Docspot search={() => results} siteUrl="docs.example.com" />

@@ -7,7 +7,7 @@ import { render } from 'vitest-browser-react';
 import { Docspot, createDocspotUrl } from '@/index';
 import { createAlgoliaSearch } from '@/algolia';
 import { createAlgoliaChat } from '@/algolia-chat';
-import { createMiniSearchSearch } from '@/minisearch';
+import { type MiniSearchHit, createMiniSearchSearch } from '@/minisearch';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -332,8 +332,8 @@ function createIndex() {
   return index;
 }
 
-const getDocument = (hit: Record<string, any>) => ({
-  url: hit.id as string,
+const getDocument = (hit: MiniSearchHit<Doc>) => ({
+  url: hit.id,
   title: hit.title,
   breadcrumb: [hit.section],
   group: hit.section,
@@ -342,6 +342,15 @@ const getDocument = (hit: Record<string, any>) => ({
 
 it('searches a MiniSearch index synchronously with highlights and excerpts', () => {
   const search = createMiniSearchSearch({ index: createIndex(), getDocument });
+  // Hits are typed as the index's documents.
+  createMiniSearchSearch({
+    index: createIndex(),
+    getDocument: hit => ({
+      url: hit.id,
+      // @ts-expect-error Doc has no `heading`.
+      title: hit.heading,
+    }),
+  });
   const results = search({
     query: 'zoomed space',
     signal: new AbortController().signal,
