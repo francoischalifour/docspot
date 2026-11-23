@@ -272,8 +272,10 @@ it('maps attached page content into the Algolia agent request', async () => {
   await render(
     <Docspot
       chat={chat}
-      context={{ page: { url: '/docs/options', title: 'Options' } }}
-      loadPage={async () => '# Options\nmargin: number'}
+      context={{
+        page: { url: '/docs/options', title: 'Options' },
+        loadPage: async () => '# Options\nmargin: number',
+      }}
     />
   );
   await page.getByRole('button', { name: 'Ask AI' }).first().click();
@@ -456,7 +458,7 @@ it('loads a MiniSearch index ahead of the first search when preloaded', async ()
 });
 
 it('builds links that open search or chat, keeping other parameters', () => {
-  expect(createDocspotUrl('/docs?tab=react', { search: 'zoom' })).toBe(
+  expect(createDocspotUrl('/docs?tab=react', { query: 'zoom' })).toBe(
     '/docs?tab=react&q=zoom'
   );
   expect(
@@ -470,11 +472,11 @@ it('builds links that open search or chat, keeping other parameters', () => {
   expect(createDocspotUrl('?q=old', { draft: 'Edit me' })).toBe(
     '?draft=Edit+me'
   );
-  expect(
-    createDocspotUrl('../guide?lang=en#topic?q=old', { search: 'x' })
-  ).toBe('../guide?lang=en&q=x#topic?q=old');
-  expect(createDocspotUrl('//docs.example/guide', { search: 'x' })).toBe(
+  expect(createDocspotUrl('../guide?lang=en#topic?q=old', { query: 'x' })).toBe(
+    '../guide?lang=en&q=x#topic?q=old'
+  );
+  expect(createDocspotUrl('//docs.example/guide', { query: 'x' })).toBe(
     '//docs.example/guide?q=x'
   );
-  expect(createDocspotUrl('guide', { search: 'x' })).toBe('guide?q=x');
+  expect(createDocspotUrl('guide', { query: 'x' })).toBe('guide?q=x');
 });

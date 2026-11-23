@@ -4,6 +4,7 @@ export type { DocspotProps } from '@/core/Docspot';
 export { useDocspot } from '@/core/useDocspot';
 export type { DocspotApi } from '@/core/useDocspot';
 export type { ChatPanelProps } from '@/core/ChatPanel';
+export type { ChatLauncherProps } from '@/core/ChatLauncher';
 export type { ChatTriggerProps, ChatTriggerState } from '@/core/ChatTrigger';
 export type {
   SearchTriggerProps,

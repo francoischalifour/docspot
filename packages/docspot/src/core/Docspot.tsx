@@ -1,4 +1,5 @@
 import { DocspotRoot } from '@/core/Root';
+import { ChatLauncher } from '@/core/ChatLauncher';
 import { ChatPanel } from '@/core/ChatPanel';
 import { ChatTrigger } from '@/core/ChatTrigger';
 import { SearchDialog } from '@/core/SearchDialog';
@@ -19,8 +20,8 @@ function DocspotComponent(props: DocspotProps) {
       {props.children}
       <SearchDialog />
       {/* The trigger opens search, which asks AI; add `Docspot.ChatTrigger`
-          as a child for a separate way into chat. */}
-      <ChatPanel launcher={false} />
+          or `Docspot.ChatLauncher` as a child for a separate way into chat. */}
+      <ChatPanel />
     </DocspotRoot>
   );
 }
@@ -30,6 +31,7 @@ export const Docspot = /* @__PURE__ */ Object.assign(DocspotComponent, {
   Trigger,
   SearchTrigger,
   ChatTrigger,
+  ChatLauncher,
   SearchDialog,
   ChatPanel,
 });

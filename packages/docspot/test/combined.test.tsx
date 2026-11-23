@@ -36,7 +36,7 @@ it('scopes shortcuts and the fixed chat inset to its owner', async () => {
           <Docspot.SearchTrigger />
           <Docspot.ChatTrigger />
           <Docspot.SearchDialog />
-          <Docspot.ChatPanel launcher={false} />
+          <Docspot.ChatPanel />
         </Docspot.Root>
       </div>
     );
@@ -299,7 +299,7 @@ it('opens chat for a link a client router opens', async () => {
   );
   await expect.element(answers().getByText('Answer.')).toBeVisible();
   expect(lastQuestion(requests[0])).toBe('Hi there');
-  history.pushState(null, '', createDocspotUrl('/docs', { search: 'sql' }));
+  history.pushState(null, '', createDocspotUrl('/docs', { query: 'sql' }));
   await expect.element(searchInput()).toHaveValue('sql');
 });
 
@@ -414,7 +414,7 @@ it('composes surfaces and controls them with useDocspot', async () => {
       <Docspot.SearchTrigger />
       <Controls />
       <Docspot.SearchDialog />
-      <Docspot.ChatPanel launcher={false} />
+      <Docspot.ChatPanel />
     </Docspot.Root>
   );
   await page.getByRole('button', { name: 'Find HTTP' }).click();
@@ -479,7 +479,7 @@ it('keeps useDocspot methods stable across renders', async () => {
     <Docspot.Root search={() => results} chat={chat}>
       <Probe />
       <Docspot.SearchDialog />
-      <Docspot.ChatPanel launcher={false} />
+      <Docspot.ChatPanel />
     </Docspot.Root>
   );
   await page.getByRole('button', { name: 'Open' }).click();

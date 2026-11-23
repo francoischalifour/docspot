@@ -72,8 +72,8 @@ function App() {
             page: { url: page.url, title: page.title, prompts: page.prompts },
             prompts: ['What can I build with Acme?'],
             resolvePage: url => findPage(url),
+            loadPage: async ({ url }) => findPage(url)?.markdown ?? null,
           }}
-          loadPage={async ({ url }) => findPage(url)?.markdown ?? null}
           onEvent={event => console.debug('[docspot]', event)}
         />
       </header>

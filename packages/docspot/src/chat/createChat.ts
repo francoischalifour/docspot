@@ -10,8 +10,8 @@ export type CreateChatOptions = {
   /**
    * An AI SDK transport, such as `new DefaultChatTransport({ api })`, or a
    * function that loads one when chat is first used. Request bodies carry
-   * `docspot.page` when a page is attached, with the content `loadPage`
-   * returned for it.
+   * `docspot.page` when a page is attached, with the content
+   * `context.loadPage` returned for it.
    */
   transport: Transport | (() => Promise<Transport>);
   /**

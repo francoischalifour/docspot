@@ -129,6 +129,11 @@ export type DocspotContextInput = {
    * their URL. Returning undefined ignores a page the site does not know.
    */
   resolvePage?: (url: string) => DocspotPage | undefined;
+  /**
+   * Loads a page's content when a question uses it as context, once per
+   * page and conversation.
+   */
+  loadPage?: DocspotLoadPage;
 };
 
 export type DocspotNavigate = (
@@ -172,7 +177,8 @@ export type DocspotShortcutProps = {
   shortcut: string;
 };
 
-export type DocspotResultIconProps = {
+/** What a result's icon receives: the result, and `DocspotIconProps`. */
+export type DocspotResultIconProps = DocspotIconProps & {
   result: DocspotResult;
   recent: boolean;
 };
@@ -262,7 +268,10 @@ export type DocspotSlots = {
   branding?: ComponentType;
   /** Extra actions for the previewed result, such as copying Markdown. */
   pageActions?: ComponentType<DocspotPageActionsProps>;
-  /** Replaces the default icons of results. */
+  /**
+   * Draws a result's icon, such as its section's. Takes precedence over
+   * `icons.page`, `icons.section`, and `icons.recent` for results.
+   */
   resultIcon?: ComponentType<DocspotResultIconProps>;
   /** Replaces how an item's shortcut is drawn. */
   shortcut?: ComponentType<DocspotShortcutProps>;
@@ -362,9 +371,8 @@ type DocspotSharedProps = {
    * a shortcut.
    */
   owner?: RefObject<HTMLElement | null>;
+  /** The page being read, suggested questions, and how chat reads pages. */
   context?: DocspotContextInput;
-  /** Loads a page's content when a question uses it as context. */
-  loadPage?: DocspotLoadPage;
   /** Defaults to `window.location.assign`. */
   navigate?: DocspotNavigate;
   /**

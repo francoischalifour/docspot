@@ -129,8 +129,8 @@ function App() {
         page: { url: page.url, title: page.title, prompts: page.prompts },
         prompts: ['What can I build with Acme?'],
         resolvePage: url => findPage(url),
+        loadPage: async ({ url }) => findPage(url)?.markdown ?? null,
       }}
-      loadPage={async ({ url }) => findPage(url)?.markdown ?? null}
       items={[toggleTheme]}
       defaultItems={[
         recentItems,
@@ -181,7 +181,7 @@ function App() {
         </div>
       </div>
       <Docspot.SearchDialog />
-      <Docspot.ChatPanel launcher={false} />
+      <Docspot.ChatPanel />
     </Docspot.Root>
   );
 }

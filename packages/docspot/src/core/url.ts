@@ -54,12 +54,12 @@ export function removeChatLink(search: string) {
 }
 
 export type DocspotLinkOptions =
-  | { search: string }
+  | { query: string }
   | { prompt: string; askPage?: string }
   | { draft: string; askPage?: string };
 
 /**
- * Builds a link that opens search with a query, or chat with a question to
+ * Builds a link that opens search with a `query`, or chat with a question to
  * send (`prompt`) or to edit first (`draft`). Other parameters are kept.
  * The page must render Docspot with `syncUrl`.
  */
@@ -75,7 +75,7 @@ export function createDocspotUrl(url: string, options: DocspotLinkOptions) {
     queryStart < 0 ? '' : beforeHash.slice(queryStart + 1)
   );
   for (const name of [SEARCH_PARAM, ...CHAT_PARAMS]) params.delete(name);
-  if ('search' in options) params.set(SEARCH_PARAM, options.search);
+  if ('query' in options) params.set(SEARCH_PARAM, options.query);
   else {
     if ('prompt' in options) params.set('prompt', options.prompt);
     else params.set('draft', options.draft);

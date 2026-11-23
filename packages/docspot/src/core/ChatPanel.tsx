@@ -5,7 +5,6 @@ import {
   chatFrameLoader,
   useDocspotInternal,
 } from '@/core/context';
-import { ChatLauncher } from '@/core/ChatLauncher';
 import { useTypedText } from '@/core/platform';
 
 const LazyChatPanelFrame = /* @__PURE__ */ lazy(() =>
@@ -18,13 +17,14 @@ export type ChatPanelProps = {
    * `inline` docks it as a flex item where it is rendered, beside the page.
    */
   dock?: 'fixed' | 'inline';
-  /** Shows a floating button that opens chat while the panel is hidden. */
-  launcher?: boolean;
   className?: string;
 };
 
-/** The chat panel. Renders nothing without `chat`. */
-export function ChatPanel({ launcher = true, ...props }: ChatPanelProps) {
+/**
+ * The chat panel. Renders nothing without `chat`. Add `Docspot.ChatTrigger`
+ * or `Docspot.ChatLauncher` to open it.
+ */
+export function ChatPanel(props: ChatPanelProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatPanel');
   if (!config.canChat) return null;
   // The frame loads with chat, so pages without chat never load it. Once
@@ -32,7 +32,6 @@ export function ChatPanel({ launcher = true, ...props }: ChatPanelProps) {
   const Frame = chatFrameLoader.get()?.ChatPanelFrame ?? LazyChatPanelFrame;
   return (
     <>
-      {launcher && <ChatLauncher hidden={chat.isOpen} />}
       {chat.keepsTyping && <TypedDraft chat={chat} />}
       <Suspense>
         <Frame {...props} />

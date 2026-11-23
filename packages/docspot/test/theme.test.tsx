@@ -3,7 +3,11 @@ import { afterEach, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotIconProps } from '@/index';
+import {
+  Docspot,
+  type DocspotIconProps,
+  type DocspotResultIconProps,
+} from '@/index';
 import { createChatServer, results } from '@test/fixtures';
 
 const DARK_BACKGROUND = 'rgb(17, 17, 19)';
@@ -132,6 +136,33 @@ it('swaps in a site’s own icons, keeping the rest and how they are drawn', asy
   const newChat = panel.getByRole('button', { name: 'New chat' });
   expect(newChat.element().querySelector('svg')?.dataset.icon).toBeUndefined();
   expect(newChat.element().querySelector('svg path')).not.toBeNull();
+});
+
+it('draws results with the site’s icon, at the size of other icons', async () => {
+  const ResultIcon = ({
+    result,
+    recent,
+    size,
+    ...props
+  }: DocspotResultIconProps) => (
+    <svg
+      data-result-icon={recent ? 'recent' : result.type}
+      width={size}
+      height={size}
+      {...props}
+    />
+  );
+  await render(
+    <Docspot search={() => results} slots={{ resultIcon: ResultIcon }} />
+  );
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await userEvent.keyboard('sql');
+  const option = page.getByRole('option').first();
+  await expect.element(option).toBeVisible();
+  const icon = option.element().querySelector('svg')!;
+  expect(icon.dataset.resultIcon).toBe('section');
+  expect(icon.getAttribute('aria-hidden')).toBe('true');
+  expect(icon.getAttribute('width')).toBe('18');
 });
 
 it('draws icons at the stroke the page sets', async () => {

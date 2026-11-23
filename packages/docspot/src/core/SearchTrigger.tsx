@@ -45,7 +45,7 @@ export function SearchTrigger({
     if (config.preload) search.preload();
   };
   const label = config.canChat
-    ? config.messages.trigger.searchAndAsk
+    ? config.messages.trigger.searchWithAsk
     : config.messages.trigger.search;
   return renderElement(
     render,

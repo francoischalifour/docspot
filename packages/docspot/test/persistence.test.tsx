@@ -143,7 +143,7 @@ it('ignores malformed page metadata when retrying a restored conversation', asyn
   );
   const loadPage = vi.fn();
   const { chat } = createChatServer(() => ({ text: 'Retried answer.' }));
-  await render(<Docspot chat={chat} history loadPage={loadPage} />);
+  await render(<Docspot chat={chat} history context={{ loadPage }} />);
   await page.getByRole('button', { name: 'Retry answer' }).click();
   await expect.element(page.getByText('Retried answer.')).toBeVisible();
   expect(loadPage).not.toHaveBeenCalled();

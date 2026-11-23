@@ -6,8 +6,7 @@
 export const defaultMessages = {
   trigger: {
     search: 'Search docs',
-    /** The search trigger's label when chat is available. */
-    searchAndAsk: 'Search or ask docs',
+    searchWithAsk: 'Search or ask docs',
     chat: 'Ask AI',
   },
   search: {
@@ -136,13 +135,12 @@ export type DocspotMessagesInput = DeepPartial<DocspotMessages>;
  */
 function withAskFallbacks<T extends object>(
   defaults: T,
-  overrides: Partial<T> | undefined,
-  variants: Record<string, string> = {}
+  overrides: Partial<T> | undefined
 ): T {
   if (!overrides) return defaults;
   const resolved: Record<string, unknown> = { ...defaults, ...overrides };
   for (const key of Object.keys(overrides)) {
-    const variant = variants[key] ?? `${key}WithAsk`;
+    const variant = `${key}WithAsk`;
     if (variant in defaults && !(variant in overrides))
       resolved[variant] = resolved[key];
   }
@@ -154,10 +152,7 @@ export function resolveMessages(
 ): DocspotMessages {
   if (!overrides) return defaultMessages;
   return {
-    // `searchAndAsk` is the trigger's label when chat is available.
-    trigger: withAskFallbacks(defaultMessages.trigger, overrides.trigger, {
-      search: 'searchAndAsk',
-    }),
+    trigger: withAskFallbacks(defaultMessages.trigger, overrides.trigger),
     search: withAskFallbacks(defaultMessages.search, overrides.search),
     chat: withAskFallbacks(defaultMessages.chat, overrides.chat),
   };

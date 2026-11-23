@@ -59,9 +59,10 @@ export function useChatController(
   chatLoader: ChatLoader | null,
   triggers: TriggerRegistry
 ) {
-  const { loadPage, siteUrl, context } = props;
+  const { siteUrl, context } = props;
   const { canChat, emit, stores, currentPage } = config;
   const resolvePage = context?.resolvePage;
+  const loadPage = context?.loadPage;
 
   const panel = useSyncExternalStore(
     stores.panel.subscribe,
