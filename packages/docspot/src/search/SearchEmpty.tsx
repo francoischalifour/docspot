@@ -1,4 +1,5 @@
 import { SearchIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { Shimmer } from '@/ui/Shimmer';
 import { useSearchContext } from '@/search/SearchContext';
 
@@ -8,7 +9,14 @@ export function SearchEmpty() {
   const { messages, isLoading, hasError, query, emptyHint } = search;
   return (
     <div className="docspot-search-empty">
-      {!isLoading && <SearchIcon size={20} className="docspot-subtle" />}
+      {!isLoading && (
+        <SlotIcon
+          name="search"
+          icon={SearchIcon}
+          size={20}
+          className="docspot-subtle"
+        />
+      )}
       <p className="docspot-search-empty-title">
         {isLoading ? (
           <Shimmer>{messages.loading}</Shimmer>

@@ -14,6 +14,7 @@ import {
   scrollMode,
 } from '@/chat/scrollMode';
 import { ArrowDownIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { type ScrollerApi, ScrollerContext } from '@/chat/ScrollerContext';
 
 const END_TOLERANCE = 8;
@@ -265,7 +266,7 @@ export function Scroller({
           setResumeKey(key => key + 1);
         }}
       >
-        <ArrowDownIcon size={14} />
+        <SlotIcon name="jump" icon={ArrowDownIcon} size={14} />
       </button>
     </div>
   );

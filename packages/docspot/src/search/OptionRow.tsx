@@ -11,6 +11,7 @@ import {
   QuestionIcon,
   SectionIcon,
 } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { isExternalUrl } from '@/core/platform';
 import {
   type SearchOption,
@@ -75,21 +76,23 @@ function OptionRowContent({
 
   // Drawn at the size the row shows them, so their stroke matches others'.
   let icon;
-  if (item.kind === 'ask') icon = <QuestionIcon size={ROW_ICON_SIZE} />;
+  if (item.kind === 'ask')
+    icon = <SlotIcon name="ask" icon={QuestionIcon} size={ROW_ICON_SIZE} />;
   else if (item.kind === 'item')
     icon =
       item.item.icon ??
       (url ? (
-        <PageIcon size={ROW_ICON_SIZE} />
+        <SlotIcon name="page" icon={PageIcon} size={ROW_ICON_SIZE} />
       ) : (
-        <CommandIcon size={ROW_ICON_SIZE} />
+        <SlotIcon name="action" icon={CommandIcon} size={ROW_ICON_SIZE} />
       ));
   else if (ResultIcon)
     icon = <ResultIcon result={item.result} recent={item.recent} />;
-  else if (item.recent) icon = <HistoryIcon size={ROW_ICON_SIZE} />;
+  else if (item.recent)
+    icon = <SlotIcon name="recent" icon={HistoryIcon} size={ROW_ICON_SIZE} />;
   else if (item.result.type === 'section')
-    icon = <SectionIcon size={ROW_ICON_SIZE} />;
-  else icon = <PageIcon size={ROW_ICON_SIZE} />;
+    icon = <SlotIcon name="section" icon={SectionIcon} size={ROW_ICON_SIZE} />;
+  else icon = <SlotIcon name="page" icon={PageIcon} size={ROW_ICON_SIZE} />;
 
   const content = (
     <>
@@ -142,12 +145,12 @@ function OptionRowContent({
       )}
       <span aria-hidden="true" className="docspot-result-hint">
         {isExternal ? (
-          <ExternalIcon size={14} />
+          <SlotIcon name="external" icon={ExternalIcon} size={14} />
         ) : (
           // Shown on the selected row by CSS, so moving the selection
           // renders only the rows it leaves and reaches.
           <span data-docspot-hints="" className="docspot-result-enter">
-            <EnterIcon size={14} />
+            <SlotIcon name="enter" icon={EnterIcon} size={14} />
           </span>
         )}
       </span>

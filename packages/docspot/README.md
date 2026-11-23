@@ -453,9 +453,45 @@ For a tool that runs in the browser, such as a confirmation, call `addOutput` wi
 | `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                                                                         |
 | `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                                                                         |
 | `resultIcon`  | `{ result, recent }`. Replaces the icons of results                                                                                                                                                                                                                                                                                      |
+| `icons`       | Icons by what they mean. See [Icons](#icons)                                                                                                                                                                                                                                                                                             |
 | `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                                                                         |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
+
+#### Icons
+
+`slots.icons` replaces Docspot's icons, such as with your site's icon set. Give any of them; the rest stay Docspot's own. Each receives `{ size, className, 'aria-hidden', focusable }` for its `<svg>`, as icon sets such as Lucide take them, and takes its color from the text around it:
+
+```tsx
+import { ArrowUp, Search, Square } from 'lucide-react';
+
+<Docspot slots={{ icons: { search: Search, send: ArrowUp, stop: Square } }} />;
+```
+
+| Key              | Icon                                                     |
+| ---------------- | -------------------------------------------------------- |
+| `search`         | The search field and trigger                             |
+| `loading`        | Search while results are slow; Docspot spins it          |
+| `page`           | A page result, link item, or page attached to a question |
+| `section`        | A section result                                         |
+| `recent`         | A recent page                                            |
+| `ask`            | Asking AI, and suggested questions                       |
+| `action`         | An item whose `action` is a function                     |
+| `conversation`   | A conversation in the chat switcher                      |
+| `expand`         | Opens the chat switcher                                  |
+| `send`, `stop`   | Send a question, and stop an answer                      |
+| `newChat`        | Starts a new chat                                        |
+| `collapse`       | Hides the docked chat panel                              |
+| `close`          | Closes chat over the page, or removes an attached page   |
+| `delete`         | Deletes a conversation, or clears history                |
+| `copy`, `copied` | Copy, and once copied                                    |
+| `retry`          | Retries an answer                                        |
+| `jump`           | Jumps to the end of an answer                            |
+| `source`         | An answer's source                                       |
+| `external`       | A link that opens in a new tab                           |
+| `enter`          | The key that opens the selected result                   |
+
+`resultIcon` takes precedence over `page`, `section`, and `recent` for results. Docspot's own icons draw at one weight, which [`--docspot-icon-stroke`](#icon-stroke) sets.
 
 ### Theme
 
@@ -552,6 +588,14 @@ Map the type scale to your site's own sizes to match its text.
 | `--docspot-radius-floating` | `0.75rem`  | The floating search dialog and chat panel  |
 | `--docspot-shadow-raised`   | Soft       | The composer and raised cards              |
 | `--docspot-shadow-floating` | Deep       | The floating search dialog and chat panel  |
+
+#### Icon stroke
+
+| Variable                | Default | Used for                                                        |
+| ----------------------- | ------- | --------------------------------------------------------------- |
+| `--docspot-icon-stroke` | `1.3`   | The stroke of every icon, in pixels as drawn, whatever its size |
+
+Match it to your icon set's weight, or replace the icons themselves with [`slots.icons`](#icons).
 
 #### Layout
 

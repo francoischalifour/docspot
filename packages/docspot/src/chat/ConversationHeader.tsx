@@ -1,4 +1,5 @@
 import { CloseIcon, CollapseIcon, NewChatIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { IconButton } from '@/ui/IconButton';
 import { ConversationSwitcher } from '@/chat/ConversationSwitcher';
 import { useConversationContext } from '@/chat/ConversationContext';
@@ -21,7 +22,7 @@ export function ConversationHeader() {
           label={messages.newChat}
           onClick={conversation.onNewConversation}
         >
-          <NewChatIcon size={16} />
+          <SlotIcon name="newChat" icon={NewChatIcon} size={16} />
         </IconButton>
       )}
       <IconButton
@@ -30,8 +31,18 @@ export function ConversationHeader() {
         onClick={conversation.onClose}
       >
         {/* Slides away beside the page; closes when it covers the screen. */}
-        <CollapseIcon size={16} className="docspot-when-docked" />
-        <CloseIcon size={16} className="docspot-when-covering" />
+        <SlotIcon
+          name="collapse"
+          icon={CollapseIcon}
+          size={16}
+          className="docspot-when-docked"
+        />
+        <SlotIcon
+          name="close"
+          icon={CloseIcon}
+          size={16}
+          className="docspot-when-covering"
+        />
       </IconButton>
     </div>
   );

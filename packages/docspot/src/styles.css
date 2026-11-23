@@ -14,6 +14,8 @@
   --docspot-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --docspot-mark-weight: 600;
   --docspot-mark-decoration: none;
+  /* Icon stroke in pixels as drawn, whatever an icon's size. */
+  --docspot-icon-stroke: 1.3;
   /* Letter spacing for interface text; tighten it for wide fonts. */
   --docspot-tracking: normal;
   /* Type scale. Map it to a site's own scale to match its text sizes. */

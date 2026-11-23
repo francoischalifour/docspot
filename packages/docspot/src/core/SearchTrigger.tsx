@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 
 import { SearchIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { Kbd } from '@/ui/Kbd';
 import { composeHandlers } from '@/ui/composeHandlers';
 import { cx } from '@/ui/cx';
@@ -67,7 +68,11 @@ export function SearchTrigger({
       children: children ?? (
         <>
           <span className="docspot-trigger-label">
-            <SearchIcon className="docspot-muted" />
+            <SlotIcon
+              name="search"
+              icon={SearchIcon}
+              className="docspot-muted"
+            />
             <span className="docspot-trigger-text">{label}</span>
           </span>
           <Kbd

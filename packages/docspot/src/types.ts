@@ -171,6 +171,65 @@ export type DocspotResultIconProps = {
   recent: boolean;
 };
 
+/** What an icon receives. Spread it onto the `<svg>`. */
+export type DocspotIconProps = {
+  /** Width and height in pixels. */
+  size: number;
+  className?: string;
+  'aria-hidden': true;
+  focusable: 'false';
+};
+
+/**
+ * Docspot's icons, by what they mean, for `slots.icons`. Each one not given
+ * keeps Docspot's own.
+ */
+export type DocspotIcons = {
+  /** The search field and trigger. */
+  search: ComponentType<DocspotIconProps>;
+  /** Search while results are slow. Docspot spins it. */
+  loading: ComponentType<DocspotIconProps>;
+  /** A page result, link item, or page attached to a question. */
+  page: ComponentType<DocspotIconProps>;
+  /** A section result. */
+  section: ComponentType<DocspotIconProps>;
+  /** A recent page. */
+  recent: ComponentType<DocspotIconProps>;
+  /** Asking AI, and suggested questions. */
+  ask: ComponentType<DocspotIconProps>;
+  /** An item whose `action` is a function. */
+  action: ComponentType<DocspotIconProps>;
+  /** A conversation in the chat switcher. */
+  conversation: ComponentType<DocspotIconProps>;
+  /** Opens the chat switcher. */
+  expand: ComponentType<DocspotIconProps>;
+  /** Sends a question. */
+  send: ComponentType<DocspotIconProps>;
+  /** Stops an answer. */
+  stop: ComponentType<DocspotIconProps>;
+  /** Starts a new chat. */
+  newChat: ComponentType<DocspotIconProps>;
+  /** Hides the docked chat panel. */
+  collapse: ComponentType<DocspotIconProps>;
+  /** Closes chat over the page, or removes an attached page. */
+  close: ComponentType<DocspotIconProps>;
+  /** Deletes a conversation, or clears history. */
+  delete: ComponentType<DocspotIconProps>;
+  copy: ComponentType<DocspotIconProps>;
+  /** Shown once something is copied. */
+  copied: ComponentType<DocspotIconProps>;
+  /** Retries an answer. */
+  retry: ComponentType<DocspotIconProps>;
+  /** Jumps to the end of an answer. */
+  jump: ComponentType<DocspotIconProps>;
+  /** An answer's source. */
+  source: ComponentType<DocspotIconProps>;
+  /** A link that opens in a new tab. */
+  external: ComponentType<DocspotIconProps>;
+  /** The key that opens the selected result. */
+  enter: ComponentType<DocspotIconProps>;
+};
+
 export type DocspotSlots = {
   /**
    * Renders the active result's content beside the results. May suspend.
@@ -186,6 +245,8 @@ export type DocspotSlots = {
   resultIcon?: ComponentType<DocspotResultIconProps>;
   /** Replaces how an item's shortcut is drawn. */
   shortcut?: ComponentType<DocspotShortcutProps>;
+  /** Replaces Docspot's icons, such as with a site's own icon set. */
+  icons?: Partial<DocspotIcons>;
 };
 
 export type DocspotQuestionSource =

@@ -1,4 +1,5 @@
 import { CheckIcon, CopyIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { IconButton } from '@/ui/IconButton';
 import { useClipboard } from '@/ui/useClipboard';
 
@@ -17,7 +18,11 @@ export function CopyButton({ text, label, copiedLabel }: CopyButtonProps) {
       className="docspot-message-action"
       onClick={() => void copy(text).catch(() => {})}
     >
-      {isCopied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+      {isCopied ? (
+        <SlotIcon name="copied" icon={CheckIcon} size={14} />
+      ) : (
+        <SlotIcon name="copy" icon={CopyIcon} size={14} />
+      )}
     </IconButton>
   );
 }

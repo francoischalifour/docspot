@@ -3,6 +3,7 @@ import type { Ref } from 'react';
 import type { DocspotMessages } from '@/messages';
 import type { DocspotPage } from '@/types';
 import { SendIcon, StopIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { IconButton } from '@/ui/IconButton';
 import { PageContextChip } from '@/chat/PageContextChip';
 
@@ -85,7 +86,11 @@ export function Composer({
             else if (disabled) event.preventDefault();
           }}
         >
-          {busy ? <StopIcon size={14} /> : <SendIcon size={14} />}
+          {busy ? (
+            <SlotIcon name="stop" icon={StopIcon} size={14} />
+          ) : (
+            <SlotIcon name="send" icon={SendIcon} size={14} />
+          )}
         </IconButton>
       </div>
     </form>
