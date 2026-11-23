@@ -3,15 +3,17 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot, type DocspotTooltipProps } from '@/index';
-import { createChatServer } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const panel = () => page.getByRole('complementary', { name: 'Ask AI' });
 
 async function chatWithAnswer() {
-  const { chat } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   await render(<Docspot chat={chat} history />);
   await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
   await expect.element(panel().getByRole('textbox')).toHaveFocus();
@@ -98,7 +100,7 @@ it('draws a site’s own tooltips around Docspot’s buttons', async () => {
       </span>
     );
   }
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(<Docspot chat={chat} slots={{ tooltip: SiteTooltip }} />);
   await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
   // Once chat has started, past the startup panel's own Hide button.

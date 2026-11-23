@@ -9,6 +9,7 @@
 - **Every change reports its cost.** Bundle sizes and render counts are measured against recorded baselines. Raising one is a decision, not a fix.
 - **Tests use what people use.** Test exclusively through public APIs, assert observable behavior, simulate realistic interactions, and mock only unavoidable external dependencies, such as a chat backend. Query by role and accessible name, not by class or internal attribute.
 - **Tests wait on behavior, not time.** Wait for what the reader would see with `expect.element` or `vi.waitFor`, not for a fixed delay.
+- **Chat tests use `createTestChat`** from `@test/testing`, a backend behind a real AI SDK transport. Script an answer with `answer`, or return `undefined` and drive it with `nextRequest()`: write text, call tools, and end or fail it where the test needs the answer to be, instead of slowing it down with delays.
 
 ## Set up
 

@@ -15,7 +15,7 @@ import { commands, page, userEvent } from 'vitest/browser';
 import { cleanup, render } from 'vitest-browser-react';
 
 import { Docspot, type DocspotResult, createSearch, useDocspot } from '@/index';
-import { createChatServer } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 type Counts = { commits: number; renders: number };
 type Measure = Counts & { ms: number };
@@ -98,7 +98,7 @@ const searchInput = () => page.getByRole('combobox');
 const panel = () => page.getByRole('complementary', { name: 'Ask AI' });
 
 async function openSearch() {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(
     <Measured>
       <Docspot search={createSearch(() => manyResults)} chat={chat} />
@@ -109,7 +109,7 @@ async function openSearch() {
 }
 
 async function chatWithAnswers(count: number) {
-  const { chat } = createChatServer(() => ({ text: longAnswer }));
+  const { chat } = createTestChat({ answer: () => ({ text: longAnswer }) });
   await render(
     <Measured>
       <Docspot chat={chat} />

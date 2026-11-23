@@ -10,7 +10,8 @@ import {
   type DocspotSearch,
   useDocspot,
 } from '@/index';
-import { createChatServer, lastQuestion, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>
@@ -27,7 +28,7 @@ async function openSearch() {
 }
 
 it('scopes shortcuts and the fixed chat inset to its owner', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   function ScopedDocspot() {
     const owner = useRef<HTMLDivElement>(null);
     return (
@@ -103,7 +104,7 @@ it('routes shortcuts to the closest owner that handles them', async () => {
 });
 
 it('uses the messages written for asking when chat is available', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(
     <Docspot
       search={() => []}
@@ -123,9 +124,11 @@ it('uses the messages written for asking when chat is available', async () => {
 });
 
 it('hands the query to chat with Tab, with the page being read attached', async () => {
-  const { chat, requests } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat, requests } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   await render(
     <Docspot
       search={() => results}
@@ -139,7 +142,7 @@ it('hands the query to chat with Tab, with the page being read attached', async 
   await expect
     .element(answers().getByText('About how do I join tables.'))
     .toBeVisible();
-  expect(requests[0]?.body.docspot?.page).toMatchObject({
+  expect(requests[0]?.page).toMatchObject({
     url: `${location.origin}/docs/query`,
   });
 
@@ -157,9 +160,11 @@ it('hands the query to chat with Tab, with the page being read attached', async 
 });
 
 it('sends the search query from the Ask AI preview with the current page', async () => {
-  const { chat, requests } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat, requests } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   await render(
     <Docspot
       search={() => results}
@@ -192,13 +197,13 @@ it('sends the search query from the Ask AI preview with the current page', async
     .element(answers().getByText('About how do I join tables?.'))
     .toBeVisible();
   expect(requests).toHaveLength(1);
-  expect(requests[0]?.body.docspot?.page).toMatchObject({
+  expect(requests[0]?.page).toMatchObject({
     url: `${location.origin}/docs/query`,
   });
 });
 
 it('leads with Ask AI only when the search response prioritizes chat', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const search: DocspotSearch = ({ query }) => ({
     results,
     prioritizeChat: query.endsWith('?'),
@@ -264,7 +269,7 @@ it('rejects a configuration without search or chat, or with a relative site URL'
     .toBeVisible();
 
   // Search's own props need search, which may be undefined.
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const maybeSearch = undefined as DocspotSearch | undefined;
   void (
     <>
@@ -289,7 +294,9 @@ it('rejects a configuration without search or chat, or with a relative site URL'
 });
 
 it('opens chat for a link a client router opens', async () => {
-  const { chat, requests } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat, requests } = createTestChat({
+    answer: () => ({ text: 'Answer.' }),
+  });
   await render(<Docspot chat={chat} search={() => results} syncUrl />);
   // Routers push history entries, as a <Link> does, without popstate.
   history.pushState(
@@ -298,7 +305,7 @@ it('opens chat for a link a client router opens', async () => {
     createDocspotUrl('/docs', { prompt: 'Hi there' })
   );
   await expect.element(answers().getByText('Answer.')).toBeVisible();
-  expect(lastQuestion(requests[0])).toBe('Hi there');
+  expect(requests[0]?.question).toBe('Hi there');
   history.pushState(null, '', createDocspotUrl('/docs', { query: 'sql' }));
   await expect.element(searchInput()).toHaveValue('sql');
 });
@@ -382,9 +389,11 @@ it('keeps browser navigation from being overwritten by a pending query write', a
 });
 
 it('composes surfaces and controls them with useDocspot', async () => {
-  const { chat, requests } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat, requests } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   function Controls() {
     const docspot = useDocspot();
     return (
@@ -429,8 +438,8 @@ it('composes surfaces and controls them with useDocspot', async () => {
     .not.toBeInTheDocument();
   await userEvent.keyboard('{Enter}');
   await expect.element(answers().getByText('About Draft text.')).toBeVisible();
-  expect(requests[0]?.body.docspot?.page).toBeUndefined();
-  expect(lastQuestion(requests[0])).toBe('Draft text');
+  expect(requests[0]?.page).toBeUndefined();
+  expect(requests[0]?.question).toBe('Draft text');
 
   await page.getByRole('button', { name: 'Fresh' }).click();
   await expect
@@ -459,7 +468,7 @@ it('reopens search with its query when going back from a result', async () => {
 });
 
 it('keeps useDocspot methods stable across renders', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const seen = new Set<unknown>();
   function Probe() {
     const docspot = useDocspot();
@@ -558,9 +567,11 @@ it('only asks to open search when a parent keeps it closed', async () => {
 });
 
 it('sends a question once a parent controlling chat opens it', async () => {
-  const { chat, requests } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat, requests } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   const onChatOpenChange = vi.fn();
   function Page() {
     const [chatOpen, setChatOpen] = useState(false);

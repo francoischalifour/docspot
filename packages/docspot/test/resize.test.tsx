@@ -3,7 +3,7 @@ import { commands, page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot } from '@/index';
-import { createChatServer } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 declare module 'vitest/browser' {
   interface BrowserCommands {
@@ -22,7 +22,7 @@ const chatWidth = () =>
   document.documentElement.style.getPropertyValue('--docspot-chat-width');
 
 async function openDockedChat() {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(<Docspot chat={chat} />);
   await page.getByRole('button', { name: 'Ask AI' }).first().click();
   await expect.element(panel().getByRole('textbox')).toHaveFocus();

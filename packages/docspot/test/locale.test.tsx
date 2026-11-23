@@ -5,7 +5,8 @@ import { render } from 'vitest-browser-react';
 import { Docspot, type DocspotLocale } from '@/index';
 import * as entry from '@/locale';
 import { pluralize } from '@/locale';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 /** Every locale `docspot/locale` exports, by name, without its helpers. */
 const locales = Object.fromEntries(
@@ -17,7 +18,7 @@ const locales = Object.fromEntries(
 const panel = (name: string) => page.getByRole('complementary', { name });
 
 it('shows the interface in the locale’s language', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Réponse.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Réponse.' }) });
   await render(
     <Docspot search={() => results} chat={chat} locale={entry.fr} />
   );
@@ -40,7 +41,7 @@ it('shows the interface in the locale’s language', async () => {
 });
 
 it('renames the assistant everywhere it is named', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   await render(<Docspot chat={chat} messages={{ assistant: 'Acme' }} />);
   await page.getByRole('button', { name: 'Ask Acme' }).click();
   await expect
@@ -52,7 +53,7 @@ it('renames the assistant everywhere it is named', async () => {
 });
 
 it('applies the site’s text over a locale, keeping the rest of it', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Réponse.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Réponse.' }) });
   await render(
     <Docspot
       chat={chat}
@@ -73,7 +74,7 @@ it('applies the site’s text over a locale, keeping the rest of it', async () =
 });
 
 it('formats times in the locale’s language', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Réponse.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Réponse.' }) });
   await render(<Docspot chat={chat} locale={entry.fr} />);
   await page.getByRole('button', { name: 'Demander à l’IA' }).click();
   await userEvent.keyboard('Bonjour{Enter}');
@@ -129,7 +130,7 @@ it('picks each plural category a language has, else `other`', () => {
 it.each(Object.entries(locales))(
   'fills every placeholder in %s',
   async (_name, locale) => {
-    const { chat } = createChatServer(() => ({ text: 'OK.' }));
+    const { chat } = createTestChat({ answer: () => ({ text: 'OK.' }) });
     await render(<Docspot search={() => []} chat={chat} locale={locale} />);
     const placeholder = /\{\w+\}/;
     expect(document.body.innerHTML).not.toMatch(placeholder);

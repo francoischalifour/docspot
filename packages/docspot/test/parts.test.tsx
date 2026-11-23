@@ -7,7 +7,8 @@ import { type Locator, page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot } from '@/index';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 
@@ -51,7 +52,7 @@ const searchOnly = (children: ReactNode) => (
   <Docspot.Root search={() => results}>{children}</Docspot.Root>
 );
 function chatOnly(children: ReactNode) {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   return <Docspot.Root chat={chat}>{children}</Docspot.Root>;
 }
 const dialog = () => page.getByRole('dialog', { name: 'Search documentation' });

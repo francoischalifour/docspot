@@ -8,7 +8,8 @@ import {
   type DocspotIconProps,
   type DocspotResultIconProps,
 } from '@/index';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const DARK_BACKGROUND = 'rgb(17, 17, 19)';
 const LIGHT_BACKGROUND = 'rgb(255, 255, 255)';
@@ -56,10 +57,12 @@ it('keeps a light section light inside a dark page, selection included', async (
 });
 
 it('draws every icon with the same stroke, whatever its size', async () => {
-  const { chat } = createChatServer(() => ({
-    text: 'See the guide.',
-    sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
-  }));
+  const { chat } = createTestChat({
+    answer: () => ({
+      text: 'See the guide.',
+      sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
+    }),
+  });
   await render(
     <Docspot
       search={() => results}
@@ -104,7 +107,7 @@ it('draws every icon with the same stroke, whatever its size', async () => {
 });
 
 it('swaps in a site’s own icons, keeping the rest and how they are drawn', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   // As icon sets such as Lucide take them: a size, and props for the svg.
   const Magnifier = ({ size, ...props }: DocspotIconProps) => (
     <svg data-icon="magnifier" width={size} height={size} {...props} />
