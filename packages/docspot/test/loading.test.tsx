@@ -3,7 +3,8 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot } from '@/index';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 
@@ -23,7 +24,7 @@ it('keeps what is typed while the search dialog loads', async () => {
 });
 
 it('keeps what is typed while chat starts', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   await render(<Docspot chat={chat} preload={false} />);
   await userEvent.keyboard(`{${modifier}>}j{/${modifier}}zoom x{Backspace}`);
   const composer = page

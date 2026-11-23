@@ -3,7 +3,8 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot, importDocspotHistory } from '@/index';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const searchInput = () =>
   page.getByRole('combobox', { name: 'Search documentation' });
@@ -96,7 +97,7 @@ it('ignores invalid or outdated records', async () => {
       value: { open: 'yes', draft: 42, width: 'wide' },
     })
   );
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   await render(<Docspot search={search} chat={chat} history />);
   await openSearch();
   await expect
@@ -142,7 +143,9 @@ it('ignores malformed page metadata when retrying a restored conversation', asyn
     })
   );
   const loadPage = vi.fn();
-  const { chat } = createChatServer(() => ({ text: 'Retried answer.' }));
+  const { chat } = createTestChat({
+    answer: () => ({ text: 'Retried answer.' }),
+  });
   await render(<Docspot chat={chat} history context={{ loadPage }} />);
   await page.getByRole('button', { name: 'Retry answer' }).click();
   await expect.element(page.getByText('Retried answer.')).toBeVisible();
@@ -206,7 +209,7 @@ it('ignores session storage events when syncing persisted history', async () => 
 });
 
 it('updates the open conversation menu when another tab saves a chat', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer' }) });
   await render(<Docspot chat={chat} history />);
   await page.getByRole('button', { name: 'Ask AI', exact: true }).click();
   await page.getByRole('button', { name: /Switch chat/ }).click();
@@ -259,7 +262,7 @@ it('imports history from a previous implementation once', async () => {
     })
   ).toBe(false);
 
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   await render(<Docspot search={search} chat={chat} history />);
   const panel = page.getByRole('complementary', { name: 'Ask AI' });
   await expect.element(panel.getByText('Imported answer.')).toBeVisible();
@@ -273,9 +276,11 @@ it('imports history from a previous implementation once', async () => {
 });
 
 it('starts a fresh session when the history instance changes', async () => {
-  const { chat } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   const screen = await render(<Docspot id="first" chat={chat} history />);
   await page.getByRole('button', { name: 'Ask AI' }).first().click();
   await userEvent.keyboard('First question{Enter}');

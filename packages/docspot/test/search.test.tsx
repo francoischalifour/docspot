@@ -11,7 +11,8 @@ import {
   useDocspot,
 } from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
-import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
+import { results, wait } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const searchInput = () =>
@@ -351,7 +352,7 @@ it('cancels outdated requests and never shows or opens a stale result', async ()
 });
 
 it('never reports no results while a request is pending', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const settled: string[] = [];
   // Like a real network: slow, and it rejects when aborted.
   const search = createSearch(
@@ -415,7 +416,9 @@ it('never reports no results while a request is pending', async () => {
 });
 
 it('offers the page questions as rows when there is nothing else to list', async () => {
-  const { chat, requests } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat, requests } = createTestChat({
+    answer: () => ({ text: 'Answer.' }),
+  });
   await render(
     <Docspot
       search={() => results}
@@ -444,7 +447,7 @@ it('offers the page questions as rows when there is nothing else to list', async
       page.getByRole('complementary', { name: 'Ask AI' }).getByText('Answer.')
     )
     .toBeVisible();
-  expect(lastQuestion(requests[0])).toBe('Can I export results?');
+  expect(requests[0]?.question).toBe('Can I export results?');
 });
 
 it('shows the full breadcrumb, even the part the group heading names', async () => {
@@ -893,7 +896,7 @@ it('keeps trigger behavior when consumers pass a ref and handlers', async () => 
 });
 
 it('applies a base message override when its WithAsk variant is not overridden', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(
     <Docspot
       search={() => []}

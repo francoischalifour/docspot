@@ -11,7 +11,8 @@ import {
 } from '@/index';
 import { type DocspotToolProps, createChat } from '@/chat';
 import type { DocspotUrlAdapter } from '@/types';
-import { createChatServer, lastQuestion, wait } from '@test/fixtures';
+import { wait } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
 const panel = () => page.getByRole('complementary', { name: 'Ask AI' });
@@ -30,7 +31,7 @@ async function openChat() {
 }
 
 it('loads chat only on opening when automatic preload is disabled', async () => {
-  const { transport } = createChatServer(() => ({ text: 'Hi.' }));
+  const { transport } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   let loads = 0;
   const chat = createChat({
     transport: async () => {
@@ -55,7 +56,7 @@ it('loads chat only on opening when automatic preload is disabled', async () => 
 });
 
 it('floats a launcher while chat is hidden, and returns focus to it', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   let allow = false;
   await render(
     <Docspot.Root chat={chat}>
@@ -82,11 +83,10 @@ it('floats a launcher while chat is hidden, and returns focus to it', async () =
 });
 
 it('works without search: prompts, page context, streaming Markdown, and sources', async () => {
-  const { chat, requests } = createChatServer(() => ({
-    chunks: ['Call **zoom', '()** on the image.'],
-    chunkDelayMs: 150,
-    sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
-  }));
+  // The test streams the first answer; the second is scripted.
+  const { chat, requests, nextRequest } = createTestChat({
+    answer: ({ index }) => (index === 0 ? undefined : 'Without the page.'),
+  });
   const loadPage = vi.fn<DocspotLoadPage>(async () => ({
     content: '# Zoom guide\nUse zoom().',
   }));
@@ -115,9 +115,14 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await expect.element(composer()).toHaveFocus();
 
   // Bold text renders while it is still streaming.
+  const reply = await nextRequest();
+  reply.text('Call **zoom');
   await expect
     .element(answers().getByText('zoom', { exact: true }))
     .toHaveProperty('tagName', 'STRONG');
+  reply.text('()** on the image.');
+  reply.source({ url: '/docs/guides/zoom', title: 'Zoom guide' });
+  reply.end();
   await expect.element(answers().getByText(/on the image/)).toBeVisible();
   await expect
     .element(answers().getByRole('link', { name: 'Zoom guide' }))
@@ -129,7 +134,7 @@ it('works without search: prompts, page context, streaming Markdown, and sources
 
   expect(loadPage).toHaveBeenCalledTimes(1);
   // Backends receive the page's absolute URL.
-  expect(requests[0]?.body.docspot?.page).toEqual({
+  expect(requests[0]?.page).toEqual({
     url: `${location.origin}/docs/guides/zoom`,
     title: 'Zoom guide',
     content: '# Zoom guide\nUse zoom().',
@@ -140,35 +145,35 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await userEvent.fill(composer(), 'And without the page?');
   await userEvent.keyboard('{Enter}');
   await expect.element(answers()).toHaveLength(2);
-  expect(requests[1]?.body.docspot?.page).toBeUndefined();
+  expect(requests[1]?.page).toBeUndefined();
 });
 
 it('keeps completing inline Markdown after a streamed code block closes', async () => {
-  const { chat } = createChatServer(() => ({
-    chunks: ['```ts\nconst value = 1;\n```\n\nThis is **bold', ' text**.'],
-    chunkDelayMs: 500,
-  }));
+  const { chat, nextRequest } = createTestChat();
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Show an example{Enter}');
+  const reply = await nextRequest();
+  reply.text('```ts\nconst value = 1;\n```\n\nThis is **bold');
   await expect
     .element(answers().getByText('bold', { exact: true }))
+    .toHaveProperty('tagName', 'STRONG');
+  reply.text(' text**.');
+  reply.end();
+  await expect
+    .element(answers().getByText('bold text', { exact: true }))
     .toHaveProperty('tagName', 'STRONG');
 });
 
 it('shows tool progress, stops, and retries the latest answer in place', async () => {
-  const { chat, requests } = createChatServer((_, index) =>
-    index === 0
-      ? {
-          toolQuery: 'zoom margin',
-          chunks: ['Never', ' finishes', '.'],
-          chunkDelayMs: 2000,
-        }
-      : { text: `Answer ${index}.` }
-  );
+  const { chat, requests, nextRequest } = createTestChat({
+    answer: ({ index }) => (index === 0 ? undefined : `Answer ${index}.`),
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('What is the margin?{Enter}');
+  // The search runs until the reader stops it.
+  (await nextRequest()).tool('searchDocs', { query: 'zoom margin' });
   await expect
     .element(
       panel().getByRole('status').getByText('Searching for “zoom margin”')
@@ -188,13 +193,14 @@ it('shows tool progress, stops, and retries the latest answer in place', async (
   await expect
     .element(answers().getByText('Answer 1.'))
     .not.toBeInTheDocument();
-  expect(lastQuestion(requests[2])).toBe('Try once more');
+  expect(requests[2]?.question).toBe('Try once more');
 });
 
 it('recovers from a failed answer', async () => {
-  const { chat } = createChatServer((_, index) =>
-    index === 0 ? { status: 500 } : { text: 'Recovered.' }
-  );
+  const { chat } = createTestChat({
+    answer: ({ index }) =>
+      index === 0 ? { status: 500 } : { text: 'Recovered.' },
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Hello?{Enter}');
@@ -213,11 +219,11 @@ it('recovers from a failed answer', async () => {
 });
 
 it('replaces an in-flight answer when a new question arrives', async () => {
-  const { chat, requests } = createChatServer(question =>
-    question === 'First'
-      ? { chunks: ['Slow', ' first', ' answer'], chunkDelayMs: 1000 }
-      : { text: 'Second answer.' }
-  );
+  const { chat, requests, nextRequest } = createTestChat({
+    // The first answer never finishes.
+    answer: ({ question }) =>
+      question === 'First' ? undefined : 'Second answer.',
+  });
   function AskButton() {
     const docspot = useDocspot();
     return (
@@ -235,19 +241,20 @@ it('replaces an in-flight answer when a new question arrives', async () => {
   );
   await page.getByRole('button', { name: 'Ask AI' }).first().click();
   await userEvent.keyboard('First{Enter}');
+  (await nextRequest()).text('Slow');
   await expect.element(answers().getByText('Slow')).toBeVisible();
   await page.getByRole('button', { name: 'Ask second' }).click();
   await expect.element(answers().getByText('Second answer.')).toBeVisible();
   expect(requests[0]?.signal?.aborted).toBe(true);
-  expect(lastQuestion(requests[1])).toBe('Second');
+  expect(requests[1]?.question).toBe('Second');
 });
 
 it('replaces the earlier question when submissions happen in one event', async () => {
-  const { chat, requests } = createChatServer(question =>
-    question === 'First'
-      ? { chunks: ['Slow first answer'], chunkDelayMs: 2000 }
-      : { text: 'Second answer.' }
-  );
+  const { chat, requests } = createTestChat({
+    // The first answer never finishes; nothing drives it.
+    answer: ({ question }) =>
+      question === 'First' ? undefined : 'Second answer.',
+  });
   function AskBothButton() {
     const docspot = useDocspot();
     return (
@@ -272,14 +279,16 @@ it('replaces the earlier question when submissions happen in one event', async (
   await page.getByRole('button', { name: 'Ask AI' }).first().click();
   await page.getByRole('button', { name: 'Ask both' }).click();
   await expect.element(answers().getByText('Second answer.')).toBeVisible();
-  expect(lastQuestion(requests.at(-1))).toBe('Second');
+  expect(requests.at(-1)?.question).toBe('Second');
   expect(requests[0]?.signal?.aborted).toBe(true);
 });
 
 it('restores the open panel, its conversation, and the draft after a reload', async () => {
-  const { chat } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   const screen = await render(<Docspot chat={chat} history />);
   await openChat();
   await userEvent.keyboard('First question{Enter}');
@@ -297,7 +306,7 @@ it('restores the open panel, its conversation, and the draft after a reload', as
 });
 
 it('starts closed on a phone after a reload', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   const screen = await render(<Docspot chat={chat} history />);
   await openChat();
   await page.viewport(390, 800);
@@ -309,9 +318,11 @@ it('starts closed on a phone after a reload', async () => {
 });
 
 it('switches, deletes, and clears conversations', async () => {
-  const { chat } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   await render(<Docspot chat={chat} history />);
   await openChat();
   for (const question of ['Alpha', 'Beta']) {
@@ -355,7 +366,9 @@ it('opens from question links and removes them from the URL', async () => {
     '',
     '/docs?tab=react&prompt=How%20to%20zoom%3F&askPage=%2Fdocs%2Fguides%2Fzoom'
   );
-  const { chat, requests } = createChatServer(() => ({ text: 'Like this.' }));
+  const { chat, requests } = createTestChat({
+    answer: () => ({ text: 'Like this.' }),
+  });
   await render(
     <Docspot
       chat={chat}
@@ -365,8 +378,8 @@ it('opens from question links and removes them from the URL', async () => {
   );
   await expect.element(answers().getByText('Like this.')).toBeVisible();
   expect(location.search).toBe('?tab=react');
-  expect(lastQuestion(requests[0])).toBe('How to zoom?');
-  expect(requests[0]?.body.docspot?.page).toMatchObject({
+  expect(requests[0]?.question).toBe('How to zoom?');
+  expect(requests[0]?.page).toMatchObject({
     url: `${location.origin}/docs/guides/zoom`,
     title: 'Zoom guide',
   });
@@ -394,7 +407,9 @@ it('opens the same question link again after router navigation', async () => {
       };
     },
   };
-  const { chat, requests } = createChatServer(() => ({ text: 'Again.' }));
+  const { chat, requests } = createTestChat({
+    answer: () => ({ text: 'Again.' }),
+  });
   await render(<Docspot chat={chat} syncUrl={adapter} />);
   await expect.element(answers().getByText('Again.')).toBeVisible();
   expect(search).toBe('');
@@ -405,7 +420,7 @@ it('opens the same question link again after router navigation', async () => {
 });
 
 it('closes with Escape and the shortcut, returning focus', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('{Escape}');
@@ -420,24 +435,15 @@ it('closes with Escape and the shortcut, returning focus', async () => {
 });
 
 it('anchors a streamed answer at its start instead of following its end', async () => {
-  const { chat } = createChatServer(
-    () => ({
-      preamble: 'One moment please.',
-      toolQuery: 'query data',
-      chunks: [
-        'Start reading here.\n\n',
-        ...Array.from(
-          { length: 40 },
-          () => 'More details about querying your data.\n\n'
-        ),
-      ],
-      chunkDelayMs: 60,
-    }),
-    { holdFirstStep: true }
-  );
+  const { chat, nextRequest } = createTestChat({ holdFirstStep: true });
   await render(<Docspot search={() => []} chat={chat} />);
   await page.getByRole('button', { name: 'Search or ask docs' }).click();
   await userEvent.keyboard('How do I query my data?{Tab}');
+  // The agent narrates, searches, then answers.
+  const reply = await nextRequest();
+  reply.text('One moment please.');
+  reply.tool('searchDocs', { query: 'query data' }).output({ hits: 3 });
+  reply.text('Start reading here.\n\n');
   const answer = answers().first();
   await expect.element(answer).toHaveTextContent('Start reading here.');
   const viewport = panel()
@@ -450,14 +456,15 @@ it('anchors a streamed answer at its start instead of following its end', async 
     expect(top).toBeLessThan(bounds.top + 48);
   };
   await vi.waitFor(expectAnswerStart);
-  await vi.waitFor(
-    () => {
-      expect(answer.element().getBoundingClientRect().height).toBeGreaterThan(
-        viewport.clientHeight
-      );
-      expectAnswerStart();
-    },
-    { timeout: 4000 }
+  // The answer grows past the viewport while it streams.
+  for (let batch = 1; batch <= 4; batch++) {
+    for (let line = 0; line < 10; line++)
+      reply.text(`Detail ${batch}.${line} about querying your data.\n\n`);
+    await expect.element(answer).toHaveTextContent(`Detail ${batch}.9`);
+    expectAnswerStart();
+  }
+  expect(answer.element().getBoundingClientRect().height).toBeGreaterThan(
+    viewport.clientHeight
   );
   // The rest of a long answer is below, so jumping to it is offered.
   await expect
@@ -466,8 +473,8 @@ it('anchors a streamed answer at its start instead of following its end', async 
 });
 
 it('starts a fresh session when the chat transport changes', async () => {
-  const first = createChatServer(() => ({ text: 'First answer.' }));
-  const second = createChatServer(() => ({ text: 'Second answer.' }));
+  const first = createTestChat({ answer: () => ({ text: 'First answer.' }) });
+  const second = createTestChat({ answer: () => ({ text: 'Second answer.' }) });
   const screen = await render(<Docspot chat={first.chat} />);
   await openChat();
   await userEvent.keyboard('First question{Enter}');
@@ -481,9 +488,11 @@ it('starts a fresh session when the chat transport changes', async () => {
 });
 
 it('retries startup once and keeps a linked question for a manual retry', async () => {
-  const { transport, requests } = createChatServer(() => ({
-    text: 'Recovered.',
-  }));
+  const { transport, requests } = createTestChat({
+    answer: () => ({
+      text: 'Recovered.',
+    }),
+  });
   const load = vi
     .fn(async () => transport)
     .mockRejectedValueOnce(new Error('Offline'))
@@ -496,14 +505,16 @@ it('retries startup once and keeps a linked question for a manual retry', async 
   expect(requests).toHaveLength(0);
   await panel().getByRole('button', { name: 'Try again' }).click();
   await expect.element(answers().getByText('Recovered.')).toBeVisible();
-  expect(requests.map(lastQuestion)).toEqual(['Pending']);
+  expect(requests.map(request => request.question)).toEqual(['Pending']);
   expect(location.search).toBe('?lang=en');
 });
 
 it('opens after a transient startup failure without asking the reader to retry', async () => {
-  const { transport, requests } = createChatServer(() => ({
-    text: 'Recovered.',
-  }));
+  const { transport, requests } = createTestChat({
+    answer: () => ({
+      text: 'Recovered.',
+    }),
+  });
   const load = vi
     .fn(async () => transport)
     .mockRejectedValueOnce(new Error('Offline'));
@@ -511,13 +522,15 @@ it('opens after a transient startup failure without asking the reader to retry',
   await render(<Docspot chat={createChat({ transport: load })} syncUrl />);
   await expect.element(answers().getByText('Recovered.')).toBeVisible();
   expect(load).toHaveBeenCalledTimes(2);
-  expect(requests.map(lastQuestion)).toEqual(['Pending']);
+  expect(requests.map(request => request.question)).toEqual(['Pending']);
 });
 
 it('drops a pending linked question when chat closes during startup', async () => {
-  const { transport, requests } = createChatServer(() => ({
-    text: 'Unexpected.',
-  }));
+  const { transport, requests } = createTestChat({
+    answer: () => ({
+      text: 'Unexpected.',
+    }),
+  });
   let release!: () => void;
   const ready = new Promise<void>(resolve => {
     release = resolve;
@@ -546,13 +559,15 @@ it('drops a pending linked question when chat closes during startup', async () =
 });
 
 it('opens sources on this site in place and others in a new tab', async () => {
-  const { chat } = createChatServer(() => ({
-    text: 'See the guide.',
-    sources: [
-      { url: '/docs/guides/zoom', title: 'Zoom guide' },
-      { url: 'https://example.org/zoom', title: 'Elsewhere' },
-    ],
-  }));
+  const { chat } = createTestChat({
+    answer: () => ({
+      text: 'See the guide.',
+      sources: [
+        { url: '/docs/guides/zoom', title: 'Zoom guide' },
+        { url: 'https://example.org/zoom', title: 'Elsewhere' },
+      ],
+    }),
+  });
   const navigate = vi.fn();
   await render(<Docspot chat={chat} navigate={navigate} />);
   await openChat();
@@ -574,10 +589,12 @@ it.each([390, 1440])(
   async width => {
     await page.viewport(width, 900);
     try {
-      const { chat } = createChatServer(() => ({
-        text: 'See the guide.',
-        sources: [{ url: '/docs/guide', title: 'Guide' }],
-      }));
+      const { chat } = createTestChat({
+        answer: () => ({
+          text: 'See the guide.',
+          sources: [{ url: '/docs/guide', title: 'Guide' }],
+        }),
+      });
       await render(
         <Docspot
           chat={chat}
@@ -600,9 +617,11 @@ it.each([390, 1440])(
 );
 
 it('keeps the draft when starting a new chat', async () => {
-  const { chat } = createChatServer(question => ({
-    text: `About ${question}.`,
-  }));
+  const { chat } = createTestChat({
+    answer: ({ question }) => ({
+      text: `About ${question}.`,
+    }),
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Alpha{Enter}');
@@ -614,32 +633,31 @@ it('keeps the draft when starting a new chat', async () => {
 });
 
 it('keeps a later answer in place after jumping to the latest one', async () => {
-  const { chat } = createChatServer((_, index) =>
-    index === 0
-      ? {
-          chunks: [
-            'Start.\n\n',
-            ...Array.from({ length: 50 }, (_, k) => `Paragraph ${k}.\n\n`),
-            'The very end.',
-          ],
-          chunkDelayMs: 20,
-        }
-      : { chunks: ['Short second', ' answer.'], chunkDelayMs: 300 }
-  );
+  const { chat, nextRequest } = createTestChat();
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('First{Enter}');
+  const first = await nextRequest();
+  first.text('Start.\n\n');
+  for (let k = 0; k < 6; k++) first.text(`Paragraph ${k}.\n\n`);
   await expect.element(answers().first()).toHaveTextContent('Paragraph 5');
   await commands.wheel('log', 'Chat', -150);
+  for (let k = 6; k < 50; k++) first.text(`Paragraph ${k}.\n\n`);
+  first.text('The very end.');
+  first.end();
   await expect.element(answers().first()).toHaveTextContent('The very end.');
   await panel().getByRole('button', { name: 'Jump to latest answer' }).click();
 
   await composer().click();
   await userEvent.keyboard('Second{Enter}');
+  const reply = await nextRequest();
+  reply.text('Short second');
   const second = answers().nth(1);
   await expect.element(second).toHaveTextContent('Short second');
   const top = () => Math.round(second.element().getBoundingClientRect().top);
   const during = top();
+  reply.text(' answer.');
+  reply.end();
   await expect
     .element(panel().getByRole('button', { name: 'Copy answer' }).nth(1))
     .toBeInTheDocument();
@@ -652,10 +670,12 @@ it('keeps a later answer in place after jumping to the latest one', async () => 
 it('covers the page on a phone until the page a source opens shows', async () => {
   await page.viewport(390, 800);
   try {
-    const { chat } = createChatServer(() => ({
-      text: 'See the guide.',
-      sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
-    }));
+    const { chat } = createTestChat({
+      answer: () => ({
+        text: 'See the guide.',
+        sources: [{ url: '/docs/guides/zoom', title: 'Zoom guide' }],
+      }),
+    });
     const navigations: Array<() => void> = [];
     const navigate = () =>
       new Promise<void>(resolve => navigations.push(resolve));
@@ -673,13 +693,10 @@ it('covers the page on a phone until the page a source opens shows', async () =>
 });
 
 it('says when an answer was stopped, and offers to retry it', async () => {
-  const { chat, requests } = createChatServer((_, index) =>
-    index === 0
-      ? { toolQuery: 'zoom margin', chunks: ['Never'], chunkDelayMs: 2000 }
-      : index === 1
-        ? { chunks: ['Partial answer', ' never', ' ends.'], chunkDelayMs: 1000 }
-        : { text: 'Full answer.' }
-  );
+  // The first two answers never finish; the reader stops them.
+  const { chat, requests, nextRequest } = createTestChat({
+    answer: ({ index }) => (index < 2 ? undefined : 'Full answer.'),
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   const log = () => panel().getByRole('log');
@@ -690,6 +707,7 @@ it('says when an answer was stopped, and offers to retry it', async () => {
 
   // Stopped before any text: the question waits with a way to retry it.
   await userEvent.keyboard('What is the margin?{Enter}');
+  (await nextRequest()).tool('searchDocs', { query: 'zoom margin' });
   await expect
     .element(panel().getByText('Searching for “zoom margin”'))
     .toBeVisible();
@@ -701,6 +719,7 @@ it('says when an answer was stopped, and offers to retry it', async () => {
   await log().getByRole('button', { name: 'Try again' }).click();
 
   // Stopped part-way: the answer says so rather than looking complete.
+  (await nextRequest()).text('Partial answer');
   await expect.element(answers().getByText('Partial answer')).toBeVisible();
   await panel().getByRole('button', { name: 'Stop response' }).click();
   await expect
@@ -713,14 +732,13 @@ it('says when an answer was stopped, and offers to retry it', async () => {
     .element(answers().getByText('Stopped', { exact: true }))
     .not.toBeInTheDocument();
   await expect.element(announcement()).toHaveTextContent('Answer ready');
-  expect(lastQuestion(requests[2])).toBe('What is the margin?');
+  expect(requests[2]?.question).toBe('What is the margin?');
 });
 
 it('offers to jump only when more of the answer is below', async () => {
-  const { chat } = createChatServer(() => ({
-    chunks: ['A short answer.', ' It fits.'],
-    chunkDelayMs: 100,
-  }));
+  const { chat } = createTestChat({
+    answer: () => ({ text: ['A short answer.', ' It fits.'] }),
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Is it short?{Enter}');
@@ -740,20 +758,17 @@ declare module 'vitest/browser' {
 }
 
 it('stays where the reader scrolled while an answer streams, until they jump back', async () => {
-  const { chat } = createChatServer(() => ({
-    chunks: [
-      'Start reading here.\n\n',
-      ...Array.from(
-        { length: 60 },
-        (_, index) => `Paragraph ${index} about querying data.\n\n`
-      ),
-      'The very end.',
-    ],
-    chunkDelayMs: 40,
-  }));
+  const { chat, nextRequest } = createTestChat();
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Tell me everything{Enter}');
+  const reply = await nextRequest();
+  const paragraphs = (from: number, to: number) => {
+    for (let index = from; index <= to; index++)
+      reply.text(`Paragraph ${index} about querying data.\n\n`);
+  };
+  reply.text('Start reading here.\n\n');
+  paragraphs(0, 5);
   const answer = answers().first();
   await expect.element(answer).toHaveTextContent('Paragraph 5');
 
@@ -765,11 +780,15 @@ it('stays where the reader scrolled while an answer streams, until they jump bac
     )
   );
   const top = answer.element().getBoundingClientRect().top;
+  paragraphs(6, 30);
   await expect.element(answer).toHaveTextContent('Paragraph 30');
   expect(
     Math.abs(answer.element().getBoundingClientRect().top - top)
   ).toBeLessThan(2);
 
+  paragraphs(31, 59);
+  reply.text('The very end.');
+  reply.end();
   await expect.element(answer).toHaveTextContent('The very end.');
   await panel().getByRole('button', { name: 'Jump to latest answer' }).click();
   await expect.element(answer.getByText('The very end.')).toBeInViewport();
@@ -777,23 +796,14 @@ it('stays where the reader scrolled while an answer streams, until they jump bac
 
 it('renders tool calls with their renderers, and continues once the reader answers one', async () => {
   type Option = { name: string; defaultValue: string };
-  const { requests, transport } = createChatServer((_question, index) =>
-    index === 0
-      ? {
-          tool: {
-            name: 'showOption',
-            input: { name: 'port' },
-            output: { name: 'port', defaultValue: '3000' },
-          },
-          text: 'Change it in acme.json.',
-          chunkDelayMs: 300,
-        }
-      : index === 1
-        ? { tool: { name: 'confirmReset', input: { option: 'port' } } }
-        : { text: 'Reset to 3000.' }
-  );
-  const chat = createChat({
-    transport,
+  const { chat, requests, nextRequest } = createTestChat({
+    answer: ({ index }) =>
+      index === 0
+        ? undefined
+        : index === 1
+          ? // Waits for the reader's answer.
+            { tools: [{ name: 'confirmReset', input: { option: 'port' } }] }
+          : 'Reset to 3000.',
     tools: {
       showOption: ({
         state,
@@ -821,11 +831,16 @@ it('renders tool calls with their renderers, and continues once the reader answe
   await openChat();
   await userEvent.keyboard('How do I change the port?{Enter}');
   // The renderer follows the call from its input to its output.
+  const reply = await nextRequest();
+  const lookup = reply.tool('showOption', { name: 'port' });
   await expect
     .element(answers().first().getByText('Looking up the option'))
     .toBeVisible();
   // The renderer shows the tool's progress, so the generic line doesn't.
   expect(panel().element().textContent).not.toContain('Thinking');
+  lookup.output({ name: 'port', defaultValue: '3000' });
+  reply.text('Change it in acme.json.');
+  reply.end();
   await expect
     .element(answers().first().getByText('port defaults to 3000'))
     .toBeVisible();
@@ -849,15 +864,17 @@ it('renders tool calls with their renderers, and continues once the reader answe
   // The reply continues the same answer rather than starting another.
   await expect.element(answers()).toHaveLength(2);
   // The reader's answer reaches the agent with the conversation.
-  const sent = JSON.stringify(requests.at(-1)?.body.messages.at(-1));
+  const sent = JSON.stringify(requests.at(-1)?.messages.at(-1));
   expect(sent).toContain('"output":true');
 });
 
 it('shows tools without a renderer only as progress', async () => {
-  const { chat } = createChatServer(() => ({
-    tool: { name: 'lookup', input: { q: 'port' }, output: { hits: 2 } },
-    text: 'Found it.',
-  }));
+  const { chat } = createTestChat({
+    answer: () => ({
+      tools: [{ name: 'lookup', input: { q: 'port' }, output: { hits: 2 } }],
+      text: 'Found it.',
+    }),
+  });
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('Where is the port?{Enter}');
@@ -866,25 +883,28 @@ it('shows tools without a renderer only as progress', async () => {
 });
 
 it('shows a search for the question as asked as thinking', async () => {
-  const { chat } = createChatServer(() => ({
-    toolQuery: 'How do I change the port?',
-    text: 'Set port in acme.json.',
-    chunkDelayMs: 400,
-  }));
+  const { chat, nextRequest } = createTestChat();
   await render(<Docspot chat={chat} />);
   await openChat();
   await userEvent.keyboard('How do I change the port?{Enter}');
+  const reply = await nextRequest();
+  const search = reply.tool('searchDocs', {
+    query: 'How do I change the port?',
+  });
   await expect
     .element(panel().getByRole('status').getByText('Thinking'))
     .toBeInTheDocument();
   expect(panel().element().textContent).not.toContain('Searching for');
+  search.output({ hits: 3 });
+  reply.text('Set port in acme.json.');
+  reply.end();
   await expect
     .element(answers().getByText('Set port in acme.json.'))
     .toBeVisible();
 });
 
 it('draws the attached page with the site’s icon for it', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const pageIcon = ({
     page,
     size,

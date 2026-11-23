@@ -3,7 +3,8 @@ import { commands, page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot } from '@/index';
-import { createChatServer, results } from '@test/fixtures';
+import { results } from '@test/fixtures';
+import { createTestChat } from '@test/testing';
 
 const root = document.documentElement;
 const searchInput = () =>
@@ -46,7 +47,7 @@ it('marks only the selected result in forced colors', async () => {
 });
 
 it('leaves search, chat, and their room out of printed pages', async () => {
-  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   await render(<Docspot search={() => results} chat={chat} />);
   await page.getByRole('button', { name: 'Search or ask docs' }).click();
   await userEvent.keyboard('Question{Tab}');
