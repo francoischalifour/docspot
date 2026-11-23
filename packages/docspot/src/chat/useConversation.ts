@@ -1,7 +1,14 @@
 import { useChat } from '@ai-sdk/react';
-import { type MouseEvent, useCallback, useLayoutEffect, useRef } from 'react';
+import {
+  type MouseEvent,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import { isSamePage } from '@/core/url';
+import { mergeRefs } from '@/ui/mergeRefs';
 import type { ConversationProps } from '@/chat/contract';
 import { getAnswerProgress, getMessageText } from '@/chat/messages';
 import { isRenderedToolRunning } from '@/chat/tools';
@@ -79,9 +86,19 @@ export function useConversation(props: ConversationProps) {
       ? (contextPage?.prompts ?? [])
       : [];
 
+  const composerElement = useRef<HTMLTextAreaElement | null>(null);
+  const composerRef = useMemo(
+    () => mergeRefs(props.composerRef, composerElement),
+    [props.composerRef]
+  );
+
   function ask(question: string, source: 'composer' | 'prompt') {
     if (!question.trim() || busy) return;
     void askSession(chat, question, contextPage, source);
+    // A chosen suggestion leaves with its list; typing goes on in the
+    // composer.
+    if (source === 'prompt')
+      composerElement.current?.focus({ preventScroll: true });
   }
 
   const retryAnswer = useCallback(() => void retry(chat), [chat]);
@@ -121,6 +138,7 @@ export function useConversation(props: ConversationProps) {
         isRenderedToolRunning(lastMessage.parts, props.tools)
       ),
     pageSuggestions,
+    composerRef,
     current: toConversation(chat.id, chatMessages),
     navigate,
     toInternal,

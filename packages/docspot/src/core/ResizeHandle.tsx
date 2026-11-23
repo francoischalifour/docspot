@@ -96,9 +96,9 @@ export function ResizeHandle({ width, onGesture }: ResizeHandleProps) {
           onGesture({ type: 'resize', width: clampPanelWidth(next) });
         if (event.key === widen) resize(currentWidth + step);
         else if (event.key === narrow) {
-          if (currentWidth <= PANEL_MIN_WIDTH)
-            onGesture({ type: 'hide', toward });
-          else resize(currentWidth - step);
+          // Holding the key stops at the narrowest; a new press hides.
+          if (currentWidth > PANEL_MIN_WIDTH) resize(currentWidth - step);
+          else if (!event.repeat) onGesture({ type: 'hide', toward });
         } else if (event.key === 'Home') resize(PANEL_MIN_WIDTH);
         else if (event.key === 'End') resize(PANEL_MAX_WIDTH);
         else return;

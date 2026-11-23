@@ -339,6 +339,27 @@ export function useSearch() {
   const canNavigate = activeItem?.query === query;
   const inputProps = autocomplete.getInputProps({ inputElement });
 
+  // Enter pressed before the query's results arrive chooses once they do,
+  // unless the query changes first.
+  const pendingEnterRef = useRef<string | null>(null);
+  useEffect(() => {
+    const pending = pendingEnterRef.current;
+    if (pending === null) return;
+    if (pending !== query) pendingEnterRef.current = null;
+    else if (canNavigate) {
+      pendingEnterRef.current = null;
+      chooseActive();
+    }
+  });
+
+  /** What Enter does: opens the active option. */
+  function chooseActive() {
+    if (!activeItem) return;
+    selectItem(activeItem);
+    const url = getOptionUrl(activeItem);
+    if (url) navigateItem(activeItem, url);
+  }
+
   useEffect(() => {
     void autocomplete.refresh();
     return () => {
@@ -541,10 +562,7 @@ export function useSearch() {
       ref: formRef,
       onSubmit: event => {
         event.preventDefault();
-        if (!canNavigate) return;
-        selectItem(activeItem);
-        const url = getOptionUrl(activeItem);
-        if (url) navigateItem(activeItem, url);
+        if (canNavigate) chooseActive();
       },
     };
   }
@@ -614,6 +632,8 @@ export function useSearch() {
         }
         if (event.key === 'Enter' && !canNavigate) {
           event.preventDefault();
+          if (!hasModifierKey(event.nativeEvent))
+            pendingEnterRef.current = query;
           return;
         }
         if (
@@ -680,14 +700,17 @@ export function useSearch() {
     announce,
     onKeyDown: onDialogKeyDown,
     onTouchMove,
+    // Both buttons leave as they act, so typing goes on in the input.
     retry: () => {
       setErrorQuery(null);
       void autocomplete.refresh();
+      inputElement?.focus();
     },
     clearRecent: () => {
       stores.recentPages.set([]);
       config.emit({ type: 'history.clear' });
       void autocomplete.refresh();
+      inputElement?.focus();
     },
   };
 }

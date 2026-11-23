@@ -185,9 +185,9 @@ export function useChatController(
       return;
     }
     if (request.action === 'reset') {
+      // What the reader was typing carries over, never lost.
       replaceSession(loaded, createSession(loaded));
       setPageContext({ follow: true });
-      setDraft('');
       emit({ type: 'conversation.new' });
       return;
     }
@@ -196,7 +196,7 @@ export function useChatController(
       if (current?.id !== request.conversation.id) {
         replaceSession(loaded, createSession(loaded, request.conversation));
         setPageContext({ follow: true });
-        setDraft(request.draft ?? '');
+        if (request.draft !== undefined) setDraft(request.draft);
         emit({
           type: 'conversation.resume',
           conversationId: request.conversation.id,
@@ -350,14 +350,14 @@ export function useChatController(
     composerRef.current = composer;
     if (composer && focusPendingRef.current) {
       focusPendingRef.current = false;
-      composer.focus({ preventScroll: true });
+      focusAtEnd(composer);
     }
   }
 
   // The composer may still be loading; it takes focus once it mounts.
   useEffect(() => {
     if (!focusRequest) return;
-    if (composerRef.current) composerRef.current.focus({ preventScroll: true });
+    if (composerRef.current) focusAtEnd(composerRef.current);
     else focusPendingRef.current = true;
   }, [focusRequest]);
 
@@ -425,6 +425,11 @@ export function useChatController(
   const controller: ChatController = {
     isOpen: lifecycle.status !== 'closed',
     focusStartup: pending?.focus ?? false,
+    keepsTyping:
+      lifecycle.status === 'starting' &&
+      !session &&
+      pending?.focus === true &&
+      !pending.request,
     retryStartup:
       lifecycle.status === 'failed'
         ? () => openNow(lifecycle.intent.request, lifecycle.intent)
@@ -454,4 +459,11 @@ export function useChatController(
     preload: () => preload?.(),
   };
   return { controller, requestChat, syncLinkFromUrl };
+}
+
+/** Focuses the composer to continue its draft where it ends. */
+function focusAtEnd(composer: HTMLTextAreaElement) {
+  composer.focus({ preventScroll: true });
+  const end = composer.value.length;
+  composer.setSelectionRange(end, end);
 }

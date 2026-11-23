@@ -101,6 +101,11 @@ export type ChatController = {
   isOpen: boolean;
   retryStartup?: () => void;
   focusStartup: boolean;
+  /**
+   * Whether what is typed while chat starts goes to the draft: chat opens
+   * for the reader to type, without a request that would replace it.
+   */
+  keepsTyping: boolean;
   runtime: ChatRuntime | undefined;
   session: ChatSession | null;
   draft: string;

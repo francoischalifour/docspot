@@ -4,6 +4,7 @@ import {
   useEffectEvent,
   useLayoutEffect,
   useReducer,
+  useRef,
   useState,
 } from 'react';
 import { flushSync } from 'react-dom';
@@ -49,6 +50,11 @@ export function ChatPanelFrame({
   const { config, search, chat } = useDocspotInternal('Docspot.ChatPanel');
   const { messages, canSearch } = config;
   const { isOpen, runtime, session } = chat;
+  // A link chat waits to leave for; closing or opening ends the wait.
+  const leavingRef = useRef<object | null>(null);
+  useEffect(() => {
+    leavingRef.current = null;
+  }, [isOpen]);
   const [element, setElement] = useState<HTMLElement | null>(null);
   useVisualViewport(isOpen ? element : null);
   const [gesture, dispatchGesture] = useReducer(panelGesture, idleGesture);
@@ -230,9 +236,16 @@ export function ChatPanelFrame({
           onClose={chat.close}
           onNavigate={(url, event) => {
             event.preventDefault();
-            // A full-screen panel would hide the page the link opens.
-            if (!isChatBesidePage()) chat.close();
-            void config.navigate(url, { event });
+            const navigation = config.navigate(url, { event });
+            // A full-screen panel would hide the page the link opens. It
+            // stays until that page shows, without a flash of this one.
+            if (isChatBesidePage()) return;
+            if (!navigation) return chat.close();
+            const leaving = {};
+            leavingRef.current = leaving;
+            void navigation.finally(() => {
+              if (leavingRef.current === leaving) chat.close();
+            });
           }}
           toInternalUrl={config.toInternalUrl}
           messages={messages}
