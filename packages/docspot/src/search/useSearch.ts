@@ -150,6 +150,7 @@ export function useSearch() {
   ): Promise<AutocompleteSource<SearchOption>[]> {
     const { config, chat } = latest.current;
     const { messages, canChat, stores } = config;
+    const toLocalUrl = (url: string) => config.toInternalUrl(url) ?? url;
     const trimmed = query.trim();
     // Older versions stored handoffs, which belong on other sites.
     const recentPages = trimmed
@@ -190,12 +191,14 @@ export function useSearch() {
       }
       const seen = { urls: new Set<string>(), itemIds: new Set<string>() };
       sections = [
-        ...groupEntries([...matched, ...results], labels, seen),
-        // Handoffs follow the results they can link to.
+        ...groupEntries([...matched, ...results], labels, seen, toLocalUrl),
+        // Handoffs follow the results they can link to, which keep the
+        // provider's URLs for elsewhere.
         ...groupEntries(
           config.handoffs.map(handoff => handoff({ query: trimmed, results })),
           { result: labels.result, item: messages.search.handoffs },
-          seen
+          seen,
+          toLocalUrl
         ),
       ];
     } else {
@@ -204,7 +207,8 @@ export function useSearch() {
       sections = groupEntries(
         defaults.includes(recentItems) ? defaults : [recentItems, ...defaults],
         labels,
-        { urls: recentUrls, itemIds: new Set() }
+        { urls: recentUrls, itemIds: new Set() },
+        toLocalUrl
       );
     }
     const select = ({ item }: { item: SearchOption }) =>

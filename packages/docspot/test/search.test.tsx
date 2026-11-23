@@ -3,7 +3,13 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotResult, createSearch, useDocspot } from '@/index';
+import {
+  Docspot,
+  type DocspotHandoffContext,
+  type DocspotResult,
+  createSearch,
+  useDocspot,
+} from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
 import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
@@ -137,6 +143,47 @@ it('opens what Enter chose once results for the typed query arrive', async () =>
   await vi.waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(httpApi.url, {})
   );
+});
+
+it('opens results on the site in place, with their path, wherever it is served', async () => {
+  const navigate = vi.fn();
+  const handoff = vi.fn((context: DocspotHandoffContext) => ({
+    id: 'elsewhere',
+    title: 'Ask elsewhere',
+    action: `https://example.org/?q=${context.results[0]?.url}`,
+  }));
+  await render(
+    <Docspot
+      search={() => [
+        { title: 'Install guide', url: 'https://docs.example.com/install#npm' },
+        { title: 'Other site', url: 'https://example.org/page' },
+      ]}
+      siteUrl="https://docs.example.com"
+      handoffs={[handoff]}
+      navigate={navigate}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('install');
+  const own = page.getByRole('option', { name: /Install guide/ });
+  await expect.element(own).toHaveAttribute('href', '/install#npm');
+  await expect.element(own).not.toHaveAttribute('target');
+  await expect
+    .element(page.getByRole('option', { name: /Other site/ }))
+    .toHaveAttribute('target', '_blank');
+  // Handoffs get the provider's URLs, for use elsewhere.
+  expect(handoff).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      results: [
+        expect.objectContaining({
+          url: 'https://docs.example.com/install#npm',
+        }),
+        expect.anything(),
+      ],
+    })
+  );
+  await userEvent.keyboard('{Enter}');
+  expect(navigate).toHaveBeenCalledWith('/install#npm', {});
 });
 
 it('marks matching text in titles from a search provider without highlights', async () => {
