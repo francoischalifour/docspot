@@ -57,14 +57,14 @@ export function ConversationSwitcher({
                 return {
                   key: conversation.id,
                   label: conversation.title,
-                  icon: <ChatIcon size={14} />,
+                  icon: <ChatIcon />,
                   current: isCurrent,
                   onSelect: () => {
                     if (!isCurrent) onSelect(conversation);
                   },
                   secondary: {
                     label: messages.deleteChat(conversation.title),
-                    icon: <DeleteIcon size={12} />,
+                    icon: <DeleteIcon size={14} />,
                     onSelect: () => {
                       conversations.remove(conversation.id);
                       if (isCurrent) onDeleteCurrent();
@@ -78,7 +78,9 @@ export function ConversationSwitcher({
                 label: isConfirmingClear
                   ? messages.confirmClearHistory
                   : messages.clearHistory,
-                icon: <DeleteIcon size={14} />,
+                icon: <DeleteIcon />,
+                // Quiet until it asks to confirm.
+                quiet: !isConfirmingClear,
                 danger: isConfirmingClear,
                 keepOpen: !isConfirmingClear,
                 onSelect: () => {

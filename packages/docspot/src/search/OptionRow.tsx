@@ -23,6 +23,9 @@ import { Highlight } from '@/search/Highlight';
 import { BreadcrumbHighlight } from '@/search/BreadcrumbHighlight';
 import { Shortcut } from '@/search/Shortcut';
 
+/** Result icons are drawn larger than inline ones; see `.docspot-result-icon`. */
+const ROW_ICON_SIZE = 18;
+
 type OptionRowProps = {
   item: SearchOption;
   itemProps: HTMLAttributes<HTMLElement>;
@@ -70,15 +73,23 @@ function OptionRowContent({
   const breadcrumb = result?.breadcrumb ?? [];
   const isExternal = url !== undefined && isExternalUrl(url);
 
+  // Drawn at the size the row shows them, so their stroke matches others'.
   let icon;
-  if (item.kind === 'ask') icon = <QuestionIcon />;
+  if (item.kind === 'ask') icon = <QuestionIcon size={ROW_ICON_SIZE} />;
   else if (item.kind === 'item')
-    icon = item.item.icon ?? (url ? <PageIcon /> : <CommandIcon />);
+    icon =
+      item.item.icon ??
+      (url ? (
+        <PageIcon size={ROW_ICON_SIZE} />
+      ) : (
+        <CommandIcon size={ROW_ICON_SIZE} />
+      ));
   else if (ResultIcon)
     icon = <ResultIcon result={item.result} recent={item.recent} />;
-  else if (item.recent) icon = <HistoryIcon />;
-  else if (item.result.type === 'section') icon = <SectionIcon />;
-  else icon = <PageIcon />;
+  else if (item.recent) icon = <HistoryIcon size={ROW_ICON_SIZE} />;
+  else if (item.result.type === 'section')
+    icon = <SectionIcon size={ROW_ICON_SIZE} />;
+  else icon = <PageIcon size={ROW_ICON_SIZE} />;
 
   const content = (
     <>

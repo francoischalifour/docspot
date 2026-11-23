@@ -837,7 +837,6 @@
 .docspot-result-icon > svg {
   width: 1.125rem;
   height: 1.125rem;
-  stroke-width: 1.5;
 }
 
 .docspot-result-hint {
@@ -2022,6 +2021,19 @@
 
 .docspot-menu-item > svg {
   flex-shrink: 0;
+  color: var(--docspot-muted);
+}
+
+/* The row in hand shows its icon as strongly as its text. */
+:is(
+    .docspot-menu-item:is(:hover, :focus-visible),
+    .docspot-menu-row[data-current] .docspot-menu-item
+  )
+  > svg {
+  color: inherit;
+}
+
+.docspot-menu-item[data-quiet]:not(:hover, :focus-visible) {
   color: var(--docspot-muted);
 }
 
