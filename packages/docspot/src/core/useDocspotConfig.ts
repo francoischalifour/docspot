@@ -62,6 +62,10 @@ export function useDocspotConfig(props: DocspotRootProps) {
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (!search && !chat)
     throw new Error('Docspot: configure `search`, `chat`, or both.');
+  if (siteUrl !== undefined && !isOrigin(siteUrl))
+    throw new Error(
+      `Docspot: \`siteUrl\` must be an absolute URL, such as https://example.com.`
+    );
 
   // Stores change only with the instance identity, never on rerender.
   const stores = useMemo(
@@ -132,4 +136,12 @@ export function useDocspotConfig(props: DocspotRootProps) {
     stores,
   };
   return { config, url, chatLoader };
+}
+
+function isOrigin(url: string) {
+  try {
+    return /^https?:$/.test(new URL(url).protocol);
+  } catch {
+    return false;
+  }
 }

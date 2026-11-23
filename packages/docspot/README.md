@@ -671,7 +671,7 @@ createDocspotUrl('/docs/install', { prompt: 'How do I upgrade?' });
 // "/docs/install?prompt=How+do+I+upgrade%3F"
 ```
 
-For routers that own history, pass an adapter:
+`syncUrl` follows Back and Forward and, where the browser has the Navigation API, links a client router opens, such as a `<Link>` to a `createDocspotUrl` URL. For a router whose own state must see Docspot's changes, pass an adapter. Docspot always uses the latest one, so it can be written inline. With React Router's data router:
 
 ```ts
 syncUrl={{

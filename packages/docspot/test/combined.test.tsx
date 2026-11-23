@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 import {
   Docspot,
   type DocspotPage,
+  createDocspotUrl,
   type DocspotSearch,
   useDocspot,
 } from '@/index';
@@ -236,7 +237,7 @@ it('offers only search controls and shortcuts without chat', async () => {
   await expect.element(panel()).not.toBeInTheDocument();
 });
 
-it('rejects a configuration without search or chat', async () => {
+it('rejects a configuration without search or chat, or with a relative site URL', async () => {
   class Boundary extends Component<{ children: ReactNode }, { error?: Error }> {
     override state: { error?: Error } = {};
     static getDerivedStateFromError(error: Error) {
@@ -258,7 +259,6 @@ it('rejects a configuration without search or chat', async () => {
       <Docspot />
     </Boundary>
   );
-  removeEventListener('error', onError);
   await expect
     .element(page.getByText('Docspot: configure `search`, `chat`, or both.'))
     .toBeVisible();
@@ -273,6 +273,72 @@ it('rejects a configuration without search or chat', async () => {
       <Docspot chat={chat} search={maybeSearch} items={[]} />
     </>
   );
+  await render(
+    <Boundary>
+      <Docspot search={() => results} siteUrl="docs.example.com" />
+    </Boundary>
+  );
+  removeEventListener('error', onError);
+  await expect
+    .element(
+      page.getByText(
+        'Docspot: `siteUrl` must be an absolute URL, such as https://example.com.'
+      )
+    )
+    .toBeVisible();
+});
+
+it('opens chat for a link a client router opens', async () => {
+  const { chat, requests } = createChatServer(() => ({ text: 'Answer.' }));
+  await render(<Docspot chat={chat} search={() => results} syncUrl />);
+  // Routers push history entries, as a <Link> does, without popstate.
+  history.pushState(
+    null,
+    '',
+    createDocspotUrl('/docs', { prompt: 'Hi there' })
+  );
+  await expect.element(answers().getByText('Answer.')).toBeVisible();
+  expect(lastQuestion(requests[0])).toBe('Hi there');
+  history.pushState(null, '', createDocspotUrl('/docs', { search: 'sql' }));
+  await expect.element(searchInput()).toHaveValue('sql');
+});
+
+it('keeps typing with an inline adapter whose router writes later', async () => {
+  let search = '';
+  const listeners = new Set<() => void>();
+  function App() {
+    const [query, setQuery] = useState('');
+    return (
+      <>
+        <output>{query}</output>
+        <Docspot
+          search={() => results}
+          onQueryChange={setQuery}
+          syncUrl={{
+            read: () => search,
+            // Like a router's navigate, which applies a moment later.
+            write: next => {
+              setTimeout(() => {
+                search = next;
+                listeners.forEach(listener => listener());
+              }, 50);
+            },
+            subscribe: listener => {
+              listeners.add(listener);
+              return () => listeners.delete(listener);
+            },
+          }}
+        />
+      </>
+    );
+  }
+  await render(<App />);
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await userEvent.keyboard('abc');
+  await vi.waitFor(() => expect(search).toBe('q=abc'));
+  await userEvent.keyboard('d');
+  await vi.waitFor(() => expect(search).toBe('q=abcd'));
+  await expect.element(searchInput()).toHaveValue('abcd');
 });
 
 it('syncs the query with the URL, keeps other parameters, and follows history', async () => {

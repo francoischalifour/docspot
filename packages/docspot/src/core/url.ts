@@ -86,7 +86,15 @@ export function createDocspotUrl(url: string, options: DocspotLinkOptions) {
 
 const LEADING_QUESTION_MARK = /^\?/;
 
-/** The default adapter: the browser history, observing back and forward. */
+type NavigationTarget = Pick<
+  EventTarget,
+  'addEventListener' | 'removeEventListener'
+>;
+
+/**
+ * The default adapter: the browser history. It follows back and forward,
+ * and, where the Navigation API exists, links a client router opens.
+ */
 export const browserUrlAdapter: DocspotUrlAdapter = {
   read: () => window.location.search,
   write(search, { replace }) {
@@ -96,7 +104,11 @@ export const browserUrlAdapter: DocspotUrlAdapter = {
     else window.history.pushState(window.history.state, '', url);
   },
   subscribe(listener) {
-    window.addEventListener('popstate', listener);
-    return () => window.removeEventListener('popstate', listener);
+    // Routers push history entries, which fire no popstate.
+    const navigation = (window as { navigation?: NavigationTarget }).navigation;
+    const target: NavigationTarget = navigation ?? window;
+    const type = navigation ? 'currententrychange' : 'popstate';
+    target.addEventListener(type, listener);
+    return () => target.removeEventListener(type, listener);
   },
 };
