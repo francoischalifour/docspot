@@ -9,6 +9,8 @@ const messages = {
    * text, so renaming it renames every label that shows it.
    */
   assistant: 'AI',
+  /** Keys as keyboards label them, where they show as text. */
+  keys: { control: 'Ctrl', escape: 'Esc' },
   trigger: {
     search: 'Search docs',
     searchWithAsk: 'Search or ask docs',
@@ -42,7 +44,7 @@ const messages = {
     toNavigate: 'to navigate',
     toOpen: 'to open',
     resultCount: (count: number): string =>
-      `${count} ${pluralize(count, { one: 'result', other: 'results' }, 'en')}`,
+      `${count.toLocaleString('en')} ${pluralize(count, { one: 'result', other: 'results' }, 'en')}`,
     searching: 'Searching',
     opening: 'Opening page',
     unavailable: 'Search unavailable',
@@ -117,7 +119,7 @@ const messages = {
       `Suggested questions about ${title}`,
     resize: 'Resize Ask {assistant}',
     resizeHint: 'Drag to resize. Double click to reset width.',
-    pixels: (width: number): string => `${width} pixels`,
+    pixels: (width: number): string => `${width.toLocaleString('en')} pixels`,
   },
 };
 

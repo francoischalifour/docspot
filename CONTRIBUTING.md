@@ -54,7 +54,7 @@ To record an intended change, run `bun run --filter docspot size --update` or `b
 
 ## Write
 
-- Interface text lives in `packages/docspot/src/locale`, written first in `en.ts`. Keep it short, in sentence case, with typographic quotes and apostrophes. Add a key to every locale: their types require it. Write the assistant's name as `{assistant}` wherever the text shows it. Choose a counted word's form with `pluralize`, never by comparing the count, since languages split plurals differently.
+- Interface text lives in `packages/docspot/src/locale`, written first in `en.ts`. Keep it short, in sentence case, with typographic quotes and apostrophes. Add a key to every locale: their types require it. Write the assistant's name as `{assistant}` wherever the text shows it. Choose a counted word's form with `pluralize`, never by comparing the count, since languages split plurals differently. Format numbers with the locale's code, give a new locale the `questions` words its language asks with, and keep `test/locale.test.tsx`'s list of text that may match English short.
 - Use the shared `Shimmer` component for visible text that describes work in progress. Write a short label such as “Opening chat” or “Searching” without a trailing ellipsis. Wrap only the label, so hints, errors, and retry actions stay still. Keep live-region semantics on the surrounding status. Screen-reader-only announcements use plain text. `Shimmer` shows static text when reduced motion or forced colors are active.
 - Change the public API, its README section, and its examples together.
 

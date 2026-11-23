@@ -36,3 +36,21 @@ export function cachedRegExp(source: string, flags: string) {
   }
   return pattern;
 }
+
+const segmenters = new Map<string, Intl.Segmenter>();
+
+/**
+ * The words of a text in a language, with the browser's word boundaries, so
+ * languages written without spaces, such as Japanese or Chinese, split too.
+ */
+export function segmentWords(text: string, language: string): string[] {
+  let segmenter = segmenters.get(language);
+  if (!segmenter) {
+    segmenter = new Intl.Segmenter(language, { granularity: 'word' });
+    segmenters.set(language, segmenter);
+  }
+  const words: string[] = [];
+  for (const { segment, isWordLike } of segmenter.segment(text))
+    if (isWordLike) words.push(segment);
+  return words;
+}

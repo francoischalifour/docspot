@@ -137,7 +137,13 @@ export function useSearchController(
     if (!search || !trimmed) return;
     const controller = new AbortController();
     const response = new Promise<DocspotSearchResponse>(resolve =>
-      resolve(search({ query: trimmed, signal: controller.signal }))
+      resolve(
+        search({
+          query: trimmed,
+          signal: controller.signal,
+          locale: config.searchLocale,
+        })
+      )
     );
     // The dialog reports a failure once it reads the response.
     response.catch(() => {});

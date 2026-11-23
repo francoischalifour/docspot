@@ -14,6 +14,7 @@ import type {
   DocspotQuestionSource,
   DocspotResult,
   DocspotSearch,
+  DocspotSearchLocale,
   DocspotSearchResponse,
   DocspotSlots,
 } from '@/types';
@@ -62,6 +63,8 @@ export type DocspotConfig = {
   messages: DocspotMessages;
   /** The locale's BCP 47 code. */
   language: string;
+  /** The locale as search functions receive it. */
+  searchLocale: DocspotSearchLocale;
   emit: (event: DocspotEvent) => void;
   stores: DocspotStores;
 };

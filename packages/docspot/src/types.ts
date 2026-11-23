@@ -87,7 +87,41 @@ export type DocspotSearchResponse =
       prioritizeChat?: boolean;
     };
 
-export type DocspotSearchParams = { query: string; signal: AbortSignal };
+export type DocspotSearchParams = {
+  query: string;
+  signal: AbortSignal;
+  /**
+   * The interface's language, for searches that depend on it, such as
+   * `isQuestion(query, locale)`. Docspot always passes it; other callers
+   * may leave it out, for English.
+   */
+  locale?: DocspotSearchLocale;
+};
+
+/**
+ * How a language asks, so questions in it are recognized. Words are
+ * lowercase and without accents, as queries are compared.
+ */
+export type DocspotQuestionWords = {
+  /** Words a question starts with, such as "how". */
+  starts: string[];
+  /** Words a request starts with, such as "explain". */
+  requests?: string[];
+  /**
+   * Words that mark a question wherever they are, for languages that place
+   * them mid-sentence or at the end, such as Japanese か or Chinese 吗.
+   */
+  markers?: string[];
+  /** Words that carry no meaning of their own, such as articles. */
+  stop?: string[];
+};
+
+/** What a search knows of the interface's language. */
+export type DocspotSearchLocale = {
+  /** BCP 47, such as `fr`. */
+  code: string;
+  questions?: DocspotQuestionWords;
+};
 
 /**
  * Search from `createSearch()` or a provider integration. A plain function

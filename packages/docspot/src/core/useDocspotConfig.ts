@@ -78,6 +78,12 @@ export function useDocspotConfig(props: DocspotRootProps) {
     () => resolveMessages(locale, messageOverrides),
     [locale, messageOverrides]
   );
+  const language = locale?.code ?? 'en';
+  const questions = locale?.questions;
+  const searchLocale = useMemo(
+    () => ({ code: language, questions }),
+    [language, questions]
+  );
   // A new transport or history namespace starts chat over.
   const chatLoader = useMemo(
     () => (chat ? createModuleLoader(getChatInternals(chat).load) : null),
@@ -132,7 +138,8 @@ export function useDocspotConfig(props: DocspotRootProps) {
       }
     },
     slots: slots ?? noSlots,
-    language: locale?.code ?? 'en',
+    language,
+    searchLocale,
     messages,
     emit,
     stores,

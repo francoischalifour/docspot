@@ -162,9 +162,9 @@ export function createAlgoliaSearch({
   transformResult = result => result,
 }: AlgoliaSearchOptions): DocspotSearch {
   return createSearch(
-    async ({ query, signal }) => {
-      const question = isQuestion(query);
-      const isLongQuery = getWords(query).length >= 3;
+    async ({ query, signal, locale }) => {
+      const question = isQuestion(query, locale);
+      const isLongQuery = getWords(query, locale).length >= 3;
       const { results } = await queryAlgolia(
         appId,
         apiKey,
@@ -256,7 +256,8 @@ export function createAlgoliaSearch({
           hasResults: topHit !== undefined,
           hasCompleteMatch:
             topHit !== undefined &&
-            isCompleteMatch(topHit, countContentWords(query)),
+            isCompleteMatch(topHit, countContentWords(query, locale)),
+          locale,
         }),
       };
     },

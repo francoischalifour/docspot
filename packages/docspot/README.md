@@ -37,16 +37,16 @@ With Tailwind CSS or other cascade layers, import it into a layer so your utilit
 
 Each entry point loads only what it needs, and none has import side effects.
 
-| Import                 | Provides                                                                         | Peer dependencies     |
-| ---------------------- | -------------------------------------------------------------------------------- | --------------------- |
-| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers            | `react`, `react-dom`  |
-| `docspot/chat`         | `createChat()` for any AI SDK transport                                          | `ai`, `@ai-sdk/react` |
-| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                              | None                  |
-| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                   | `ai`, `@ai-sdk/react` |
-| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                           | `minisearch`          |
-| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere         | `react`               |
-| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, and `zhCN`, and `pluralize()` | None                  |
-| `docspot/styles.css`   | The stylesheet                                                                   | None                  |
+| Import                 | Provides                                                                               | Peer dependencies     |
+| ---------------------- | -------------------------------------------------------------------------------------- | --------------------- |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers                  | `react`, `react-dom`  |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                                | `ai`, `@ai-sdk/react` |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                                    | None                  |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                         | `ai`, `@ai-sdk/react` |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                                 | `minisearch`          |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere               | `react`               |
+| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, `zhCN`, and `ar`, and `pluralize()` | None                  |
+| `docspot/styles.css`   | The stylesheet                                                                         | None                  |
 
 ## Usage
 
@@ -287,7 +287,7 @@ A URL is listed once, whether a result or an item opens it. The preview pane, wh
 
 #### Search results
 
-`createSearch(fn, { preload })` makes search from a function that receives `{ query, signal }` and returns results, or `{ results, prioritizeChat }`. A plain function works too. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query)` and `shouldPrioritizeChat(…)` help decide `prioritizeChat`.
+`createSearch(fn, { preload })` makes search from a function that receives `{ query, signal, locale }` and returns results, or `{ results, prioritizeChat }`. `locale` is the interface's language: its `code`, such as `fr`, and its question words. A plain function works too. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query, locale)` and `shouldPrioritizeChat({ …, locale })` help decide `prioritizeChat`: they recognize questions in the locale's language, and in English whatever the language, since readers often search in English.
 
 Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens a result that belongs to an older query. Search functions can return results synchronously.
 
@@ -687,7 +687,7 @@ Every other class name is internal and may change in any release.
 
 ### Languages and text
 
-Docspot's interface is in English unless you pass a `locale`. `docspot/locale` provides English (`en`), French (`fr`), German (`de`), Spanish (`es`), Japanese (`ja`), and simplified Chinese (`zhCN`). Import only the ones you use:
+Docspot's interface is in English unless you pass a `locale`. `docspot/locale` provides English (`en`), French (`fr`), German (`de`), Spanish (`es`), Japanese (`ja`), simplified Chinese (`zhCN`), and Arabic (`ar`). Import only the ones you use:
 
 ```tsx
 import { fr } from 'docspot/locale';
@@ -742,7 +742,14 @@ export const nl: DocspotLocale = {
 };
 ```
 
-Dates in chat follow the locale's language, in the reader's regional variant when their browser prefers one, such as `en-GB` for `en`. Set `lang` on your page to match, so screen readers pronounce the text in its language.
+The locale also follows the language beyond its text:
+
+- **Keys** show as its keyboards label them, through `keys`, such as **Strg** in German and **Échap** in French.
+- **Numbers and dates** use its formats. Dates prefer the reader's regional variant when their browser asks for one, such as `en-GB` for `en`.
+- **Words** split as the language splits them, so items match a word inside a Japanese or Chinese title, written without spaces.
+- **Questions** are recognized in the language through `questions`, the words it asks with, as `isQuestion` does. A locale of your own can give them: `{ starts: ['come', 'perche'], requests, markers, stop }`, lowercase and without accents.
+
+Set `lang` on your page to match, so screen readers pronounce the text in its language, and `dir="rtl"` for Arabic and other right-to-left languages.
 
 ### Controlled state
 

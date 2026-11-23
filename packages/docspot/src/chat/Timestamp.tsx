@@ -1,11 +1,11 @@
 import { use } from 'react';
 
-import { LanguageContext, getFormatLanguage } from '@/ui/LanguageContext';
+import { LocaleContext, getFormatLanguage } from '@/ui/LocaleContext';
 
 type TimestampProps = { time: string | undefined };
 
 export function Timestamp({ time }: TimestampProps) {
-  const language = getFormatLanguage(use(LanguageContext));
+  const language = getFormatLanguage(use(LocaleContext).language);
   if (!time) return null;
   const date = new Date(time);
   if (Number.isNaN(date.getTime())) return null;

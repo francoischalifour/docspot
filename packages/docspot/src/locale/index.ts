@@ -1,5 +1,6 @@
 // The `docspot/locale` entry point. Each locale is its own export, so a site
 // bundles only the ones it imports.
+export { ar } from '@/locale/ar';
 export { de } from '@/locale/de';
 export { en } from '@/locale/en';
 export { es } from '@/locale/es';

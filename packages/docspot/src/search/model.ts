@@ -8,7 +8,7 @@ import type {
 import { isResult, recentItems } from '@/search/items';
 import {
   COMBINING_MARKS,
-  NON_WORD,
+  segmentWords,
   cachedRegExp,
   escapeRegExp,
 } from '@/search/text';
@@ -130,17 +130,25 @@ function fold(text: string) {
   return text.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
 }
 
-const words = (text: string) => fold(text).split(NON_WORD).filter(Boolean);
+/** Words, folded, split where the language splits them. */
+const words = (text: string, language: string) =>
+  segmentWords(fold(text), language);
 
 /**
  * The items every word of the query starts a word of, in their title or
  * keywords, in the order given; none for an empty query.
  */
-export function matchItems(items: DocspotItem[], query: string): DocspotItem[] {
-  const terms = words(query);
+export function matchItems(
+  items: DocspotItem[],
+  query: string,
+  language: string
+): DocspotItem[] {
+  const terms = words(query, language);
   if (!terms.length) return [];
   return items.filter(item => {
-    const known = [item.title, ...(item.keywords ?? [])].flatMap(words);
+    const known = [item.title, ...(item.keywords ?? [])].flatMap(text =>
+      words(text, language)
+    );
     return terms.every(term => known.some(word => word.startsWith(term)));
   });
 }
