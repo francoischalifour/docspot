@@ -14,6 +14,7 @@ import {
 import { stripHash } from '@/core/url';
 import type {
   DocspotEvent,
+  DocspotFeedback,
   DocspotLoadPage,
   DocspotPage,
   DocspotPageContent,
@@ -38,6 +39,10 @@ const pendingResponses = new WeakMap<Session, Promise<void>>();
 const queuedQuestions = new WeakMap<Session, symbol>();
 const discardedSessions = new WeakSet<Session>();
 const sessionEvents = new WeakMap<Session, (event: DocspotEvent) => void>();
+const sessionSaves = new WeakMap<
+  Session,
+  (conversation: StoredConversation) => void
+>();
 
 /** The page attached to the latest question, if any. */
 export function getQuestionPage(messages: UIMessage[]) {
@@ -159,6 +164,7 @@ export function createSession(
     },
   });
   sessionEvents.set(chat, onEvent);
+  sessionSaves.set(chat, onSave);
   return chat;
 }
 
@@ -222,6 +228,49 @@ export function retry(chat: Session) {
       body: { [CONTEXT_FIELD]: { page: getQuestionPage(chat.messages) } },
     })
   );
+}
+
+/**
+ * Rates an answer, or clears its rating with null. The rating is kept in the
+ * answer's metadata, so it is saved with the conversation.
+ */
+export function rate(
+  chat: Session,
+  messageId: string,
+  feedback: DocspotFeedback | null
+) {
+  const index = chat.messages.findIndex(message => message.id === messageId);
+  const answer = chat.messages[index];
+  if (answer?.role !== 'assistant' || discardedSessions.has(chat)) return;
+  const metadata: Record<string, unknown> = { ...(answer.metadata as object) };
+  delete metadata.feedback;
+  chat.messages = chat.messages.map(message =>
+    message === answer
+      ? { ...answer, metadata: feedback ? { ...metadata, feedback } : metadata }
+      : message
+  );
+  // An answer still in progress is saved once it finishes, not partway.
+  const busy = chat.status === 'submitted' || chat.status === 'streaming';
+  const complete = busy
+    ? chat.messages.slice(
+        0,
+        chat.messages.findLastIndex(message => message.role === 'user')
+      )
+    : chat.messages;
+  const conversation = toConversation(chat.id, complete);
+  if (conversation) sessionSaves.get(chat)?.(conversation);
+  const question = chat.messages
+    .slice(0, index)
+    .findLast(message => message.role === 'user');
+  sessionEvents.get(chat)?.({
+    type: 'chat.feedback',
+    conversationId: chat.id,
+    messageId,
+    question: question ? getMessageText(question) : '',
+    answer: getMessageText(answer),
+    ...feedback,
+    value: feedback?.value ?? null,
+  });
 }
 
 export function stop(chat: Session) {

@@ -533,6 +533,8 @@ import { ArrowUp, Search, Square } from 'lucide-react';
 | `delete`         | Deletes a conversation, or clears history                |
 | `copy`, `copied` | Copy, and once copied                                    |
 | `retry`          | Retries an answer                                        |
+| `helpful`        | Rates an answer helpful                                  |
+| `unhelpful`      | Rates an answer not helpful                              |
 | `jump`           | Jumps to the end of an answer                            |
 | `source`         | An answer's source                                       |
 | `external`       | A link that opens in a new tab                           |
@@ -828,7 +830,41 @@ syncUrl={{
 
 ## Events
 
-`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select` (with the chosen `result` or `item`), `search.error`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
+`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select` (with the chosen `result` or `item`), `search.error`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `chat.feedback`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
+
+### Answer feedback
+
+Readers can rate each complete answer helpful or not helpful. Answers still streaming, stopped, or failed can't be rated. After rating one down, the reader can choose a reason and add a few words, both optional. Choosing the same rating again clears it. Each change sends a `chat.feedback` event:
+
+```ts
+type ChatFeedbackEvent = {
+  type: 'chat.feedback';
+  conversationId: string;
+  messageId: string; // The answer's AI SDK message ID
+  question: string; // The question it answers, as asked
+  answer: string; // The answer's text, as shown
+  value: 'up' | 'down' | null; // null when the reader clears it
+  reason?: 'incorrect' | 'incomplete' | 'unrelated';
+  comment?: string;
+};
+```
+
+A rating down is sent once when given, and again with its reason or comment if the reader sends one, so keep the latest event for each `messageId`:
+
+```tsx
+<Docspot
+  chat={chat}
+  onEvent={event => {
+    if (event.type === 'chat.feedback')
+      void fetch('/api/feedback', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      });
+  }}
+/>
+```
+
+`messageId` is the ID your endpoint gives the answer, such as with `generateMessageId` in `toUIMessageStreamResponse`, or one the browser generated otherwise. With `history`, the rating is kept in the answer's `metadata.feedback` and shows again after a reload.
 
 ## Loading and server rendering
 
@@ -904,7 +940,7 @@ With React Server Components, Docspot's components and hooks are client componen
 ## Accessibility
 
 - Search is a modal `<dialog>` with an ARIA combobox and listbox. Results are announced as they arrive, focus returns to where it was when search closes, and the reader's place on the page is kept.
-- The chat panel is a labeled landmark. Answers are announced when they start and finish rather than word by word, a streamed answer stays anchored at its start, and stop, retry, and copy are buttons with names.
+- The chat panel is a labeled landmark. Answers are announced when they start and finish rather than word by word, a streamed answer stays anchored at its start, and stop, retry, copy, and ratings are buttons with names. Ratings are toggle buttons, and the optional reason after rating an answer down is a labeled group of radio buttons and a text field, which <kbd>Esc</kbd> leaves.
 - Every action has a keyboard path, and shortcuts are exposed with `aria-keyshortcuts`. Shortcuts that type a character, such as <kbd>/</kbd>, never fire while typing in a field.
 - Animations stop under `prefers-reduced-motion`, loading text stays still in forced colors mode, and on-screen keyboards never cover the search input or the composer.
 

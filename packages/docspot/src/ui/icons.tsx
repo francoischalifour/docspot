@@ -223,3 +223,16 @@ export const CommandIcon = (props: IconProps) =>
       <path d="m13 3-7.5 10.5H12L11 21l7.5-10.5H12Z" />
     </>
   );
+
+// A function, so the module has no side effects to keep.
+const drawThumb = () => (
+  <>
+    <path d="M7.5 10.5V20.5" />
+    <path d="M7.5 10.5 11 3.6a1.9 1.9 0 0 1 3.5 1.3L13.6 9.5h5a2 2 0 0 1 2 2.3l-1.1 7A2 2 0 0 1 17.5 20.5h-12a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z" />
+  </>
+);
+
+export const ThumbUpIcon = (props: IconProps) => drawIcon(props, drawThumb());
+
+export const ThumbDownIcon = (props: IconProps) =>
+  drawIcon(props, <g transform="rotate(180 12 12)">{drawThumb()}</g>);

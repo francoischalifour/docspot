@@ -64,6 +64,12 @@ export function ConversationLog() {
                 messages={messages}
                 onNavigate={conversation.navigate}
                 toInternalUrl={conversation.toInternal}
+                // A failed answer can't be rated; a later one replaces it.
+                onFeedback={
+                  error && message === lastMessage
+                    ? undefined
+                    : conversation.rateAnswer
+                }
                 onRetry={
                   !busy &&
                   message === lastMessage &&

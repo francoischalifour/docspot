@@ -1,6 +1,7 @@
 import type { DynamicToolUIPart, ToolUIPart, UIMessage } from 'ai';
 
 import type { DocspotMessages } from '@/messages';
+import type { DocspotFeedback } from '@/types';
 import { type DocspotTools, getRenderedToolCalls } from '@/chat/tools';
 
 export function isToolPart(
@@ -95,6 +96,25 @@ export function isStopped(message: UIMessage | undefined) {
   return (
     (message?.metadata as Record<string, unknown> | undefined)?.stopped === true
   );
+}
+
+const FEEDBACK_REASONS = new Set(['incorrect', 'incomplete', 'unrelated']);
+
+/** The reader's rating of an answer, ignoring malformed stored ones. */
+export function getFeedback(message: UIMessage): DocspotFeedback | undefined {
+  const feedback = (message.metadata as Record<string, unknown> | undefined)
+    ?.feedback as Record<string, unknown> | undefined;
+  if (feedback?.value === 'up') return { value: 'up' };
+  if (feedback?.value !== 'down') return undefined;
+  const { reason, comment } = feedback;
+  return {
+    value: 'down',
+    ...(typeof reason === 'string' &&
+      FEEDBACK_REASONS.has(reason) && {
+        reason: reason as DocspotFeedback['reason'],
+      }),
+    ...(typeof comment === 'string' && comment && { comment }),
+  };
 }
 
 export function getMetadataTime(

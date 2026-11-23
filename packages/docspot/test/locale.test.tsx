@@ -331,3 +331,31 @@ it.each(Object.entries(locales))(
     }
   }
 );
+
+it.each(Object.entries(locales))(
+  'fits rating an answer in %s on a phone',
+  async (_name, locale) => {
+    await page.viewport(360, 740);
+    try {
+      const backend = createTestChat({ answer: () => 'OK.' });
+      await render(<Docspot chat={backend.chat} locale={locale} />);
+      await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
+      const chat = page.getByRole('complementary');
+      await expect.element(chat.getByRole('textbox')).toHaveFocus();
+      await userEvent.keyboard('Zoom{Enter}');
+      const { messages } = locale;
+      await chat
+        .getByRole('button', { name: messages.chat.rateUnhelpful })
+        .click();
+      await expect
+        .element(
+          chat.getByRole('group', { name: messages.chat.feedbackReason })
+        )
+        .toBeVisible();
+      expect(overflowing(chat.element())).toEqual([]);
+      expect(chat.element().outerHTML).not.toMatch(/\{\w+\}/);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  }
+);

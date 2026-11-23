@@ -188,6 +188,45 @@ describe.each(settings)('in $name', ({ dark, locale, rtl }) => {
     await expectNoViolations();
   });
 
+  it('has no violations when rating an answer and saying why', async () => {
+    const { nextRequest } = await setUp();
+    await openChat();
+    await userEvent.keyboard('How do I zoom?{Enter}');
+    const reply = await nextRequest();
+    reply.text('Use zoom().');
+    reply.end();
+    const chat = page.getByRole('complementary');
+    await chat
+      .getByRole('button', { name: messages.chat.rateHelpful, exact: true })
+      .click();
+    await expect
+      .element(
+        chat.getByRole('button', {
+          name: messages.chat.rateHelpful,
+          exact: true,
+        })
+      )
+      .toHaveAttribute('aria-pressed', 'true');
+    await expectNoViolations();
+    await chat
+      .getByRole('button', { name: messages.chat.rateUnhelpful })
+      .click();
+    const reasons = chat.getByRole('group', {
+      name: messages.chat.feedbackReason,
+    });
+    await reasons
+      .getByRole('radio', { name: messages.chat.reasonIncorrect })
+      .click();
+    await expectNoViolations();
+    await reasons
+      .getByRole('button', { name: messages.chat.sendFeedback })
+      .click();
+    await expect
+      .element(chat.getByText(messages.chat.feedbackSent))
+      .toBeVisible();
+    await expectNoViolations();
+  });
+
   it('has no violations in the chat switcher and its confirmation', async () => {
     const { nextRequest } = await setUp();
     await openChat();

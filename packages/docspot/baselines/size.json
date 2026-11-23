@@ -5,16 +5,16 @@
       "lazy": 0
     },
     "search": {
-      "eager": 10954,
+      "eager": 11097,
       "lazy": 12020
     },
     "chat": {
-      "eager": 11708,
-      "lazy": 19498
+      "eager": 11970,
+      "lazy": 20408
     },
     "search and chat": {
-      "eager": 11995,
-      "lazy": 19502
+      "eager": 12249,
+      "lazy": 20412
     },
     "docspot/algolia": {
       "eager": 2612,
@@ -22,20 +22,20 @@
     },
     "docspot/algolia-chat": {
       "eager": 854,
-      "lazy": 10516
+      "lazy": 11535
     },
     "docspot/minisearch": {
-      "eager": 1240,
+      "eager": 1272,
       "lazy": 0
     },
     "docspot/handoffs": {
-      "eager": 2136,
+      "eager": 2135,
       "lazy": 0
     },
     "docspot/locale, one locale": {
-      "eager": 2013,
+      "eager": 2163,
       "lazy": 0
     }
   },
-  "css": 9076
+  "css": 9467
 }

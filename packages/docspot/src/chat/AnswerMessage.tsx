@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import type { MouseEvent } from 'react';
 
 import type { DocspotMessages } from '@/messages';
+import type { DocspotFeedback } from '@/types';
 import { AnswerActions } from '@/chat/AnswerActions';
 import { AnswerSources } from '@/chat/AnswerSources';
 import { AnswerTools } from '@/chat/AnswerTools';
@@ -21,6 +22,7 @@ type AnswerMessageProps = {
   onNavigate: (url: string, event: MouseEvent<HTMLAnchorElement>) => void;
   toInternalUrl: (url: string) => string | null;
   onRetry?: () => void;
+  onFeedback?: (messageId: string, feedback: DocspotFeedback | null) => void;
 };
 
 /**
@@ -38,7 +40,9 @@ export function AnswerMessage({
   onNavigate,
   toInternalUrl,
   onRetry,
+  onFeedback,
 }: AnswerMessageProps) {
+  const stopped = isStopped(message);
   return (
     <ReadingAnchor
       active={streaming && Boolean(text.trim())}
@@ -66,7 +70,7 @@ export function AnswerMessage({
           onNavigate={onNavigate}
           toInternalUrl={toInternalUrl}
         />
-        {text && !streaming && isStopped(message) && (
+        {text && !streaming && stopped && (
           <p className="docspot-answer-stopped">{messages.stopped}</p>
         )}
         {text && !streaming && (
@@ -75,6 +79,8 @@ export function AnswerMessage({
             text={text}
             messages={messages}
             onRetry={onRetry}
+            // A stopped answer is incomplete, so not one to rate.
+            onFeedback={stopped ? undefined : onFeedback}
           />
         )}
       </article>

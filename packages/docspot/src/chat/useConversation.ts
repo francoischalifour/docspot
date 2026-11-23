@@ -9,6 +9,7 @@ import {
 
 import { isSamePage } from '@/core/url';
 import { mergeRefs } from '@/ui/mergeRefs';
+import type { DocspotFeedback } from '@/types';
 import type { ConversationProps } from '@/chat/contract';
 import { getAnswerProgress, getMessageText } from '@/chat/messages';
 import { isRenderedToolRunning } from '@/chat/tools';
@@ -17,6 +18,7 @@ import {
   ask as askSession,
   discard,
   getQuestionPage,
+  rate,
   retry,
   stop,
   toConversation,
@@ -102,6 +104,11 @@ export function useConversation(props: ConversationProps) {
   }
 
   const retryAnswer = useCallback(() => void retry(chat), [chat]);
+  const rateAnswer = useCallback(
+    (messageId: string, feedback: DocspotFeedback | null) =>
+      rate(chat, messageId, feedback),
+    [chat]
+  );
   // Older AI SDK 5 releases only have addToolResult, which later ones
   // deprecate.
   const addToolOutput = useCallback(
@@ -149,6 +156,7 @@ export function useConversation(props: ConversationProps) {
       ask(draft, 'composer');
     },
     retryAnswer,
+    rateAnswer,
     addToolOutput,
     stop: () => stop(chat),
     /** Deletes the open conversation and starts a new one. */

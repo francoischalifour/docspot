@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import { type MouseEvent, memo } from 'react';
 
 import type { DocspotMessages } from '@/messages';
+import type { DocspotFeedback } from '@/types';
 import { getMessageText, hasMessageContent } from '@/chat/messages';
 import { AnswerMessage } from '@/chat/AnswerMessage';
 import { QuestionMessage } from '@/chat/QuestionMessage';
@@ -18,6 +19,8 @@ type ChatMessageProps = {
   toInternalUrl: (url: string) => string | null;
   /** Offered on the latest answer once it is complete. */
   onRetry?: () => void;
+  /** Rates an answer; not offered on one that failed. */
+  onFeedback?: (messageId: string, feedback: DocspotFeedback | null) => void;
 };
 
 /**
@@ -34,6 +37,7 @@ export const ChatMessage = memo(function ChatMessage({
   onNavigate,
   toInternalUrl,
   onRetry,
+  onFeedback,
 }: ChatMessageProps) {
   if (!hasMessageContent(message, { streaming, holdFirstStep, tools }))
     return null;
@@ -51,6 +55,7 @@ export const ChatMessage = memo(function ChatMessage({
       onNavigate={onNavigate}
       toInternalUrl={toInternalUrl}
       onRetry={onRetry}
+      onFeedback={onFeedback}
     />
   );
 });

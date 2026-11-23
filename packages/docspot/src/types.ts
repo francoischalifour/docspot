@@ -281,6 +281,10 @@ export type DocspotIcons = {
   copied: ComponentType<DocspotIconProps>;
   /** Retries an answer. */
   retry: ComponentType<DocspotIconProps>;
+  /** Rates an answer helpful. */
+  helpful: ComponentType<DocspotIconProps>;
+  /** Rates an answer not helpful. */
+  unhelpful: ComponentType<DocspotIconProps>;
   /** Jumps to the end of an answer. */
   jump: ComponentType<DocspotIconProps>;
   /** An answer's source. */
@@ -323,6 +327,18 @@ export type DocspotSlots = {
 export type DocspotQuestionSource =
   'composer' | 'prompt' | 'search' | 'url' | 'api';
 
+/** Why a reader found an answer not helpful. */
+export type DocspotFeedbackReason = 'incorrect' | 'incomplete' | 'unrelated';
+
+/** A reader's rating of an answer, kept with it in history. */
+export type DocspotFeedback = {
+  value: 'up' | 'down';
+  /** The reason the reader chose, after rating it down. */
+  reason?: DocspotFeedbackReason;
+  /** What the reader wrote, after rating it down. */
+  comment?: string;
+};
+
 export type DocspotEvent =
   | { type: 'search.open' }
   | { type: 'search.close' }
@@ -345,6 +361,18 @@ export type DocspotEvent =
   | { type: 'chat.error'; conversationId: string; error: unknown }
   | { type: 'chat.stop'; conversationId: string }
   | { type: 'chat.retry'; conversationId: string }
+  | ({
+      type: 'chat.feedback';
+      conversationId: string;
+      /** The rated answer's message ID. */
+      messageId: string;
+      /** The question it answers, as asked. */
+      question: string;
+      /** The answer's text, as shown. */
+      answer: string;
+      /** `null` when the reader clears their rating. */
+      value: DocspotFeedback['value'] | null;
+    } & Omit<DocspotFeedback, 'value'>)
   | { type: 'conversation.new' }
   | { type: 'conversation.resume'; conversationId: string }
   | { type: 'conversation.delete'; conversationId: string }
