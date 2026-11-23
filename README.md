@@ -58,15 +58,15 @@ The [package documentation](packages/docspot/README.md) covers chat, composition
 
 Each entry point loads only what it needs. Search-only pages never load chat code, and chat-only pages never load search code.
 
-| Import                 | Provides                                                                 | Needs                     |
-| ---------------------- | ------------------------------------------------------------------------ | ------------------------- |
-| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers    | `react`, `react-dom` 19.2 |
-| `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react`     |
-| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                      |
-| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react`     |
-| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                   | `minisearch`              |
-| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`                   |
-| `docspot/styles.css`   | The stylesheet, themed with CSS variables                                | None                      |
+| Import                 | Provides                                                                                               | Needs                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------- |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers                                  | `react`, `react-dom` 19.2 |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                                                | `ai`, `@ai-sdk/react`     |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices, and `createAlgoliaInsights()` for click analytics | None                      |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                                         | `ai`, `@ai-sdk/react`     |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                                                 | `minisearch`              |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere                               | `react`                   |
+| `docspot/styles.css`   | The stylesheet, themed with CSS variables                                                              | None                      |
 
 ## Showcase
 

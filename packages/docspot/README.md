@@ -37,16 +37,16 @@ With Tailwind CSS or other cascade layers, import it into a layer so your utilit
 
 Each entry point loads only what it needs, and none has import side effects.
 
-| Import                 | Provides                                                                               | Peer dependencies     |
-| ---------------------- | -------------------------------------------------------------------------------------- | --------------------- |
-| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers                  | `react`, `react-dom`  |
-| `docspot/chat`         | `createChat()` for any AI SDK transport                                                | `ai`, `@ai-sdk/react` |
-| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                                    | None                  |
-| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                         | `ai`, `@ai-sdk/react` |
-| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                                 | `minisearch`          |
-| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere               | `react`               |
-| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, `zhCN`, and `ar`, and `pluralize()` | None                  |
-| `docspot/styles.css`   | The stylesheet                                                                         | None                  |
+| Import                 | Provides                                                                                               | Peer dependencies     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ | --------------------- |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers                                  | `react`, `react-dom`  |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                                                | `ai`, `@ai-sdk/react` |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices, and `createAlgoliaInsights()` for click analytics | None                  |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                                         | `ai`, `@ai-sdk/react` |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                                                 | `minisearch`          |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere                               | `react`               |
+| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, `zhCN`, and `ar`, and `pluralize()`                 | None                  |
+| `docspot/styles.css`   | The stylesheet                                                                                         | None                  |
 
 ## Usage
 
@@ -368,6 +368,46 @@ const search = createAlgoliaSearch({
 Records can keep absolute URLs: results on `siteUrl` or the current origin open in place, and `navigate` receives their path, so preview deploys work too.
 
 It reads DocSearch-style records (`hierarchy.lvl0`…`lvl6`, `content`, `type`, `url`), groups results by their top-level section, keeps highlights and snippets (marked on whatever text `transformResult` returns), and lets chat lead when a question has no complete match. Requests go to the API over `fetch` as simple requests, without a CORS preflight, retrying other hosts on network and server errors. `preload` opens the connection.
+
+#### Click analytics
+
+Algolia's click-through and conversion rates need click events from [Insights](https://www.algolia.com/doc/guides/sending-events/getting-started/). They're off by default. A search adapter never sees what the reader chooses, so `createAlgoliaInsights()` turns Docspot's `search.select` events into clicks, and its object, passed as `insights`, makes queries request `clickAnalytics` with the same user token:
+
+```tsx
+import { createAlgoliaInsights, createAlgoliaSearch } from 'docspot/algolia';
+
+const insights = createAlgoliaInsights({
+  appId: 'APP_ID',
+  apiKey: 'SEARCH_ONLY_KEY',
+  // Optional: the signed-in reader, or a token your site already keeps.
+  userToken: () => currentUser?.id,
+});
+
+const search = createAlgoliaSearch({
+  appId: 'APP_ID',
+  apiKey: 'SEARCH_ONLY_KEY',
+  indices: ['docs'],
+  insights,
+});
+
+<Docspot
+  search={search}
+  onEvent={event => {
+    insights.onEvent(event);
+    analytics.track(event.type);
+  }}
+/>;
+```
+
+Each result keeps its hit in `data`, with `_insights` holding its index, query ID, and 1-based position in the index's results. `insights.onEvent` sends a `click` event (named by `eventName`, “Search result clicked” by default) for a chosen result that has them, and nothing for recent pages, default results, items, or results found without `insights`. A `transformResult` that replaces `data` must keep `_insights`, or clicks on that result aren't sent. Events go to `insights.algolia.io` as simple requests with `keepalive`, so they outlive the navigation, and a failed event is ignored. `insights: true` requests `clickAnalytics` and keeps `_insights` without a user token, for sending events yourself, such as with `search-insights`.
+
+Insights needs a user token for each event. When `userToken` is missing or returns `undefined`, Docspot uses an `anonymous-` token, as Algolia expects for readers who aren't signed in, kept in memory for the page's lifetime: it sets no cookie and writes no storage, so each page load counts as a new reader. To follow a reader across pages, keep a token yourself, with the reader's consent where the law requires it, and return it from `userToken`. Algolia's `search-insights` library keeps its own in the `_ALGOLIA` cookie:
+
+```ts
+userToken: () => document.cookie.match(/(?:^|; )_ALGOLIA=([^;]*)/)?.[1],
+```
+
+A user token identifies a reader to Algolia, so mention it in your privacy policy, and don't use personal data such as an email address as a token.
 
 ### Algolia chat
 

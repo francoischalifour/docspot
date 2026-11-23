@@ -5,7 +5,8 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import { Docspot, createDocspotUrl } from '@/index';
-import { createAlgoliaSearch } from '@/algolia';
+import type { DocspotResult } from '@/types';
+import { createAlgoliaInsights, createAlgoliaSearch } from '@/algolia';
 import { createAlgoliaChat } from '@/algolia-chat';
 import { type MiniSearchHit, createMiniSearchSearch } from '@/minisearch';
 
@@ -233,6 +234,163 @@ it('retries other hosts on server errors but not on client errors', async () => 
   const failing = stubAlgolia([new Response('', { status: 403 })]);
   await expect(searchAlgolia('example')).rejects.toThrow('status 403');
   expect(failing).toHaveLength(1);
+});
+
+/** Answers Algolia queries with `hits` and records Insights events. */
+function stubAlgoliaInsights({
+  events = async () => Response.json({ status: 200 }),
+}: { events?: () => Promise<Response> } = {}) {
+  const queries: Array<{ requests: Array<Record<string, unknown>> }> = [];
+  const sent: Array<{ url: string; init: RequestInit; body: any }> = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      if (new URL(url).host === 'insights.algolia.io') {
+        sent.push({ url, init, body });
+        return events();
+      }
+      queries.push(body);
+      return Response.json({
+        results: [{ hits, index: 'Docs', queryID: 'query-1' }],
+      });
+    })
+  );
+  return { queries, sent };
+}
+
+const toPath = (result: DocspotResult) =>
+  result.url.startsWith('https://altertable.ai/')
+    ? { ...result, url: result.url.slice('https://altertable.ai'.length) }
+    : null;
+
+it('sends Insights clicks for chosen Algolia results only', async () => {
+  const { queries, sent } = stubAlgoliaInsights();
+  const insights = createAlgoliaInsights({
+    appId: 'APP',
+    apiKey: 'KEY',
+    userToken: 'reader-1',
+  });
+  await render(
+    <Docspot
+      search={createAlgoliaSearch({
+        appId: 'APP',
+        apiKey: 'KEY',
+        indices: ['Docs'],
+        transformResult: toPath,
+        insights,
+      })}
+      onEvent={insights.onEvent}
+      defaultItems={[{ url: '/docs/start', title: 'Getting started' }]}
+      navigate={() => {}}
+      history
+    />
+  );
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await userEvent.keyboard('http');
+  await page.getByRole('option', { name: /HTTP API/ }).click();
+
+  expect(queries[0]!.requests[0]).toMatchObject({
+    clickAnalytics: true,
+    userToken: 'reader-1',
+  });
+  expect(sent).toHaveLength(1);
+  // Credentials in the URL and a text body skip the CORS preflight.
+  expect(sent[0]!.url).toBe(
+    'https://insights.algolia.io/1/events?X-Algolia-Application-Id=APP&X-Algolia-API-Key=KEY'
+  );
+  expect(sent[0]!.init).toMatchObject({ method: 'POST', keepalive: true });
+  expect(sent[0]!.init.headers).toBeUndefined();
+  expect(sent[0]!.body).toEqual({
+    events: [
+      {
+        eventType: 'click',
+        eventName: 'Search result clicked',
+        index: 'Docs',
+        queryID: 'query-1',
+        objectIDs: ['api'],
+        // Algolia's position, counting the duplicate Docspot drops.
+        positions: [3],
+        userToken: 'reader-1',
+      },
+    ],
+  });
+
+  // Recent pages and default results come from no query.
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await page
+    .getByRole('region', { name: 'Recent' })
+    .getByRole('option', { name: /HTTP API/ })
+    .click();
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await page.getByRole('option', { name: /Getting started/ }).click();
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+  expect(sent).toHaveLength(1);
+});
+
+it('sends nothing for Insights unless asked, and survives failed events', async () => {
+  const { queries, sent } = stubAlgoliaInsights({
+    events: () => Promise.reject(new TypeError('network')),
+  });
+  const plain = createAlgoliaSearch({
+    appId: 'APP',
+    apiKey: 'KEY',
+    indices: ['Docs'],
+    transformResult: toPath,
+  });
+  const response = await plain({
+    query: 'http',
+    signal: new AbortController().signal,
+  });
+  if (Array.isArray(response)) throw new Error('Expected a response object');
+  expect(queries[0]!.requests[0]).not.toHaveProperty('clickAnalytics');
+  expect(queries[0]!.requests[0]).not.toHaveProperty('userToken');
+  const insights = createAlgoliaInsights({ appId: 'APP', apiKey: 'KEY' });
+  // A result found without `insights` has no query ID to report.
+  insights.onEvent({
+    type: 'search.select',
+    query: 'http',
+    position: 0,
+    result: response.results[0]!,
+  });
+  expect(sent).toHaveLength(0);
+
+  const onEvent = vi.fn();
+  await render(
+    <Docspot
+      search={createAlgoliaSearch({
+        appId: 'APP',
+        apiKey: 'KEY',
+        indices: ['Docs'],
+        transformResult: toPath,
+        insights,
+      })}
+      onEvent={event => {
+        insights.onEvent(event);
+        onEvent(event);
+      }}
+      navigate={() => {}}
+    />
+  );
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await userEvent.keyboard('http');
+  await page.getByRole('option', { name: /HTTP API/ }).click();
+  await page.getByRole('button', { name: 'Search docs' }).click();
+  await userEvent.keyboard('example');
+  await expect
+    .element(page.getByRole('option', { name: /Example/ }))
+    .toBeVisible();
+  expect(onEvent).toHaveBeenCalledWith(
+    expect.objectContaining({ type: 'search.select', query: 'http' })
+  );
+  expect(sent).toHaveLength(1);
+  // Without a token from the site, one anonymous token lasts the page.
+  const token = sent[0]!.body.events[0].userToken as string;
+  expect(token).toMatch(/^anonymous-[\w-]+$/);
+  expect(queries.at(-1)!.requests[0]!.userToken).toBe(token);
+  expect(insights.getUserToken()).toBe(token);
+  expect(document.cookie).toBe('');
+  expect(localStorage.length).toBe(0);
 });
 
 it('maps attached page content into the Algolia agent request', async () => {

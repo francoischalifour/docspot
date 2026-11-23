@@ -25,7 +25,18 @@ const cases = [
   {
     name: 'Algolia search adapter',
     source: `import { createAlgoliaSearch } from 'docspot/algolia'; console.log(createAlgoliaSearch);`,
-    excludes: ['from "react', 'useState', 'DefaultChatTransport'],
+    // Click analytics stay out until a site imports them.
+    excludes: [
+      'from "react',
+      'useState',
+      'DefaultChatTransport',
+      'insights.algolia.io',
+    ],
+  },
+  {
+    name: 'Algolia click analytics',
+    source: `import { createAlgoliaInsights } from 'docspot/algolia'; console.log(createAlgoliaInsights);`,
+    excludes: ['from "react', 'useState', 'algolia.net', 'autocomplete'],
   },
   {
     name: 'MiniSearch adapter',

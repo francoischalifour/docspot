@@ -17,7 +17,11 @@
       "lazy": 19502
     },
     "docspot/algolia": {
-      "eager": 2612,
+      "eager": 2723,
+      "lazy": 0
+    },
+    "docspot/algolia with insights": {
+      "eager": 3092,
       "lazy": 0
     },
     "docspot/algolia-chat": {

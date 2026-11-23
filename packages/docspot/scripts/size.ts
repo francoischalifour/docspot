@@ -31,6 +31,7 @@ const consumers: Record<string, string> = {
   chat: `import { Docspot } from 'docspot'; import { createChat } from 'docspot/chat'; export { Docspot, createChat };`,
   'search and chat': `import { Docspot, createSearch, useDocspot } from 'docspot'; import { createChat } from 'docspot/chat'; export { Docspot, createSearch, useDocspot, createChat };`,
   'docspot/algolia': `export { createAlgoliaSearch } from 'docspot/algolia';`,
+  'docspot/algolia with insights': `export { createAlgoliaSearch, createAlgoliaInsights } from 'docspot/algolia';`,
   'docspot/algolia-chat': `export { createAlgoliaChat } from 'docspot/algolia-chat';`,
   'docspot/minisearch': `export { createMiniSearchSearch } from 'docspot/minisearch';`,
   'docspot/handoffs': `export { chatGptHandoff, claudeHandoff } from 'docspot/handoffs';`,

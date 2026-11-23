@@ -6,6 +6,7 @@ import {
   isQuestion,
   shouldPrioritizeChat,
 } from '@/search/intent';
+import type { AlgoliaInsights } from '@/algolia/createAlgoliaInsights';
 import type { DocspotResult, DocspotSearch, HighlightedText } from '@/types';
 
 const HIGHLIGHT_START = '__docspot_highlight__';
@@ -21,9 +22,23 @@ export type AlgoliaHit = {
   _highlightResult?: { hierarchy?: Record<string, { value: string }> };
   _snippetResult?: { content?: { value: string } };
   _rankingInfo?: { words?: number; nbTypos: number };
+  /**
+   * Where the hit was found, set when `insights` is on, for
+   * `createAlgoliaInsights` to report a click on it.
+   */
+  _insights?: AlgoliaHitInsights;
 };
 
-type AlgoliaResponse = { results: Array<{ hits: AlgoliaHit[] }> };
+export type AlgoliaHitInsights = {
+  indexName: string;
+  queryID: string;
+  /** The hit's 1-based position in its index's results. */
+  position: number;
+};
+
+type AlgoliaResponse = {
+  results: Array<{ hits: AlgoliaHit[]; index?: string; queryID?: string }>;
+};
 
 export type AlgoliaSearchOptions = {
   appId: string;
@@ -46,6 +61,13 @@ export type AlgoliaSearchOptions = {
     result: DocspotResult,
     context: { hit: AlgoliaHit }
   ) => DocspotResult | null;
+  /**
+   * Requests click analytics and keeps each hit's query ID and position in
+   * its result's `data`, for `createAlgoliaInsights` to send clicks. Pass the
+   * object `createAlgoliaInsights` returns to send its user token with
+   * queries too. Off by default.
+   */
+  insights?: boolean | AlgoliaInsights;
 };
 
 /** Numbering before a heading, such as "2. ". */
@@ -160,11 +182,14 @@ export function createAlgoliaSearch({
   hitsPerPage = 7,
   maxPerGroup = 7,
   transformResult = result => result,
+  insights = false,
 }: AlgoliaSearchOptions): DocspotSearch {
   return createSearch(
     async ({ query, signal, locale }) => {
       const question = isQuestion(query, locale);
       const isLongQuery = getWords(query, locale).length >= 3;
+      const userToken =
+        typeof insights === 'object' ? insights.getUserToken() : undefined;
       const { results } = await queryAlgolia(
         appId,
         apiKey,
@@ -188,11 +213,20 @@ export function createAlgoliaSearch({
             highlightPostTag: HIGHLIGHT_END,
             attributesToSnippet: ['content:24'],
             snippetEllipsisText: '…',
+            ...(insights && { clickAnalytics: true }),
+            ...(userToken && { userToken }),
           })),
         },
         signal
       );
-      const hits = results.flatMap(result => result.hits);
+      const hits = results.flatMap(({ hits, index, queryID }) =>
+        insights && index && queryID
+          ? hits.map((hit, position) => ({
+              ...hit,
+              _insights: { indexName: index, queryID, position: position + 1 },
+            }))
+          : hits
+      );
       const counts = new Map<string | undefined, number>();
       const seen = new Set<string>();
       const normalized: DocspotResult[] = [];
