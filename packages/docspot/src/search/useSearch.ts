@@ -19,6 +19,7 @@ import {
 
 import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isCommandKey, isExternalUrl } from '@/core/platform';
+import { isCommandShortcut, matchesAny } from '@/core/shortcuts';
 import { addRecentPage } from '@/core/storage';
 import { getPrompts } from '@/ui/getPrompts';
 import { useScrollEdges } from '@/ui/useScrollEdges';
@@ -508,13 +509,18 @@ export function useSearch() {
       goBack();
       return;
     }
-    if (isCommandKey(event, 'k')) {
+    // Search is for typing, so only shortcuts with ⌘ or Ctrl apply in it.
+    const { shortcuts } = config;
+    if (matchesAny(event, shortcuts.search.filter(isCommandShortcut))) {
       event.preventDefault();
       event.stopPropagation();
       if (!event.repeat) close();
       return;
     }
-    if (canChat && isCommandKey(event, 'j')) {
+    if (
+      canChat &&
+      matchesAny(event, shortcuts.chat.filter(isCommandShortcut))
+    ) {
       event.preventDefault();
       event.stopPropagation();
       if (!event.repeat) askCurrentQuery();

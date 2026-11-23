@@ -19,6 +19,7 @@ import type {
   DocspotSlots,
 } from '@/types';
 import { createModuleLoader } from '@/core/platform';
+import type { ResolvedShortcuts } from '@/core/shortcuts';
 import type { DocspotStores, StoredConversation } from '@/core/storage';
 
 export const searchDialogFrameLoader = /* @__PURE__ */ createModuleLoader(
@@ -55,6 +56,8 @@ export type DocspotConfig = {
   navigate: DocspotNavigate;
   /** Whether search and chat load ahead of use. */
   preload: boolean;
+  /** Each surface's keys; empty when turned off. */
+  shortcuts: ResolvedShortcuts;
   /** Resolves a URL against the canonical origin. */
   toSiteUrl: (url: string) => string;
   /** The in-app path for a URL on this site, or null for other sites. */

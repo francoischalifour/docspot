@@ -18,6 +18,7 @@ import type {
 } from '@/types';
 import type { DocspotConfig } from '@/core/context';
 import { createModuleLoader } from '@/core/platform';
+import { resolveShortcuts } from '@/core/shortcuts';
 import { createStores } from '@/core/storage';
 import { browserUrlAdapter, stripHash } from '@/core/url';
 
@@ -54,6 +55,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
     history = false,
     syncUrl = false,
     preload = true,
+    shortcuts,
     slots,
     locale,
     messages: messageOverrides,
@@ -89,6 +91,12 @@ export function useDocspotConfig(props: DocspotRootProps) {
     () => (chat ? createModuleLoader(getChatInternals(chat).load) : null),
     [chat, stores]
   );
+  // Keyed by content, so an inline object keeps the same keys.
+  const shortcutsKey = JSON.stringify(shortcuts ?? null);
+  const resolvedShortcuts = useMemo(
+    () => resolveShortcuts(shortcuts),
+    [shortcutsKey]
+  );
   const url: DocspotUrlAdapter | null =
     syncUrl === true ? browserUrlAdapter : syncUrl || null;
 
@@ -122,6 +130,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
     items: items ?? noEntries,
     navigate: navigate ?? defaultNavigate,
     preload,
+    shortcuts: resolvedShortcuts,
     toSiteUrl: target => new URL(target, siteUrl ?? window.location.href).href,
     toInternalUrl(target) {
       try {

@@ -13,7 +13,6 @@ import { useDocspotInternal } from '@/core/context';
 import type { ChatPanelProps } from '@/core/ChatPanel';
 import {
   isChatBesidePage,
-  isCommandKey,
   prefersReducedMotion,
   useVisualViewport,
 } from '@/core/platform';
@@ -35,6 +34,7 @@ import {
   panelGesture,
 } from '@/core/panelGesture';
 import { ResizeHandle } from '@/core/ResizeHandle';
+import { matchesAny } from '@/core/shortcuts';
 
 /** Slides back into place after a drag past the minimum width. */
 const SETTLE_DURATION_MS = 200;
@@ -146,9 +146,9 @@ export function ChatPanelFrame({ dock = 'fixed', ...props }: ChatPanelProps) {
             )
               return;
             if (event.key === 'Escape') chat.close();
-            else if (canSearch && isCommandKey(event, 'k')) {
+            else if (canSearch && matchesAny(event, config.shortcuts.search)) {
               if (!event.repeat) search.open();
-            } else if (isCommandKey(event, 'j')) {
+            } else if (matchesAny(event, config.shortcuts.chat)) {
               if (!event.repeat) chat.close();
             } else return;
             event.preventDefault();
