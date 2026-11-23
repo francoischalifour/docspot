@@ -119,6 +119,26 @@ it('closes at once for a section of the current page by default', async () => {
   history.replaceState(null, '', location.pathname + location.search);
 });
 
+it('opens what Enter chose once results for the typed query arrive', async () => {
+  const navigate = vi.fn();
+  const httpApi = results.find(result => result.url.endsWith('/http-api'))!;
+  const search = createSearch(async ({ query }) => {
+    if (query === 'h') return results;
+    await wait(300);
+    return [httpApi];
+  });
+  await render(<Docspot search={search} navigate={navigate} />);
+  await openSearch();
+  await userEvent.keyboard('h');
+  await expect.element(page.getByRole('option').first()).toBeVisible();
+  // Enter lands while results for "http" are still loading.
+  await userEvent.keyboard('ttp{Enter}');
+  expect(navigate).not.toHaveBeenCalled();
+  await vi.waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith(httpApi.url, {})
+  );
+});
+
 it('marks matching text in titles from a search provider without highlights', async () => {
   await render(
     <Docspot search={() => [{ title: 'Configuration', url: '/config' }]} />
@@ -363,6 +383,8 @@ it('reports failures, retries, and recovers from no matches', async () => {
   await expect
     .element(page.getByRole('option', { name: /Example/ }))
     .toBeVisible();
+  // The button leaves as it retries; typing goes on in the input.
+  await expect.element(searchInput()).toHaveFocus();
 
   await userEvent.fill(searchInput(), 'nothing');
   await expect
@@ -436,6 +458,7 @@ it('shows default results and recent pages before typing, with separate clearing
   await recent.getByRole('button', { name: 'Clear history' }).click();
   await expect.element(recent).not.toBeInTheDocument();
   await expect.element(suggested.getByRole('option')).toHaveLength(2);
+  await expect.element(searchInput()).toHaveFocus();
 });
 
 it('copies the selected link with Mod+C but keeps copying selected query text', async () => {

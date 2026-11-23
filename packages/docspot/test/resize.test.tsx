@@ -50,7 +50,20 @@ it('hides the panel with the keyboard from its minimum width', async () => {
   handle().element().focus();
   await userEvent.keyboard('{Home}');
   await expect.element(handle()).toHaveAttribute('aria-valuenow', '320');
-  await userEvent.keyboard('{ArrowRight}');
+  // Holding the key stops at the minimum; a new press hides.
+  handle()
+    .element()
+    .dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        repeat: true,
+        bubbles: true,
+      })
+    );
+  // Still open, so it still resizes.
+  await userEvent.keyboard('{ArrowLeft}');
+  await expect.element(handle()).toHaveAttribute('aria-valuenow', '336');
+  await userEvent.keyboard('{Home}{ArrowRight}');
   await expect
     .element(page.getByRole('button', { name: 'Ask AI' }).first())
     .toHaveAttribute('aria-expanded', 'false');

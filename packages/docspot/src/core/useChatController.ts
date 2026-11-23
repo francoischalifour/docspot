@@ -185,9 +185,9 @@ export function useChatController(
       return;
     }
     if (request.action === 'reset') {
+      // What the reader was typing carries over, never lost.
       replaceSession(loaded, createSession(loaded));
       setPageContext({ follow: true });
-      setDraft('');
       emit({ type: 'conversation.new' });
       return;
     }
@@ -196,7 +196,7 @@ export function useChatController(
       if (current?.id !== request.conversation.id) {
         replaceSession(loaded, createSession(loaded, request.conversation));
         setPageContext({ follow: true });
-        setDraft(request.draft ?? '');
+        if (request.draft !== undefined) setDraft(request.draft);
         emit({
           type: 'conversation.resume',
           conversationId: request.conversation.id,

@@ -86,6 +86,8 @@ export function Scroller({
   const anchorObserverRef = useRef<ResizeObserver | null>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
   const [resumeKey, setResumeKey] = useState(0);
+  // A jump to the end applies once, not again when `follow` next changes.
+  const appliedResumeKeyRef = useRef(resumeKey);
 
   const updateEdges = useCallback(() => {
     const viewport = viewportRef.current;
@@ -164,7 +166,9 @@ export function Scroller({
     const viewport = viewportRef.current;
     if (!viewport) return;
     atEndRef.current = distanceToEnd(viewport) <= END_TOLERANCE;
-    if (!follow && !resumeKey) return;
+    const resumes = resumeKey !== appliedResumeKeyRef.current;
+    appliedResumeKeyRef.current = resumeKey;
+    if (!follow && !resumes) return;
     atEndRef.current = true;
     transition({ type: 'follow' });
     if (!follow) return;

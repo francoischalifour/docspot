@@ -59,6 +59,8 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await panel()
     .getByRole('button', { name: 'How do I zoom an image?' })
     .click();
+  // The suggestions leave once asked; typing goes on in the composer.
+  await expect.element(composer()).toHaveFocus();
 
   // Bold text renders while it is still streaming.
   await expect
@@ -505,6 +507,56 @@ it('opens sources on this site in place and others in a new tab', async () => {
     '/docs/guides/zoom',
     expect.objectContaining({ event: expect.anything() })
   );
+});
+
+it('keeps the draft when starting a new chat', async () => {
+  const { chat } = createChatServer(question => ({
+    text: `About ${question}.`,
+  }));
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('Alpha{Enter}');
+  await expect.element(answers().getByText('About Alpha.')).toBeVisible();
+  await userEvent.keyboard('Meant for a new chat');
+  await panel().getByRole('button', { name: 'New chat' }).click();
+  await expect.element(answers()).not.toBeInTheDocument();
+  await expect.element(composer()).toHaveValue('Meant for a new chat');
+});
+
+it('keeps a later answer in place after jumping to the latest one', async () => {
+  const { chat } = createChatServer((_, index) =>
+    index === 0
+      ? {
+          chunks: [
+            'Start.\n\n',
+            ...Array.from({ length: 50 }, (_, k) => `Paragraph ${k}.\n\n`),
+            'The very end.',
+          ],
+          chunkDelayMs: 20,
+        }
+      : { chunks: ['Short second', ' answer.'], chunkDelayMs: 300 }
+  );
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  await userEvent.keyboard('First{Enter}');
+  await expect.element(answers().first()).toHaveTextContent('Paragraph 5');
+  await commands.wheel('log', 'Chat', -150);
+  await expect.element(answers().first()).toHaveTextContent('The very end.');
+  await panel().getByRole('button', { name: 'Jump to latest answer' }).click();
+
+  await composer().click();
+  await userEvent.keyboard('Second{Enter}');
+  const second = answers().nth(1);
+  await expect.element(second).toHaveTextContent('Short second');
+  const top = () => Math.round(second.element().getBoundingClientRect().top);
+  const during = top();
+  await expect
+    .element(panel().getByRole('button', { name: 'Copy answer' }).nth(1))
+    .toBeInTheDocument();
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  // Finishing doesn't move the answer from where reading started.
+  expect(top()).toBe(during);
 });
 
 it('covers the page on a phone until the page a source opens shows', async () => {
