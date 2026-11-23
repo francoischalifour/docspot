@@ -2,7 +2,8 @@ import type { ComponentProps } from 'react';
 
 import { Kbd } from '@/ui/Kbd';
 import { toAriaKeyShortcuts, toKbdKeys } from '@/core/shortcuts';
-import { mergeProps } from '@/ui/renderElement';
+import { type RenderProp, mergeProps, renderElement } from '@/ui/renderElement';
+import type { ChatTriggerState } from '@/core/ChatTrigger';
 import { useDocspotInternal } from '@/core/context';
 
 /**
@@ -12,13 +13,16 @@ import { useDocspotInternal } from '@/core/context';
 export type ChatLauncherProps = Omit<
   ComponentProps<'button'>,
   'type' | 'hidden' | 'aria-expanded' | 'aria-controls'
->;
+> & {
+  /** Replaces the `<button>`, as for `SearchTriggerProps`. */
+  render?: RenderProp<ComponentProps<'button'>, ChatTriggerState>;
+};
 
 /**
  * A floating button where the panel opens, shown while chat is hidden, so
  * the chat's place on screen is clear. Renders nothing without `chat`.
  */
-export function ChatLauncher(props: ChatLauncherProps) {
+export function ChatLauncher({ render, ...props }: ChatLauncherProps) {
   const { config, chat } = useDocspotInternal('Docspot.ChatLauncher');
   if (!config.canChat) return null;
   const preload = () => {
@@ -48,13 +52,21 @@ export function ChatLauncher(props: ChatLauncherProps) {
       data-side="left"
       hidden={chat.isOpen}
     >
-      <button
-        {...mergeProps(own, props)}
-        aria-expanded={false}
-        aria-controls={config.chatPanelId}
-        // Stays mounted while hidden, so focus can return to it.
-        hidden={chat.isOpen}
-      />
+      {renderElement(
+        render,
+        {
+          ...mergeProps(own, props),
+          // They describe the panel, so they follow its state.
+          'aria-expanded': false,
+          'aria-controls': config.chatPanelId,
+          // Stays mounted while hidden, so focus can return to it.
+          hidden: chat.isOpen,
+        },
+        { open: chat.isOpen },
+        buttonProps => (
+          <button {...buttonProps} />
+        )
+      )}
     </span>
   );
 }

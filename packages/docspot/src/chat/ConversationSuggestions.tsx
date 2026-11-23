@@ -1,6 +1,6 @@
 import { SuggestedQuestions } from '@/ui/SuggestedQuestions';
 import { Welcome } from '@/ui/Welcome';
-import { getPrompts } from '@/ui/getPrompts';
+import { getSuggestions } from '@/ui/getSuggestions';
 import { useConversationContext } from '@/chat/ConversationContext';
 
 /**
@@ -15,8 +15,8 @@ export function ConversationSuggestions() {
       <Welcome
         className="docspot-chat-welcome"
         title={messages.welcome}
-        questions={getPrompts(contextPage, conversation.prompts)}
-        onChoose={question => conversation.ask(question, 'prompt')}
+        questions={getSuggestions(contextPage, conversation.suggestions)}
+        onChoose={question => conversation.ask(question, 'suggestion')}
       />
     );
   if (!pageSuggestions.length) return null;
@@ -27,7 +27,7 @@ export function ConversationSuggestions() {
       )}
       className="docspot-chat-welcome"
       questions={pageSuggestions}
-      onChoose={question => conversation.ask(question, 'prompt')}
+      onChoose={question => conversation.ask(question, 'suggestion')}
     />
   );
 }

@@ -175,7 +175,9 @@ export function parsePage(value: unknown): DocspotPage | undefined {
   return {
     url: value.url,
     title: isString(value.title) ? value.title : undefined,
-    prompts: isStringArray(value.prompts) ? value.prompts : undefined,
+    suggestions: isStringArray(value.suggestions)
+      ? value.suggestions
+      : undefined,
   };
 }
 

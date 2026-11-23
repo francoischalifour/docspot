@@ -10,10 +10,10 @@ import { render } from 'vitest-browser-react';
 
 import {
   Docspot,
+  type DocspotItem,
   type DocspotLocale,
   type DocspotPreviewProps,
   type DocspotSearch,
-  defineItem,
 } from '@/index';
 import { ar, de, en } from '@/locale';
 import { results } from '@test/fixtures';
@@ -52,13 +52,13 @@ function Preview({ result }: DocspotPreviewProps) {
   );
 }
 
-const toggleTheme = defineItem({
+const toggleTheme: DocspotItem = {
   id: 'theme',
   title: 'Toggle theme',
   keywords: ['dark'],
   shortcut: 'Shift+Meta+L',
   action: () => {},
-});
+};
 
 type Setting = {
   name: string;
@@ -101,7 +101,7 @@ describe.each(settings)('in $name', ({ dark, locale, rtl }) => {
         defaultItems={[{ url: '/docs', title: 'Docs', group: 'Popular' }]}
         context={{
           page: { url: '/docs/guides/zoom', title: 'Zoom guide' },
-          prompts: ['How do I zoom?'],
+          suggestions: ['How do I zoom?'],
         }}
         slots={{ preview: Preview }}
       >

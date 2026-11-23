@@ -69,8 +69,12 @@ function App() {
           syncUrl
           navigate={navigate}
           context={{
-            page: { url: page.url, title: page.title, prompts: page.prompts },
-            prompts: ['What can I build with Acme?'],
+            page: {
+              url: page.url,
+              title: page.title,
+              suggestions: page.suggestions,
+            },
+            suggestions: ['What can I build with Acme?'],
             resolvePage: url => findPage(url),
             loadPage: async ({ url }) => findPage(url)?.markdown ?? null,
           }}

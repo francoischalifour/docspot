@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { highlightTerms, isQuestion, shouldPrioritizeChat } from '@/index';
+import { highlightTerms, isQuestion } from '@/index';
 import { ar, de, es, fr, ja, zhCN } from '@/locale';
 
 const locales = { ar, de, es, fr, ja, zhCN };
@@ -45,34 +45,6 @@ it.each([
   'altertable.track',
 ])('treats “%s” as a lookup', query => {
   expect(isQuestion(query)).toBe(false);
-});
-
-it('lets chat lead only when no result answers the question', () => {
-  const question = 'how do I join product usage with accounts';
-  expect(
-    shouldPrioritizeChat({
-      query: question,
-      pageTitles: [],
-      hasResults: false,
-      hasCompleteMatch: false,
-    })
-  ).toBe(true);
-  expect(
-    shouldPrioritizeChat({
-      query: question,
-      pageTitles: [],
-      hasResults: true,
-      hasCompleteMatch: true,
-    })
-  ).toBe(false);
-  expect(
-    shouldPrioritizeChat({
-      query: 'what is the sql explorer',
-      pageTitles: ['SQL Explorer'],
-      hasResults: true,
-      hasCompleteMatch: false,
-    })
-  ).toBe(false);
 });
 
 it.each([

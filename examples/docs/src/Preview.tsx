@@ -1,4 +1,4 @@
-import type { DocspotPageActionsProps, DocspotPreviewProps } from 'docspot';
+import type { DocspotPreviewProps } from 'docspot';
 import { PageMarkdown } from './PageMarkdown';
 import { findPage } from './pages';
 
@@ -13,7 +13,7 @@ export default function Preview({ result }: DocspotPreviewProps) {
 }
 
 /** The `pageActions` slot: actions beside “Open page”. */
-export function PageActions({ result, notify }: DocspotPageActionsProps) {
+export function PageActions({ result, notify }: DocspotPreviewProps) {
   const page = findPage(result.url);
   if (!page) return null;
   return (

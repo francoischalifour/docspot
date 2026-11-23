@@ -15,7 +15,10 @@ export type DocspotApi = {
   closeChat: () => void;
   toggleChat: () => void;
   /** Opens chat with text in the composer, ready to edit. */
-  setDraft: (text: string, options?: { page?: DocspotPage | null }) => void;
+  draftQuestion: (
+    question: string,
+    options?: { page?: DocspotPage | null }
+  ) => void;
   /** Opens chat and sends a question, replacing any answer in progress. */
   submitQuestion: (
     question: string,
@@ -49,10 +52,10 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
     openChat: () => latest.current.chat.open(),
     closeChat: () => latest.current.chat.close(),
     toggleChat: () => latest.current.chat.toggle(),
-    setDraft: (text, options) =>
+    draftQuestion: (question, options) =>
       latest.current.chat.open({
         action: 'draft',
-        text,
+        text: question,
         page: options?.page,
         source: 'api',
       }),

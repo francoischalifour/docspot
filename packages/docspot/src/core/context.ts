@@ -49,7 +49,7 @@ export type DocspotConfig = {
   canSearch: boolean;
   canChat: boolean;
   currentPage: DocspotPage | undefined;
-  prompts: string[];
+  suggestions: string[];
   defaultItems: Array<DocspotResult | DocspotItem | typeof recentItems>;
   handoffs: DocspotHandoff[];
   items: DocspotItem[];

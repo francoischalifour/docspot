@@ -21,7 +21,7 @@ import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isCommandKey, isExternalUrl } from '@/core/platform';
 import { isCommandShortcut, matchesAny } from '@/core/shortcuts';
 import { addRecentPage } from '@/core/storage';
-import { getPrompts } from '@/ui/getPrompts';
+import { getSuggestions } from '@/ui/getSuggestions';
 import { useScrollEdges } from '@/ui/useScrollEdges';
 import type { DocspotResult } from '@/types';
 import { isResult, recentItems } from '@/search/items';
@@ -281,15 +281,15 @@ export function useSearch() {
     if (!canChat) return resultSources;
     const conversation = trimmed ? null : chat.getActiveConversation();
     // With nothing else to list, the page's questions fill the list.
-    const prompts =
+    const suggestions =
       trimmed || conversation || resultSources.length
         ? []
-        : getPrompts(config.currentPage, config.prompts);
+        : getSuggestions(config.currentPage, config.suggestions);
     const askSource: AutocompleteSource<SearchOption> = {
       sourceId: 'ask-ai',
       getItems: () =>
-        prompts.length
-          ? prompts.map((prompt): SearchOption => ({
+        suggestions.length
+          ? suggestions.map((prompt): SearchOption => ({
               id: `ask-prompt:${prompt}`,
               kind: 'ask',
               title: prompt,
@@ -449,7 +449,7 @@ export function useSearch() {
     } else if (item.conversation)
       openChat({ action: 'resume', conversation: item.conversation });
     else if (item.prompt)
-      openChat({ action: 'submit', text: item.prompt, source: 'prompt' });
+      openChat({ action: 'submit', text: item.prompt, source: 'suggestion' });
     else
       openChat(
         item.query
@@ -746,7 +746,7 @@ export function useSearch() {
     },
     clearRecent: () => {
       stores.recentPages.set([]);
-      config.emit({ type: 'history.clear' });
+      config.emit({ type: 'search.clearRecent' });
       void autocomplete.refresh();
       inputElement?.focus();
     },

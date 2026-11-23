@@ -2,7 +2,7 @@ import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import { PageIcon, QuestionIcon, SendIcon } from '@/ui/icons';
 import { PageSlotIcon, SlotIcon } from '@/ui/SlotIcon';
 import { Welcome } from '@/ui/Welcome';
-import { getPrompts } from '@/ui/getPrompts';
+import { getSuggestions } from '@/ui/getSuggestions';
 import type { AskOption } from '@/search/model';
 
 type AskPreviewProps = {
@@ -59,12 +59,12 @@ export function AskPreview({ item, onStartChat, onSelect }: AskPreviewProps) {
         ) : (
           <Welcome
             title={chat.welcome}
-            questions={getPrompts(config.currentPage, config.prompts)}
+            questions={getSuggestions(config.currentPage, config.suggestions)}
             onChoose={question =>
               onStartChat({
                 action: 'submit',
                 text: question,
-                source: 'prompt',
+                source: 'suggestion',
               })
             }
           />

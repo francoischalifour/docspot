@@ -119,7 +119,7 @@ function OptionRowContent({
             </span>
             {shortcut && (
               <span className="docspot-result-shortcut">
-                <Shortcut shortcut={shortcut} slots={slots} />
+                <Shortcut shortcut={shortcut} />
               </span>
             )}
           </>

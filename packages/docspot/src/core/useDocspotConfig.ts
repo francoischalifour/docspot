@@ -124,7 +124,7 @@ export function useDocspotConfig(props: DocspotProps) {
     canSearch: Boolean(search),
     canChat: Boolean(chat),
     currentPage: context?.page,
-    prompts: context?.prompts ?? [],
+    suggestions: context?.suggestions ?? [],
     defaultItems: defaultItems ?? noEntries,
     handoffs: handoffs ?? noEntries,
     items: items ?? noEntries,
