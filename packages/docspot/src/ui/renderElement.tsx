@@ -15,15 +15,28 @@ type AnyProps = Record<string, unknown>;
 
 const HANDLER = /^on[A-Z]/;
 
+function isPrevented(event: unknown) {
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    'defaultPrevented' in event &&
+    event.defaultPrevented === true
+  );
+}
+
 /**
- * Merges the part's props into the element's own. Both handlers run, the
- * element's first, so it can call `preventDefault` before the part reads
- * it. Classes join, styles merge, and refs both receive the element.
+ * Merges a consumer's props into a part's own: other props replace the
+ * part's. Handlers run the consumer's first, and the part's unless it
+ * called `preventDefault`. Classes join, styles merge, and refs both
+ * receive the element.
  */
-export function mergeProps(ours: AnyProps, theirs: AnyProps): AnyProps {
-  const merged: AnyProps = { ...ours, ...theirs };
+export function mergeProps<Props extends object>(
+  ours: Props,
+  theirs: object
+): Props {
+  const merged = { ...ours, ...theirs } as AnyProps;
   for (const [key, own] of Object.entries(ours)) {
-    const their = theirs[key];
+    const their = (theirs as AnyProps)[key];
     if (their === undefined) {
       merged[key] = own;
       continue;
@@ -35,7 +48,7 @@ export function mergeProps(ours: AnyProps, theirs: AnyProps): AnyProps {
     ) {
       merged[key] = (event: unknown) => {
         (their as (event: unknown) => void)(event);
-        (own as (event: unknown) => void)(event);
+        if (!isPrevented(event)) (own as (event: unknown) => void)(event);
       };
     } else if (key === 'className')
       merged[key] = cx(own as string, their as string);
@@ -44,7 +57,7 @@ export function mergeProps(ours: AnyProps, theirs: AnyProps): AnyProps {
     else if (key === 'ref')
       merged[key] = mergeRefs(own as Ref<unknown>, their as Ref<unknown>);
   }
-  return merged;
+  return merged as Props;
 }
 
 /**
@@ -59,8 +72,5 @@ export function renderElement<Props extends object, State>(
 ): ReactElement {
   if (!render) return renderDefault(props);
   if (typeof render === 'function') return render(props, state);
-  return cloneElement(
-    render,
-    mergeProps(props as AnyProps, render.props as AnyProps)
-  );
+  return cloneElement(render, mergeProps(props, render.props as AnyProps));
 }

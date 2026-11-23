@@ -16,6 +16,7 @@
     "docsearch",
     "documentation",
     "documentation-search",
+    "i18n",
     "llm",
     "minisearch",
     "rag",
@@ -72,6 +73,10 @@
     "./handoffs": {
       "types": "./dist/handoffs.d.ts",
       "default": "./dist/handoffs.js"
+    },
+    "./locale": {
+      "types": "./dist/locale.d.ts",
+      "default": "./dist/locale.js"
     },
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"

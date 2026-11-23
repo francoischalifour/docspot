@@ -6,6 +6,7 @@ import { useSearchController } from '@/core/useSearchController';
 import { useShortcuts } from '@/core/useShortcuts';
 import { useTriggerRegistry } from '@/core/useTriggerRegistry';
 import { useUrlSync } from '@/core/useUrlSync';
+import { LanguageContext } from '@/ui/LanguageContext';
 import { SlotsContext } from '@/ui/SlotsContext';
 
 /**
@@ -45,7 +46,9 @@ export function DocspotRoot(props: DocspotRootProps) {
     <DocspotInternalContext
       value={{ config, search: searchController, chat: chat.controller }}
     >
-      <SlotsContext value={config.slots}>{props.children}</SlotsContext>
+      <LanguageContext value={config.language}>
+        <SlotsContext value={config.slots}>{props.children}</SlotsContext>
+      </LanguageContext>
     </DocspotInternalContext>
   );
 }

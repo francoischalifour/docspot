@@ -38,6 +38,12 @@ const cases = [
     excludes: ['claude.ai', 'useState', 'autocomplete'],
   },
   {
+    name: 'one locale',
+    source: `import { fr } from 'docspot/locale'; console.log(fr);`,
+    // Other locales, and anything that renders.
+    excludes: ['Doku durchsuchen', 'ドキュメント', 'Search docs', 'useState'],
+  },
+  {
     name: 'search-only component',
     source: `import { Docspot } from 'docspot'; console.log(Docspot);`,
     excludes: [

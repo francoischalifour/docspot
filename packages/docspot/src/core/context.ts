@@ -60,6 +60,8 @@ export type DocspotConfig = {
   toInternalUrl: (url: string) => string | null;
   slots: DocspotSlots;
   messages: DocspotMessages;
+  /** The locale's BCP 47 code. */
+  language: string;
   emit: (event: DocspotEvent) => void;
   stores: DocspotStores;
 };

@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { type ComponentProps, Suspense, lazy } from 'react';
 
 import {
   type ChatController,
@@ -11,13 +11,20 @@ const LazyChatPanelFrame = /* @__PURE__ */ lazy(() =>
   chatFrameLoader.load().then(module => ({ default: module.ChatPanelFrame }))
 );
 
-export type ChatPanelProps = {
+/**
+ * `<aside>` props, including `ref`, except its content, `id`, and `hidden`,
+ * which Docspot owns. Handlers run before Docspot's; calling
+ * `preventDefault` skips Docspot's.
+ */
+export type ChatPanelProps = Omit<
+  ComponentProps<'aside'>,
+  'children' | 'id' | 'hidden'
+> & {
   /**
-   * `fixed` (default) pins the docked panel to the right edge of the window.
+   * `fixed` (default) pins the docked panel to the window's end edge.
    * `inline` docks it as a flex item where it is rendered, beside the page.
    */
   dock?: 'fixed' | 'inline';
-  className?: string;
 };
 
 /**

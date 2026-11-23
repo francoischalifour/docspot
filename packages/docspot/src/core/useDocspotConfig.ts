@@ -55,6 +55,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
     syncUrl = false,
     preload = true,
     slots,
+    locale,
     messages: messageOverrides,
     onEvent,
   } = props;
@@ -74,8 +75,8 @@ export function useDocspotConfig(props: DocspotRootProps) {
   );
   useEffect(stores.sync, [stores]);
   const messages = useMemo(
-    () => resolveMessages(messageOverrides),
-    [messageOverrides]
+    () => resolveMessages(locale, messageOverrides),
+    [locale, messageOverrides]
   );
   // A new transport or history namespace starts chat over.
   const chatLoader = useMemo(
@@ -131,6 +132,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
       }
     },
     slots: slots ?? noSlots,
+    language: locale?.code ?? 'en',
     messages,
     emit,
     stores,

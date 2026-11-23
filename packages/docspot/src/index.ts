@@ -4,6 +4,7 @@ export type { DocspotProps } from '@/core/Docspot';
 export { useDocspot } from '@/core/useDocspot';
 export type { DocspotApi } from '@/core/useDocspot';
 export type { ChatPanelProps } from '@/core/ChatPanel';
+export type { SearchDialogProps } from '@/core/SearchDialog';
 export type { ChatLauncherProps } from '@/core/ChatLauncher';
 export type { ChatTriggerProps, ChatTriggerState } from '@/core/ChatTrigger';
 export type {
@@ -20,8 +21,11 @@ export type {
   StoredMessage as DocspotStoredMessage,
   StoredPage as DocspotStoredPage,
 } from '@/core/storage';
-export { defaultMessages } from '@/messages';
-export type { DocspotMessages, DocspotMessagesInput } from '@/messages';
+export type {
+  DocspotLocale,
+  DocspotMessages,
+  DocspotMessagesInput,
+} from '@/messages';
 export { highlightTerms, parseHighlightedString } from '@/search/model';
 export { defineItem, recentItems } from '@/search/items';
 export { createSearch } from '@/search/createSearch';

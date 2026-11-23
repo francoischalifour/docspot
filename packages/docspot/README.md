@@ -45,6 +45,7 @@ Each entry point loads only what it needs, and none has import side effects.
 | `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react` |
 | `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                   | `minisearch`          |
 | `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`               |
+| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, and `zhCN`            | None                  |
 | `docspot/styles.css`   | The stylesheet                                                           | None                  |
 
 ## Usage
@@ -98,14 +99,14 @@ const chat = createChat({
 
 The trigger opens the chat panel. <kbd>⌘J</kbd> or <kbd>Ctrl J</kbd> toggles it.
 
-Each request body includes the question's context in `docspot`, which your endpoint can use:
+Each request body includes the question's context in `docspot`, typed as `DocspotRequestContext` from `docspot/chat`, which your endpoint can use:
 
 ```ts
+import type { DocspotRequestContext } from 'docspot/chat';
+
 type Body = {
   messages: UIMessage[];
-  docspot?: {
-    page?: { url: string; title?: string; content?: string };
-  };
+  docspot?: DocspotRequestContext; // { page?: { url, title?, content? } }
 };
 ```
 
@@ -182,7 +183,11 @@ function SupportPane() {
 | `Docspot.SearchDialog`  | The search dialog while it is open                                       |
 | `Docspot.ChatPanel`     | The chat panel                                                           |
 
-Triggers and the launcher accept button props, including `ref`, typed as `SearchTriggerProps`, `ChatTriggerProps`, `TriggerProps`, and `ChatLauncherProps`. Your handlers run before Docspot's: calling `event.preventDefault()` in `onClick` keeps the surface closed. Pass `children` to replace their content.
+Every part accepts the props of the element it renders, including `ref`: triggers and the launcher take `<button>` props, `Docspot.SearchDialog` takes `<dialog>` props, and `Docspot.ChatPanel` takes `<aside>` props, typed as `SearchTriggerProps`, `ChatTriggerProps`, `TriggerProps`, `ChatLauncherProps`, `SearchDialogProps`, and `ChatPanelProps`. They merge with Docspot's own the same way everywhere:
+
+- Classes join, styles merge, and refs both receive the element. Other props replace Docspot's, such as `aria-label`.
+- Your handlers run before Docspot's. Calling `event.preventDefault()` skips Docspot's: in a trigger's `onClick`, it keeps the surface closed, and in the dialog's or the panel's `onKeyDown`, it keeps <kbd>Esc</kbd> from closing them.
+- Pass `children` to replace a trigger's or the launcher's content. The dialog's and the panel's content, `open`, `hidden`, and the panel's `id` are Docspot's.
 
 `render` replaces the `<button>` a trigger renders, for example with your design system's button. An element receives the trigger's props merged into its own: both handlers run, yours first, classes join, and refs both receive the element. A function receives the props and the trigger's state, `{ open }`, and returns what to render:
 
@@ -235,7 +240,8 @@ The methods keep their identity across renders, so they are safe in effect depen
 | `query`        | Controls the search query, with `onQueryChange`                                                                                                                                                 |
 | `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                                                                                          |
 | `slots`        | Components that replace parts of the interface                                                                                                                                                  |
-| `messages`     | Interface text overrides                                                                                                                                                                        |
+| `locale`       | The interface's language, from `docspot/locale` or your own. See [Languages and text](#languages-and-text)                                                                                      |
+| `messages`     | Text that replaces the locale's, such as `assistant`, the name of who answers                                                                                                                   |
 | `onEvent`      | Receives interaction events, for analytics                                                                                                                                                      |
 
 ### Results and items
@@ -679,19 +685,56 @@ Variables are the styling API. For layout around Docspot, these class names and 
 
 Every other class name is internal and may change in any release.
 
-### Messages
+### Languages and text
+
+Docspot's interface is in English unless you pass a `locale`. `docspot/locale` provides English (`en`), French (`fr`), German (`de`), Spanish (`es`), Japanese (`ja`), and simplified Chinese (`zhCN`). Import only the ones you use:
+
+```tsx
+import { fr } from 'docspot/locale';
+
+<Docspot search={search} chat={chat} locale={fr} />;
+```
+
+`messages` replaces any of the locale's text, and keeps the rest. `assistant` names who answers questions: other text writes it where it says `{assistant}`, so one key renames every label that shows it, such as **Ask AI**, the panel's title, and **Hide Ask AI**:
 
 ```tsx
 <Docspot
   search={search}
+  chat={chat}
+  locale={fr}
   messages={{
-    trigger: { search: 'Find in docs' },
-    search: { noResults: query => `Nothing for “${query}”` },
+    assistant: 'Acme', // "Demander à Acme"
+    search: { noResults: query => `Rien pour « ${query} »` },
   }}
 />
 ```
 
-`defaultMessages` lists the English defaults; any part can be overridden. Keys ending in `WithAsk`, such as `search.placeholderWithAsk` and `trigger.searchWithAsk`, replace their base key when chat is available. Overriding only the base key overrides both.
+Strings can use `{assistant}` too. Text that depends on a value, such as a query or a count, is a function that returns it, so each language places and pluralizes it.
+
+Keys ending in `WithAsk`, such as `search.placeholderWithAsk` and `trigger.searchWithAsk`, replace their base key when chat is available. Overriding only the base key overrides both.
+
+For another language, write a `DocspotLocale`: its BCP 47 `code`, which formats dates, and every message, which TypeScript checks against `en`:
+
+```ts
+import type { DocspotLocale } from 'docspot';
+import { en } from 'docspot/locale';
+
+export const nl: DocspotLocale = {
+  code: 'nl',
+  messages: {
+    assistant: 'AI',
+    trigger: {
+      search: 'Docs doorzoeken',
+      searchWithAsk: 'Zoeken of vragen',
+      chat: '{assistant} vragen',
+    },
+    search: { ...en.messages.search /* , … */ },
+    chat: { ...en.messages.chat /* , … */ },
+  },
+};
+```
+
+Dates in chat follow the locale's language, in the reader's regional variant when their browser prefers one, such as `en-GB` for `en`. Set `lang` on your page to match, so screen readers pronounce the text in its language.
 
 ### Controlled state
 

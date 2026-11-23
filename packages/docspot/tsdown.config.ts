@@ -10,6 +10,7 @@ export default defineConfig({
     'algolia-chat': 'src/algolia-chat/index.ts',
     minisearch: 'src/minisearch/index.ts',
     handoffs: 'src/handoffs/index.ts',
+    locale: 'src/locale/index.ts',
   },
   format: 'esm',
   platform: 'neutral',

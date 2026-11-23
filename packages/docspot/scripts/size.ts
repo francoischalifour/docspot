@@ -34,6 +34,7 @@ const consumers: Record<string, string> = {
   'docspot/algolia-chat': `export { createAlgoliaChat } from 'docspot/algolia-chat';`,
   'docspot/minisearch': `export { createMiniSearchSearch } from 'docspot/minisearch';`,
   'docspot/handoffs': `export { chatGptHandoff, claudeHandoff } from 'docspot/handoffs';`,
+  'docspot/locale, one locale': `export { fr } from 'docspot/locale';`,
 };
 
 type Size = { eager: number; lazy: number };

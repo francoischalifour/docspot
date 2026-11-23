@@ -3,10 +3,7 @@ import type { ComponentProps } from 'react';
 import { SearchIcon } from '@/ui/icons';
 import { SlotIcon } from '@/ui/SlotIcon';
 import { Kbd } from '@/ui/Kbd';
-import { composeHandlers } from '@/ui/composeHandlers';
-import { cx } from '@/ui/cx';
-import { mergeRefs } from '@/ui/mergeRefs';
-import { type RenderProp, renderElement } from '@/ui/renderElement';
+import { type RenderProp, mergeProps, renderElement } from '@/ui/renderElement';
 import { useDocspotInternal } from '@/core/context';
 
 export type SearchTriggerState = {
@@ -16,7 +13,7 @@ export type SearchTriggerState = {
 
 /**
  * Button props, including `ref`. Handlers run before Docspot's; calling
- * `preventDefault` in `onClick` keeps the surface closed.
+ * `preventDefault` skips Docspot's, so in `onClick` it keeps search closed.
  */
 export type SearchTriggerProps = Omit<ComponentProps<'button'>, 'type'> & {
   /**
@@ -28,17 +25,7 @@ export type SearchTriggerProps = Omit<ComponentProps<'button'>, 'type'> & {
 };
 
 /** Opens search. Renders nothing without `search`. */
-export function SearchTrigger({
-  ref,
-  render,
-  className,
-  children,
-  onClick,
-  onFocus,
-  onPointerEnter,
-  onPointerDown,
-  ...props
-}: SearchTriggerProps) {
+export function SearchTrigger({ render, ...props }: SearchTriggerProps) {
   const { config, search } = useDocspotInternal('Docspot.SearchTrigger');
   if (!config.canSearch) return null;
   const preload = () => {
@@ -47,42 +34,35 @@ export function SearchTrigger({
   const label = config.canChat
     ? config.messages.trigger.searchWithAsk
     : config.messages.trigger.search;
+  const own: ComponentProps<'button'> = {
+    type: 'button',
+    'aria-keyshortcuts': 'Meta+K Control+K /',
+    'aria-haspopup': 'dialog',
+    // Focus returns to a visible trigger when search closes.
+    ref: search.registerTrigger,
+    className: 'docspot-trigger',
+    onPointerEnter: preload,
+    // Touch has no hover; a press comes before its click.
+    onPointerDown: preload,
+    onFocus: preload,
+    onClick: event => search.open(event.currentTarget),
+    children: (
+      <>
+        <span className="docspot-trigger-label">
+          <SlotIcon name="search" icon={SearchIcon} className="docspot-muted" />
+          <span className="docspot-trigger-text">{label}</span>
+        </span>
+        <Kbd
+          aria-hidden="true"
+          keys={['mod', 'k']}
+          className="docspot-trigger-kbd"
+        />
+      </>
+    ),
+  };
   return renderElement(
     render,
-    {
-      type: 'button',
-      'aria-keyshortcuts': 'Meta+K Control+K /',
-      'aria-haspopup': 'dialog',
-      ...props,
-      // Focus returns to a visible trigger when search closes.
-      ref: mergeRefs(ref, search.registerTrigger),
-      className: cx('docspot-trigger', className),
-      onPointerEnter: composeHandlers(preload, onPointerEnter),
-      // Touch has no hover; a press comes before its click.
-      onPointerDown: composeHandlers(preload, onPointerDown),
-      onFocus: composeHandlers(preload, onFocus),
-      onClick: event => {
-        onClick?.(event);
-        if (!event.defaultPrevented) search.open(event.currentTarget);
-      },
-      children: children ?? (
-        <>
-          <span className="docspot-trigger-label">
-            <SlotIcon
-              name="search"
-              icon={SearchIcon}
-              className="docspot-muted"
-            />
-            <span className="docspot-trigger-text">{label}</span>
-          </span>
-          <Kbd
-            aria-hidden="true"
-            keys={['mod', 'k']}
-            className="docspot-trigger-kbd"
-          />
-        </>
-      ),
-    },
+    mergeProps(own, props),
     { open: search.isOpen },
     buttonProps => <button {...buttonProps} />
   );
