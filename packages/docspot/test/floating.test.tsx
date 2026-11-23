@@ -81,9 +81,22 @@ it('keeps an open menu beside its button as the window resizes', async () => {
 
 it('draws a site’s own tooltips around Docspot’s buttons', async () => {
   const seen: Array<Pick<DocspotTooltipProps, 'label' | 'side'>> = [];
-  function SiteTooltip({ label, side, children }: DocspotTooltipProps) {
+  function SiteTooltip({
+    label,
+    side,
+    shortcut,
+    children,
+  }: DocspotTooltipProps) {
     seen.push({ label, side });
-    return <span data-site-tooltip={label}>{children}</span>;
+    return (
+      <span data-site-tooltip={label}>
+        {children}
+        <span role="tooltip" style={{ color: 'rgb(255, 0, 0)' }}>
+          {label}
+          {shortcut}
+        </span>
+      </span>
+    );
   }
   const { chat } = createChatServer(() => ({ text: 'Answer.' }));
   await render(<Docspot chat={chat} slots={{ tooltip: SiteTooltip }} />);
@@ -96,4 +109,9 @@ it('draws a site’s own tooltips around Docspot’s buttons', async () => {
   expect(seen).toContainEqual({ label: 'Hide Ask AI', side: 'bottom' });
   // Docspot draws none of its own.
   expect(document.querySelector('.docspot-tooltip')).toBeNull();
+  // Its key hint takes the site tooltip's text color.
+  const hint = page
+    .getByRole('tooltip', { name: 'Hide Ask AI' })
+    .getByText('Esc');
+  expect(getComputedStyle(hint.element()).color).toBe('rgb(255, 0, 0)');
 });

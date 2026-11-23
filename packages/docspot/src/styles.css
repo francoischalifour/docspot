@@ -261,10 +261,13 @@
   unicode-bidi: isolate;
 }
 
+/* A key hint inside a tooltip, Docspot's or a site's: its text's color. */
 .docspot-kbd[data-ghost] {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
+  color: inherit;
+  opacity: 0.7;
 }
 
 .docspot-button {
@@ -377,11 +380,6 @@
   .docspot-tooltip:popover-open {
     opacity: 0;
   }
-}
-
-.docspot-tooltip .docspot-kbd {
-  color: inherit;
-  opacity: 0.7;
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -878,6 +876,11 @@
   align-items: center;
   height: 1.5rem;
   font-weight: 400;
+}
+
+.docspot-result-shortcut .docspot-kbd {
+  color: var(--docspot-muted);
+  opacity: 1;
 }
 
 .docspot-result-path,

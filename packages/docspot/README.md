@@ -462,17 +462,28 @@ Search is a modal dialog in the browser's top layer. Popups that slots open must
 
 #### Tooltips
 
-Docspot's tooltips show on hover and keyboard focus, in the top layer so no panel cuts them off, beside their button inside the viewport. `slots.tooltip` replaces them with your site's own. It receives the trigger as `children`, to render as is, and the `label` to show, which the trigger already has as its accessible name:
+Docspot's tooltips show on hover and keyboard focus, in the top layer so no panel cuts them off, beside their button inside the viewport. `slots.tooltip` replaces them with your site's own. It receives the trigger as `children`, to render as is, the `label` to show, which the trigger already has as its accessible name, the preferred `side`, and Docspot's key hint as `shortcut`, such as <kbd>Esc</kbd>, which takes the tooltip's text color. With Base UI:
 
 ```tsx
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { Tooltip } from '@base-ui/react/tooltip';
+import type { DocspotTooltipProps } from 'docspot';
 
-function SiteTooltip({ label, side, children }: DocspotTooltipProps) {
+function SiteTooltip({ label, shortcut, side, children }: DocspotTooltipProps) {
   return (
     <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      {/* Not in a portal: inside search, the dialog is in the top layer. */}
-      <Tooltip.Content side={side}>{label}</Tooltip.Content>
+      <Tooltip.Trigger render={children} />
+      <Tooltip.Portal>
+        <Tooltip.Positioner
+          side={side}
+          sideOffset={6}
+          className="tooltip-positioner"
+        >
+          <Tooltip.Popup className="tooltip">
+            {label}
+            {shortcut}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
     </Tooltip.Root>
   );
 }
@@ -480,7 +491,13 @@ function SiteTooltip({ label, side, children }: DocspotTooltipProps) {
 <Docspot slots={{ tooltip: SiteTooltip }} />;
 ```
 
-`shortcut` is Docspot's key hint for the trigger, such as <kbd>Esc</kbd>, to show beside the label.
+Tooltips show in chat, which sits above the page at `--docspot-z-index`, so place the portaled tooltip above it:
+
+```css
+.tooltip-positioner {
+  z-index: calc(var(--docspot-z-index) + 1);
+}
+```
 
 #### Icons
 
