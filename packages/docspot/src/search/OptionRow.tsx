@@ -12,7 +12,13 @@ import {
   SectionIcon,
 } from '@/ui/icons';
 import { isExternalUrl } from '@/core/platform';
-import { type SearchOption, getOptionUrl, plain } from '@/search/model';
+import {
+  type SearchOption,
+  type SelectOptions,
+  getOptionUrl,
+  keepsOpen,
+  plain,
+} from '@/search/model';
 import { Highlight } from '@/search/Highlight';
 import { BreadcrumbHighlight } from '@/search/BreadcrumbHighlight';
 import { Shortcut } from '@/search/Shortcut';
@@ -31,7 +37,7 @@ type OptionRowProps = {
    * Chooses an item that opens no URL: asking AI, or a function action.
    * Stable: reads the dialog's latest state.
    */
-  onSelect: (item: SearchOption) => void;
+  onSelect: (item: SearchOption, options?: SelectOptions) => void;
 };
 
 /**
@@ -170,7 +176,7 @@ function OptionRowContent({
         <div
           {...itemProps}
           className="docspot-result"
-          onClick={() => onSelect(item)}
+          onClick={event => onSelect(item, { keepOpen: keepsOpen(event) })}
         >
           {content}
         </div>

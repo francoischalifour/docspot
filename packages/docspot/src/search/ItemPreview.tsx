@@ -1,12 +1,12 @@
 import { type SearchLeave, useDocspotInternal } from '@/core/context';
-import type { ItemOption } from '@/search/model';
+import { type ItemOption, type SelectOptions, keepsOpen } from '@/search/model';
 import { PreviewErrorBoundary } from '@/search/PreviewErrorBoundary';
 import { PreviewLink } from '@/search/PreviewLink';
 
 type ItemPreviewProps = {
   entry: ItemOption;
   onLeave: SearchLeave;
-  onSelect: (item: ItemOption) => void;
+  onSelect: (item: ItemOption, options?: SelectOptions) => void;
 };
 
 /**
@@ -43,7 +43,7 @@ export function ItemPreview({ entry, onLeave, onSelect }: ItemPreviewProps) {
           <button
             type="button"
             className="docspot-button docspot-button-ghost"
-            onClick={() => onSelect(entry)}
+            onClick={event => onSelect(entry, { keepOpen: keepsOpen(event) })}
           >
             {messages.run}
           </button>

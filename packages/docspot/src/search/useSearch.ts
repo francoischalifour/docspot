@@ -34,6 +34,8 @@ import {
   normalizeResponse,
   plain,
   toStoredPage,
+  type SelectOptions,
+  keepsOpen,
 } from '@/search/model';
 
 const WHITESPACE = /\s+/;
@@ -88,7 +90,8 @@ export function useSearch() {
   });
   // Stable, so result rows skip rendering when only the selection moves.
   const selectOption = useCallback(
-    (item: SearchOption) => latest.current.selectItem(item),
+    (item: SearchOption, options?: SelectOptions) =>
+      latest.current.selectItem(item, options),
     []
   );
   const openOptionLink = useCallback(
@@ -412,7 +415,10 @@ export function useSearch() {
     search.leave(url, {});
   }
 
-  function selectItem(selected: SearchOption) {
+  function selectItem(
+    selected: SearchOption,
+    { keepOpen = false }: SelectOptions = {}
+  ) {
     const item = withLiveQuery(selected);
     const position = items.findIndex(entry => entry.id === selected.id);
     if (item.kind === 'result') {
@@ -427,6 +433,11 @@ export function useSearch() {
       const { item: chosen, query } = item;
       config.emit({ type: 'search.select', query, item: chosen, position });
       if (typeof chosen.action === 'string') return;
+      if (keepOpen) {
+        chosen.action({ query });
+        inputElement?.focus();
+        return;
+      }
       // Closed first, so what the action opens, such as a dialog, takes the focus.
       close();
       chosen.action({ query });
@@ -632,6 +643,19 @@ export function useSearch() {
           (event.key === 'ArrowDown' || event.key === 'ArrowUp')
         ) {
           event.preventDefault();
+          return;
+        }
+        // Autocomplete leaves ⌘ or Ctrl Enter to links; an action runs
+        // and search stays, as for a modified click.
+        if (
+          event.key === 'Enter' &&
+          keepsOpen(event) &&
+          canNavigate &&
+          activeItem.kind === 'item' &&
+          typeof activeItem.item.action === 'function'
+        ) {
+          event.preventDefault();
+          selectItem(activeItem, { keepOpen: true });
           return;
         }
         if (event.key === 'Enter' && !canNavigate) {
