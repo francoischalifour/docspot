@@ -2,7 +2,7 @@ import { Suspense, useDeferredValue } from 'react';
 
 import type { ChatRequest, SearchLeave } from '@/core/context';
 import { cx } from '@/ui/cx';
-import type { SearchOption } from '@/search/model';
+import type { SearchOption, SelectOptions } from '@/search/model';
 import { ResultPreview } from '@/search/ResultPreview';
 import { ItemPreview } from '@/search/ItemPreview';
 import { AskPreview } from '@/search/AskPreview';
@@ -18,7 +18,7 @@ type PreviewPanelProps = {
   onNotify: (message: string) => void;
   onStartChat: (request?: ChatRequest) => void;
   /** Chooses an item from its preview: runs it, or records the link opened. */
-  onSelect: (item: SearchOption) => void;
+  onSelect: (item: SearchOption, options?: SelectOptions) => void;
 };
 
 export function PreviewPanel({
