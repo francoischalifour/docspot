@@ -168,11 +168,10 @@ export function useSearch() {
       // Items found by name come first: few, and named by what is typed.
       const matched = matchItems(config.items, trimmed);
       try {
+        const { signal } = controller;
         const response = normalizeResponse(
-          await config.search!({
-            query: trimmed,
-            signal: controller.signal,
-          })
+          await (latest.current.search.takeEarlySearch(trimmed, signal) ??
+            config.search!({ query: trimmed, signal }))
         );
         // A search that ignores the signal may still resolve.
         if (controller.signal.aborted) return await supersede(controller);

@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot, type DocspotResult, createSearch } from '@/index';
+import { Docspot, type DocspotResult, createSearch, useDocspot } from '@/index';
 import { chatGptHandoff, claudeHandoff } from '@/handoffs';
 import { createChatServer, lastQuestion, results, wait } from '@test/fixtures';
 
@@ -12,6 +12,12 @@ const searchInput = () =>
   page.getByRole('combobox', { name: 'Search documentation' });
 const searchDialog = () =>
   page.getByRole('dialog', { name: 'Search documentation' });
+
+/** Waits for the preload once the page is idle, then counts from zero. */
+async function idlePreload(preload: ReturnType<typeof vi.fn>) {
+  await vi.waitFor(() => expect(preload).toHaveBeenCalled());
+  preload.mockClear();
+}
 
 async function openSearch(name = 'Search docs') {
   await page.getByRole('button', { name }).click();
@@ -676,11 +682,68 @@ it('warms search when a reader shows intent to search', async () => {
   const preload = vi.fn();
   const search = createSearch(() => results, { preload });
   await render(<Docspot search={search} />);
+  await idlePreload(preload);
   await page.getByRole('button', { name: 'Search docs' }).hover();
   expect(preload).toHaveBeenCalledTimes(1);
-  await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
-  await expect.element(searchInput()).toHaveFocus();
+  // The shortcut's modifier comes first, then opening runs it again.
+  await userEvent.keyboard(`{${modifier}>}`);
   expect(preload).toHaveBeenCalledTimes(2);
+  await userEvent.keyboard(`k{/${modifier}}`);
+  await expect.element(searchInput()).toHaveFocus();
+  expect(preload).toHaveBeenCalledTimes(3);
+});
+
+it('warms search once the page has loaded and the browser is idle', async () => {
+  const preload = vi.fn();
+  await render(<Docspot search={createSearch(() => results, { preload })} />);
+  // Well before a fixed delay would have run it.
+  await vi.waitFor(() => expect(preload).toHaveBeenCalled(), {
+    timeout: 1_000,
+  });
+});
+
+it('warms search only when asked to, without preload', async () => {
+  const preload = vi.fn();
+  const search = createSearch(() => results, { preload });
+  function CustomTrigger() {
+    const { preloadSearch, openSearch } = useDocspot();
+    return (
+      <button
+        type="button"
+        onPointerEnter={preloadSearch}
+        onClick={() => openSearch()}
+      >
+        Find
+      </button>
+    );
+  }
+  await render(
+    <Docspot.Root search={search} preload={false}>
+      <Docspot.SearchTrigger />
+      <CustomTrigger />
+      <Docspot.SearchDialog />
+    </Docspot.Root>
+  );
+  await page.getByRole('button', { name: 'Search docs' }).hover();
+  await userEvent.keyboard(`{${modifier}}`);
+  expect(preload).not.toHaveBeenCalled();
+
+  await page.getByRole('button', { name: 'Find' }).hover();
+  expect(preload).toHaveBeenCalledTimes(1);
+});
+
+it('searches for the query search opens with once, while the dialog loads', async () => {
+  const search = vi.fn(() => results);
+  history.replaceState(null, '', '/?q=http');
+  await render(<Docspot search={search} syncUrl />);
+  await expect.element(searchInput()).toHaveValue('http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  expect(search).toHaveBeenCalledTimes(1);
+  expect(search).toHaveBeenCalledWith(
+    expect.objectContaining({ query: 'http' })
+  );
 });
 
 it('keeps trigger behavior when consumers pass a ref and handlers', async () => {
@@ -701,6 +764,7 @@ it('keeps trigger behavior when consumers pass a ref and handlers', async () => 
   );
   const trigger = page.getByRole('button', { name: 'Search docs' });
   expect(ref.current).toBe(trigger.element());
+  await idlePreload(preload);
   await trigger.hover();
   expect(onPointerEnter).toHaveBeenCalledTimes(1);
   expect(preload).toHaveBeenCalledTimes(1);

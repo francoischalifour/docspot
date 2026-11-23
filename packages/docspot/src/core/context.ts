@@ -14,6 +14,7 @@ import type {
   DocspotQuestionSource,
   DocspotResult,
   DocspotSearch,
+  DocspotSearchResponse,
   DocspotSlots,
 } from '@/types';
 import { createModuleLoader } from '@/core/platform';
@@ -51,6 +52,8 @@ export type DocspotConfig = {
   handoffs: DocspotHandoff[];
   items: DocspotItem[];
   navigate: DocspotNavigate;
+  /** Whether search and chat load ahead of use. */
+  preload: boolean;
   /** Resolves a URL against the canonical origin. */
   toSiteUrl: (url: string) => string;
   /** The in-app path for a URL on this site, or null for other sites. */
@@ -80,6 +83,14 @@ export type SearchController = {
   leave: SearchLeave;
   /** Whether search waits for a navigation before closing. */
   isLeaving: boolean;
+  /**
+   * The response to the query search opened with, once, if it matches:
+   * sent while the dialog loaded. Aborting `signal` aborts it.
+   */
+  takeEarlySearch: (
+    query: string,
+    signal: AbortSignal
+  ) => Promise<DocspotSearchResponse> | null;
   /** Closes search and opens chat, with a request such as a question. */
   openChat: (request?: ChatRequest) => void;
   registerTrigger: (button: HTMLElement | null) => (() => void) | undefined;

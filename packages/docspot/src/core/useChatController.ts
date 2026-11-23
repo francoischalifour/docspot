@@ -419,7 +419,7 @@ export function useChatController(
         : undefined,
     [chatLoader]
   );
-  useIdlePreload(preload);
+  useIdlePreload(config.preload ? preload : undefined);
 
   const pending = pendingIntent(lifecycle);
   const controller: ChatController = {

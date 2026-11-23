@@ -53,6 +53,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
     siteUrl,
     history = false,
     syncUrl = false,
+    preload = true,
     slots,
     messages: messageOverrides,
     onEvent,
@@ -107,6 +108,7 @@ export function useDocspotConfig(props: DocspotRootProps) {
     handoffs: handoffs ?? noEntries,
     items: items ?? noEntries,
     navigate: navigate ?? defaultNavigate,
+    preload,
     toSiteUrl: target => new URL(target, siteUrl ?? window.location.href).href,
     toInternalUrl(target) {
       try {

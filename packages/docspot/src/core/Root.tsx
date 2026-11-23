@@ -37,6 +37,7 @@ export function DocspotRoot(props: DocspotRootProps) {
   useShortcuts(config.owner, {
     search: config.canSearch ? searchController : null,
     chat: config.canChat ? chat.controller : null,
+    preload: config.preload,
   });
 
   return (

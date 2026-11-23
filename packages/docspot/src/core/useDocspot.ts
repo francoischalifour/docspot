@@ -25,6 +25,10 @@ export type DocspotApi = {
   startConversation: () => void;
   /** Closes search and chat. */
   close: () => void;
+  /** Loads search ahead of opening it, such as when a custom trigger is hovered. */
+  preloadSearch: () => void;
+  /** Loads chat ahead of opening it. */
+  preloadChat: () => void;
 };
 
 type DocspotActions = Omit<
@@ -67,6 +71,8 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
       if (search.isOpen) search.close();
       chat.close();
     },
+    preloadSearch: () => latest.current.search.preload(),
+    preloadChat: () => latest.current.chat.preload(),
   }));
   return actions;
 }

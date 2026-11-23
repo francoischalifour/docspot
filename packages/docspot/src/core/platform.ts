@@ -6,7 +6,6 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-const IDLE_PRELOAD_DELAY_MS = 3_000;
 // A page that never idles, such as one running animations, still preloads.
 const IDLE_PRELOAD_TIMEOUT_MS = 2_000;
 
@@ -94,27 +93,40 @@ export function isExternalUrl(url: string) {
   }
 }
 
+function isSavingData() {
+  const connection = (
+    navigator as { connection?: { saveData?: boolean; effectiveType?: string } }
+  ).connection;
+  return Boolean(
+    connection?.saveData || connection?.effectiveType?.endsWith('2g')
+  );
+}
+
 /**
- * Runs `preload` once the page has settled and the browser is idle, so
- * optional code doesn't compete with the first render.
+ * Runs `preload` once the page has loaded and the browser is idle, so
+ * optional code doesn't compete with the page's own. Skipped when the
+ * reader saves data or has a slow connection.
  */
 export function useIdlePreload(preload: (() => void) | undefined) {
   useEffect(() => {
-    if (!preload) return;
+    // A reader saving data loads search and chat only when about to use them.
+    if (!preload || isSavingData()) return;
     let cancelIdle: (() => void) | undefined;
-    const timeout = setTimeout(() => {
+    function schedule() {
       if (typeof requestIdleCallback === 'function') {
-        const handle = requestIdleCallback(preload, {
+        const handle = requestIdleCallback(preload!, {
           timeout: IDLE_PRELOAD_TIMEOUT_MS,
         });
         cancelIdle = () => cancelIdleCallback(handle);
       } else {
-        const handle = setTimeout(preload, 0);
+        const handle = setTimeout(preload!, 0);
         cancelIdle = () => clearTimeout(handle);
       }
-    }, IDLE_PRELOAD_DELAY_MS);
+    }
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
     return () => {
-      clearTimeout(timeout);
+      window.removeEventListener('load', schedule);
       cancelIdle?.();
     };
   }, [preload]);

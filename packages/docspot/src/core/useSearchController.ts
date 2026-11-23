@@ -1,6 +1,10 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
-import type { DocspotRootProps, DocspotUrlAdapter } from '@/types';
+import type {
+  DocspotRootProps,
+  DocspotSearchResponse,
+  DocspotUrlAdapter,
+} from '@/types';
 import {
   type DocspotConfig,
   type SearchController,
@@ -28,6 +32,13 @@ type Transition = {
   url: 'push' | 'replace' | 'none';
   /** Where focus returns on close; null leaves it to whatever opens next. */
   restoreFocus?: HTMLElement | null;
+};
+
+/** A search sent on open, while the dialog may still be loading. */
+type EarlySearch = {
+  query: string;
+  response: Promise<DocspotSearchResponse>;
+  controller: AbortController;
 };
 
 type SearchStateProps = Pick<
@@ -68,6 +79,7 @@ export function useSearchController(
   // The navigation search waits for before it closes, if any.
   const leavingRef = useRef<object | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
+  const earlySearchRef = useRef<EarlySearch | null>(null);
   // Focus outside search, for a parent opening it through `searchOpen`: by
   // the time that takes effect, the search input has focus.
   const outsideFocusRef = useRef<HTMLElement | null>(null);
@@ -107,11 +119,47 @@ export function useSearchController(
     if (open === isOpenRef.current) return;
     // Opening or closing otherwise ends the wait for a navigation.
     stopLeaving();
+    if (!open) sendEarlySearch('');
     transitionRef.current = transition;
     if (props.searchOpen === undefined)
       setState(current => ({ ...current, isOpen: open }));
     props.onSearchOpenChange?.(open);
   }
+
+  /**
+   * Searches for a query search opens with, alongside loading the dialog,
+   * whose first search then reads it.
+   */
+  function sendEarlySearch(next: string) {
+    earlySearchRef.current?.controller.abort();
+    earlySearchRef.current = null;
+    const trimmed = next.trim();
+    if (!search || !trimmed) return;
+    const controller = new AbortController();
+    const response = new Promise<DocspotSearchResponse>(resolve =>
+      resolve(search({ query: trimmed, signal: controller.signal }))
+    );
+    // The dialog reports a failure once it reads the response.
+    response.catch(() => {});
+    earlySearchRef.current = { query: trimmed, response, controller };
+  }
+
+  const takeEarlySearch: SearchController['takeEarlySearch'] = (
+    trimmed,
+    signal
+  ) => {
+    const early = earlySearchRef.current;
+    earlySearchRef.current = null;
+    if (!early) return null;
+    if (early.query !== trimmed) {
+      early.controller.abort();
+      return null;
+    }
+    signal.addEventListener('abort', () => early.controller.abort(), {
+      once: true,
+    });
+    return early.response;
+  };
 
   /** Sets the query from outside typing, so the input shows it. */
   function replaceQuery(next: string) {
@@ -136,6 +184,7 @@ export function useSearchController(
       return;
     }
     restoreFocusRef.current = getReturnFocus(opener);
+    sendEarlySearch(initialQuery);
     requestOpen(true, { url: 'push', restoreFocus: restoreFocusRef.current });
   }
 
@@ -250,8 +299,10 @@ export function useSearchController(
     clearTimeout(queryWriteRef.current);
     writtenQueryRef.current = next;
     replaceQuery(next);
-    if (!isOpenRef.current)
+    if (!isOpenRef.current) {
+      sendEarlySearch(next);
       requestOpen(true, { url: 'none', restoreFocus: triggers.findVisible() });
+    }
   }
 
   /** Closes search for chat, which then owns the focus. */
@@ -270,7 +321,7 @@ export function useSearchController(
         : undefined,
     [search]
   );
-  useIdlePreload(preload);
+  useIdlePreload(config.preload ? preload : undefined);
 
   const controller: Omit<SearchController, 'openChat'> = {
     isOpen,
@@ -281,6 +332,7 @@ export function useSearchController(
     close: () => close(),
     isLeaving,
     leave,
+    takeEarlySearch,
     registerTrigger: triggers.register,
     preload: () => preload?.(),
   };

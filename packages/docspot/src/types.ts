@@ -274,6 +274,12 @@ type DocspotSharedProps = {
   /** Mirrors search and chat requests in the URL. */
   syncUrl?: boolean | DocspotUrlAdapter;
   /**
+   * Loads search and chat ahead of use: once the page is idle, and when a
+   * trigger or shortcut is about to open them. `false` loads them only on
+   * open or through `useDocspot()`'s `preloadSearch` and `preloadChat`.
+   */
+  preload?: boolean;
+  /**
    * Controls whether search is open. Docspot asks to change it through
    * `onSearchOpenChange`, and follows this prop.
    */

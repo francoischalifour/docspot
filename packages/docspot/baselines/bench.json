@@ -3,6 +3,10 @@
     "commits": 7,
     "renders": 59
   },
+  "search: open with a query over 30 results": {
+    "commits": 7,
+    "renders": 360
+  },
   "search: type a query over 30 results": {
     "commits": 72,
     "renders": 4373
