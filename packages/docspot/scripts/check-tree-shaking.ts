@@ -10,7 +10,7 @@ const packageRoot = join(import.meta.dir, '..');
 const cases = [
   {
     name: 'link helper alone',
-    source: `import { createDocspotUrl } from 'docspot'; console.log(createDocspotUrl('/', { search: 'a' }));`,
+    source: `import { createDocspotUrl } from 'docspot'; console.log(createDocspotUrl('/', { query: 'a' }));`,
     // No components, hooks, or search heuristics. Bare `import 'react'`
     // statements may remain: bundlers keep them because React's package
     // does not declare itself free of side effects.

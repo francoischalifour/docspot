@@ -40,6 +40,7 @@ it('loads chat only on opening when automatic preload is disabled', async () => 
   });
   await render(
     <Docspot.Root chat={chat} preload={false}>
+      <Docspot.ChatLauncher />
       <Docspot.ChatPanel />
     </Docspot.Root>
   );
@@ -51,6 +52,33 @@ it('loads chat only on opening when automatic preload is disabled', async () => 
   await launcher.click();
   await expect.element(composer()).toHaveFocus();
   expect(loads).toBe(1);
+});
+
+it('floats a launcher while chat is hidden, and returns focus to it', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Hi.' }));
+  let allow = false;
+  await render(
+    <Docspot.Root chat={chat}>
+      <Docspot.ChatLauncher
+        className="site-launcher"
+        onClick={event => {
+          if (!allow) event.preventDefault();
+        }}
+      />
+      <Docspot.ChatPanel />
+    </Docspot.Root>
+  );
+  const launcher = page.getByRole('button', { name: 'Ask AI', exact: true });
+  await expect.element(launcher).toHaveClass('docspot-launcher site-launcher');
+  // The site's handler runs first and can keep chat closed.
+  await launcher.click();
+  await expect.element(panel()).not.toBeInTheDocument();
+  allow = true;
+  await launcher.click();
+  await expect.element(composer()).toHaveFocus();
+  await expect.element(launcher).not.toBeInTheDocument();
+  await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
+  await expect.element(launcher).toHaveFocus();
 });
 
 it('works without search: prompts, page context, streaming Markdown, and sources', async () => {
@@ -65,8 +93,7 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await render(
     <Docspot
       chat={chat}
-      context={{ page: guide, prompts: ['Default question'] }}
-      loadPage={loadPage}
+      context={{ page: guide, prompts: ['Default question'], loadPage }}
     />
   );
   // Chat-only exposes chat controls and shortcuts, not search.

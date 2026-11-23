@@ -41,13 +41,8 @@ const SETTLE_DURATION_MS = 200;
 /** Slides out of view after a drag that hides the panel. */
 const HIDE_DURATION_MS = 150;
 
-type ChatPanelFrameProps = Omit<ChatPanelProps, 'launcher'>;
-
 /** The chat panel, loaded with chat: its frame, resizing, and startup state. */
-export function ChatPanelFrame({
-  dock = 'fixed',
-  className,
-}: ChatPanelFrameProps) {
+export function ChatPanelFrame({ dock = 'fixed', className }: ChatPanelProps) {
   const { config, search, chat } = useDocspotInternal('Docspot.ChatPanel');
   const { messages, canSearch } = config;
   const { isOpen, runtime, session } = chat;

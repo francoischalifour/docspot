@@ -87,7 +87,15 @@ function OptionRowContent({
         <SlotIcon name="action" icon={CommandIcon} size={ROW_ICON_SIZE} />
       ));
   else if (ResultIcon)
-    icon = <ResultIcon result={item.result} recent={item.recent} />;
+    icon = (
+      <ResultIcon
+        result={item.result}
+        recent={item.recent}
+        size={ROW_ICON_SIZE}
+        aria-hidden
+        focusable="false"
+      />
+    );
   else if (item.recent)
     icon = <SlotIcon name="recent" icon={HistoryIcon} size={ROW_ICON_SIZE} />;
   else if (item.result.type === 'section')

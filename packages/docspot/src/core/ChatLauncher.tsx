@@ -1,11 +1,35 @@
+import type { ComponentProps } from 'react';
+
 import { Kbd } from '@/ui/Kbd';
+import { composeHandlers } from '@/ui/composeHandlers';
+import { cx } from '@/ui/cx';
+import { mergeRefs } from '@/ui/mergeRefs';
 import { useDocspotInternal } from '@/core/context';
 
-type ChatLauncherProps = { hidden: boolean };
+/**
+ * Button props, including `ref`. Handlers run before Docspot's; calling
+ * `preventDefault` in `onClick` keeps chat closed.
+ */
+export type ChatLauncherProps = Omit<
+  ComponentProps<'button'>,
+  'type' | 'hidden'
+>;
 
-/** Sits where the panel opens, so the chat's place on screen is clear. */
-export function ChatLauncher({ hidden }: ChatLauncherProps) {
-  const { config, chat } = useDocspotInternal('Docspot.ChatPanel');
+/**
+ * A floating button where the panel opens, shown while chat is hidden, so
+ * the chat's place on screen is clear. Renders nothing without `chat`.
+ */
+export function ChatLauncher({
+  ref,
+  className,
+  children,
+  onClick,
+  onFocus,
+  onPointerEnter,
+  ...props
+}: ChatLauncherProps) {
+  const { config, chat } = useDocspotInternal('Docspot.ChatLauncher');
+  if (!config.canChat) return null;
   const preload = () => {
     if (config.preload) chat.preload();
   };
@@ -13,27 +37,35 @@ export function ChatLauncher({ hidden }: ChatLauncherProps) {
     <span
       className="docspot-tooltip-anchor docspot-launcher-anchor"
       data-side="left"
-      hidden={hidden}
+      hidden={chat.isOpen}
     >
       <button
-        ref={chat.registerLauncher}
         type="button"
+        aria-keyshortcuts="Meta+J Control+J"
+        {...props}
+        ref={mergeRefs(ref, chat.registerLauncher)}
         aria-expanded={false}
         aria-controls={config.chatPanelId}
-        aria-keyshortcuts="Meta+J Control+J"
-        onPointerEnter={preload}
-        onFocus={preload}
-        onClick={() => chat.open()}
+        onPointerEnter={composeHandlers(preload, onPointerEnter)}
+        onFocus={composeHandlers(preload, onFocus)}
+        onClick={event => {
+          onClick?.(event);
+          if (!event.defaultPrevented) chat.open();
+        }}
         // Stays mounted while hidden, so focus can return to it.
-        hidden={hidden}
-        className="docspot-launcher"
+        hidden={chat.isOpen}
+        className={cx('docspot-launcher', className)}
       >
-        {config.messages.chat.launcher}
-        <Kbd
-          aria-hidden="true"
-          keys={['mod', 'j']}
-          className="docspot-trigger-kbd"
-        />
+        {children ?? (
+          <>
+            {config.messages.chat.launcher}
+            <Kbd
+              aria-hidden="true"
+              keys={['mod', 'j']}
+              className="docspot-trigger-kbd"
+            />
+          </>
+        )}
       </button>
     </span>
   );
