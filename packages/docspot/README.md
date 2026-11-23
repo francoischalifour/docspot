@@ -37,16 +37,16 @@ With Tailwind CSS or other cascade layers, import it into a layer so your utilit
 
 Each entry point loads only what it needs, and none has import side effects.
 
-| Import                 | Provides                                                                 | Peer dependencies     |
-| ---------------------- | ------------------------------------------------------------------------ | --------------------- |
-| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers    | `react`, `react-dom`  |
-| `docspot/chat`         | `createChat()` for any AI SDK transport                                  | `ai`, `@ai-sdk/react` |
-| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                      | None                  |
-| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                           | `ai`, `@ai-sdk/react` |
-| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                   | `minisearch`          |
-| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere | `react`               |
-| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, and `zhCN`            | None                  |
-| `docspot/styles.css`   | The stylesheet                                                           | None                  |
+| Import                 | Provides                                                                         | Peer dependencies     |
+| ---------------------- | -------------------------------------------------------------------------------- | --------------------- |
+| `docspot`              | `<Docspot>`, its parts, `createSearch()`, `useDocspot()`, and helpers            | `react`, `react-dom`  |
+| `docspot/chat`         | `createChat()` for any AI SDK transport                                          | `ai`, `@ai-sdk/react` |
+| `docspot/algolia`      | `createAlgoliaSearch()` for DocSearch-style indices                              | None                  |
+| `docspot/algolia-chat` | `createAlgoliaChat()` for Algolia Agent Studio                                   | `ai`, `@ai-sdk/react` |
+| `docspot/minisearch`   | `createMiniSearchSearch()` for an index in the browser                           | `minisearch`          |
+| `docspot/handoffs`     | `chatGptHandoff()` and `claudeHandoff()`, to continue a search elsewhere         | `react`               |
+| `docspot/locale`       | Interface languages: `en`, `fr`, `de`, `es`, `ja`, and `zhCN`, and `pluralize()` | None                  |
+| `docspot/styles.css`   | The stylesheet                                                                   | None                  |
 
 ## Usage
 
@@ -709,7 +709,15 @@ import { fr } from 'docspot/locale';
 />
 ```
 
-Strings can use `{assistant}` too. Text that depends on a value, such as a query or a count, is a function that returns it, so each language places and pluralizes it.
+Strings can use `{assistant}` too. Text that depends on a value, such as a query or a count, is a function that returns it, so each language places and pluralizes it. `pluralize(count, forms, language)` from `docspot/locale` picks a word's form with `Intl.PluralRules`, falling back to `other` for a category without its own:
+
+```ts
+import { pluralize } from 'docspot/locale';
+
+const resultCount = (count: number) =>
+  `${count} ${pluralize(count, { one: 'wynik', few: 'wyniki', many: 'wyników', other: 'wyniku' }, 'pl')}`;
+// 1 wynik, 3 wyniki, 5 wyników
+```
 
 Keys ending in `WithAsk`, such as `search.placeholderWithAsk` and `trigger.searchWithAsk`, replace their base key when chat is available. Overriding only the base key overrides both.
 

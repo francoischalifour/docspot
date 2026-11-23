@@ -6,3 +6,5 @@ export { es } from '@/locale/es';
 export { fr } from '@/locale/fr';
 export { ja } from '@/locale/ja';
 export { zhCN } from '@/locale/zhCN';
+export { pluralize } from '@/locale/plural';
+export type { PluralForms } from '@/locale/plural';

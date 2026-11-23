@@ -1,6 +1,8 @@
 // English, the default locale. Interface text is written here first; the
 // other locales follow its keys, which their types require.
 
+import { pluralize } from '@/locale/plural';
+
 const messages = {
   /**
    * Who answers questions, written in place of `{assistant}` in other
@@ -40,7 +42,7 @@ const messages = {
     toNavigate: 'to navigate',
     toOpen: 'to open',
     resultCount: (count: number): string =>
-      `${count} ${count === 1 ? 'result' : 'results'}`,
+      `${count} ${pluralize(count, { one: 'result', other: 'results' }, 'en')}`,
     searching: 'Searching',
     opening: 'Opening page',
     unavailable: 'Search unavailable',
