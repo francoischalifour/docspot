@@ -265,3 +265,82 @@ it('draws ratings with the site’s icons', async () => {
   expect(helpful().element().querySelector('svg')?.dataset.icon).toBe('up');
   expect(unhelpful().element().querySelector('svg')?.dataset.icon).toBe('down');
 });
+
+it('offers no rating on an answer that failed partway, even after a reload', async () => {
+  const { chat, nextRequest } = createTestChat();
+  const screen = await render(<Docspot chat={chat} history />);
+  await openChat();
+  await userEvent.keyboard('First{Enter}');
+  const first = await nextRequest();
+  first.text('Complete.');
+  first.end();
+  await expect.element(helpful()).toBeVisible();
+
+  await userEvent.fill(composer(), 'Second');
+  await userEvent.keyboard('{Enter}');
+  const second = await nextRequest();
+  second.text('Half an ans');
+  await expect.element(answers().getByText('Half an ans')).toBeVisible();
+  second.error();
+  await expect.element(panel().getByRole('alert')).toBeVisible();
+  await expect
+    .element(answers().last().getByRole('button', { name: 'Copy answer' }))
+    .toBeVisible();
+  await expect
+    .element(answers().last().getByRole('button', { name: 'Not helpful' }))
+    .not.toBeInTheDocument();
+  await screen.unmount();
+
+  // Saved with its partial text, the failed answer still can't be rated.
+  await render(<Docspot chat={chat} history />);
+  await expect.element(answers().getByText('Half an ans')).toBeVisible();
+  await expect
+    .element(answers().first().getByRole('button', { name: 'Not helpful' }))
+    .toBeVisible();
+  await expect
+    .element(answers().last().getByRole('button', { name: 'Not helpful' }))
+    .not.toBeInTheDocument();
+});
+
+it('keeps a conversation’s place in recent chats when rating it', async () => {
+  const { chat } = createTestChat({
+    answer: ({ question }) => `About ${question}.`,
+  });
+  await render(<Docspot chat={chat} history />);
+  await openChat();
+  await userEvent.keyboard('Older{Enter}');
+  await expect.element(answers().getByText('About Older.')).toBeVisible();
+  await panel().getByRole('button', { name: 'New chat' }).click();
+  await userEvent.keyboard('Newer{Enter}');
+  await expect.element(answers().getByText('About Newer.')).toBeVisible();
+
+  const switcher = () => panel().getByRole('button', { name: /Switch chat/ });
+  const recentChats = async () => {
+    await switcher().click();
+    // Each chat has a delete action named after it, in list order.
+    const titles = page
+      .getByRole('menu')
+      .getByRole('menuitem', { name: /^Delete chat, / })
+      .elements()
+      .map(item => item.getAttribute('aria-label'));
+    await userEvent.keyboard('{Escape}');
+    return titles;
+  };
+  expect(await recentChats()).toEqual([
+    'Delete chat, Newer',
+    'Delete chat, Older',
+  ]);
+
+  await switcher().click();
+  await page
+    .getByRole('menu')
+    .getByRole('menuitem', { name: 'Older', exact: true })
+    .click();
+  await expect.element(answers().getByText('About Older.')).toBeVisible();
+  await helpful().click();
+  await expect.element(helpful()).toHaveAttribute('aria-pressed', 'true');
+  expect(await recentChats()).toEqual([
+    'Delete chat, Newer',
+    'Delete chat, Older',
+  ]);
+});

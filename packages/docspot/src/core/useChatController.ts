@@ -137,8 +137,15 @@ export function useChatController(
     stores.panel.set(state => ({ ...state, draft }));
   }
 
-  function saveConversation(conversation: StoredConversation) {
-    stores.conversations.set(list => addConversation(list, conversation));
+  function saveConversation(
+    conversation: StoredConversation,
+    { inPlace = false }: { inPlace?: boolean } = {}
+  ) {
+    stores.conversations.set(list =>
+      inPlace && list.some(item => item.id === conversation.id)
+        ? list.map(item => (item.id === conversation.id ? conversation : item))
+        : addConversation(list, conversation)
+    );
   }
 
   function createSession(

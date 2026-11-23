@@ -117,6 +117,13 @@ export function getFeedback(message: UIMessage): DocspotFeedback | undefined {
   };
 }
 
+/** Whether this answer failed partway, live or as it was saved. */
+export function isFailed(message: UIMessage | undefined) {
+  return (
+    (message?.metadata as Record<string, unknown> | undefined)?.failed === true
+  );
+}
+
 export function getMetadataTime(
   message: UIMessage,
   key: 'askedAt' | 'answeredAt'

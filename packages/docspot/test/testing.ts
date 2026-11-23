@@ -66,6 +66,8 @@ export type TestReply = {
   end: () => void;
   /** Fails the request with an HTTP status, before anything streams. */
   fail: (status?: number) => void;
+  /** Fails the answer partway, as a backend error while streaming. */
+  error: (errorText?: string) => void;
 };
 
 export type TestChatOptions = Omit<CreateChatOptions, 'transport'> & {
@@ -213,6 +215,11 @@ function createReply(request: TestRequest) {
       if (!open()) return;
       endStep();
       write({ type: 'finish' });
+      stop();
+    },
+    error(errorText = 'Unavailable') {
+      if (!open()) return;
+      write({ type: 'error', errorText });
       stop();
     },
     fail(failure = 500) {

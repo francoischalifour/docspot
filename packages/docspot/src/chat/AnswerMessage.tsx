@@ -6,7 +6,7 @@ import type { DocspotFeedback } from '@/types';
 import { AnswerActions } from '@/chat/AnswerActions';
 import { AnswerSources } from '@/chat/AnswerSources';
 import { AnswerTools } from '@/chat/AnswerTools';
-import { isStopped } from '@/chat/messages';
+import { isFailed, isStopped } from '@/chat/messages';
 import type { DocspotTools } from '@/chat/tools';
 import { Markdown } from '@/chat/Markdown';
 import { ReadingAnchor } from '@/chat/ReadingAnchor';
@@ -79,8 +79,8 @@ export function AnswerMessage({
             text={text}
             messages={messages}
             onRetry={onRetry}
-            // A stopped answer is incomplete, so not one to rate.
-            onFeedback={stopped ? undefined : onFeedback}
+            // A stopped or failed answer is incomplete, so not one to rate.
+            onFeedback={stopped || isFailed(message) ? undefined : onFeedback}
           />
         )}
       </article>

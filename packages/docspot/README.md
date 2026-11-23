@@ -834,7 +834,7 @@ syncUrl={{
 
 ### Answer feedback
 
-Readers can rate each complete answer helpful or not helpful. Answers still streaming, stopped, or failed can't be rated. After rating one down, the reader can choose a reason and add a few words, both optional. Choosing the same rating again clears it. Each change sends a `chat.feedback` event:
+Readers can rate each complete answer helpful or not helpful. Answers still streaming, stopped, or failed can't be rated, before or after a reload. After rating one down, the reader can choose a reason and add a few words, both optional. Choosing the same rating again clears it. Each change sends a `chat.feedback` event:
 
 ```ts
 type ChatFeedbackEvent = {
@@ -864,7 +864,7 @@ A rating down is sent once when given, and again with its reason or comment if t
 />
 ```
 
-`messageId` is the ID your endpoint gives the answer, such as with `generateMessageId` in `toUIMessageStreamResponse`, or one the browser generated otherwise. With `history`, the rating is kept in the answer's `metadata.feedback` and shows again after a reload.
+`messageId` is the ID your endpoint gives the answer, such as with `generateMessageId` in `toUIMessageStreamResponse`, or one the browser generated otherwise. With `history`, the rating is kept in the answer's `metadata.feedback` and shows again after a reload. Rating an answer leaves its conversation where it is among recent chats.
 
 ## Loading and server rendering
 

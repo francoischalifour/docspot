@@ -30,8 +30,14 @@ export type ChatSessionOptions = {
   loadPage: DocspotLoadPage | undefined;
   /** Makes attached page URLs absolute for the request. */
   siteUrl: string | undefined;
-  /** Saves the conversation once an answer completes. */
-  onSave: (conversation: StoredConversation) => void;
+  /**
+   * Saves the conversation once an answer completes, first among recent
+   * chats, or `inPlace` where it already is, as when an answer is rated.
+   */
+  onSave: (
+    conversation: StoredConversation,
+    options?: { inPlace?: boolean }
+  ) => void;
   onEvent: (event: DocspotEvent) => void;
 };
 

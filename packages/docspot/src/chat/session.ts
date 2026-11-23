@@ -39,10 +39,7 @@ const pendingResponses = new WeakMap<Session, Promise<void>>();
 const queuedQuestions = new WeakMap<Session, symbol>();
 const discardedSessions = new WeakSet<Session>();
 const sessionEvents = new WeakMap<Session, (event: DocspotEvent) => void>();
-const sessionSaves = new WeakMap<
-  Session,
-  (conversation: StoredConversation) => void
->();
+const sessionSaves = new WeakMap<Session, ChatSessionOptions['onSave']>();
 
 /** The page attached to the latest question, if any. */
 export function getQuestionPage(messages: UIMessage[]) {
@@ -153,6 +150,8 @@ export function createSession(
                 answeredAt,
                 // A stopped answer says so, rather than looking complete.
                 ...(isAbort && { stopped: true }),
+                // So is one that failed partway, even after a reload.
+                ...(isError && { failed: true }),
               },
             }
           : candidate
@@ -258,7 +257,8 @@ export function rate(
       )
     : chat.messages;
   const conversation = toConversation(chat.id, complete);
-  if (conversation) sessionSaves.get(chat)?.(conversation);
+  // Rating an answer leaves the conversation's place in recent chats.
+  if (conversation) sessionSaves.get(chat)?.(conversation, { inPlace: true });
   const question = chat.messages
     .slice(0, index)
     .findLast(message => message.role === 'user');

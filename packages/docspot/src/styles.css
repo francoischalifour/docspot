@@ -1713,11 +1713,25 @@
 
 .docspot-feedback-form {
   position: relative;
+  animation: docspot-feedback-in 150ms ease-out;
   margin-top: 0.5rem;
   padding: 0.75rem;
   border: 1px solid var(--docspot-border);
   border-radius: var(--docspot-radius-surface);
   font-size: var(--docspot-text-sm);
+}
+
+@keyframes docspot-feedback-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docspot-feedback-form {
+    animation: none;
+  }
 }
 
 .docspot-feedback-fields {
@@ -1732,6 +1746,8 @@
 }
 
 .docspot-feedback-title {
+  /* A legend is not a flex item, so the fieldset's gap skips it. */
+  margin-bottom: 0.625rem;
   padding: 0;
   padding-inline-end: 2rem;
   font-weight: 500;
