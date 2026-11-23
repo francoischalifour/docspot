@@ -3,12 +3,13 @@ import { createChat } from 'docspot/chat';
 import { chatGptHandoff, claudeHandoff } from 'docspot/handoffs';
 import { createMiniSearchSearch } from 'docspot/minisearch';
 import { StrictMode, lazy, useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import Markdown from 'react-markdown';
 
 import 'docspot/styles.css';
 import './style.css';
 import { OptionCard } from './OptionCard';
+import { PageMarkdown } from './PageMarkdown';
 import { findPage, pages } from './pages';
 import { Tooltip } from './Tooltip';
 
@@ -82,7 +83,7 @@ function usePath() {
   function navigate(url: string) {
     const target = new URL(url, location.href);
     history.pushState(null, '', target);
-    setPath(target.pathname);
+    flushSync(() => setPath(target.pathname));
     if (target.hash)
       document.getElementById(target.hash.slice(1))?.scrollIntoView();
     else scrollTo(0, 0);
@@ -174,7 +175,7 @@ function App() {
           </nav>
           <main className="content">
             <article>
-              <Markdown>{page.markdown}</Markdown>
+              <PageMarkdown>{page.markdown}</PageMarkdown>
               <AskAboutThisPage />
             </article>
           </main>
