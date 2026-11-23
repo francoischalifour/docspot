@@ -1,27 +1,27 @@
 {
   "consumers": {
     "createDocspotUrl": {
-      "eager": 339,
+      "eager": 340,
       "lazy": 0
     },
     "search": {
-      "eager": 10508,
-      "lazy": 10920
+      "eager": 10669,
+      "lazy": 10921
     },
     "chat": {
-      "eager": 11049,
-      "lazy": 18105
+      "eager": 11220,
+      "lazy": 18107
     },
     "search and chat": {
-      "eager": 11327,
-      "lazy": 18105
+      "eager": 11499,
+      "lazy": 18107
     },
     "docspot/algolia": {
       "eager": 2290,
       "lazy": 0
     },
     "docspot/algolia-chat": {
-      "eager": 856,
+      "eager": 855,
       "lazy": 9329
     },
     "docspot/minisearch": {
@@ -29,7 +29,7 @@
       "lazy": 0
     },
     "docspot/handoffs": {
-      "eager": 2093,
+      "eager": 2135,
       "lazy": 0
     }
   },

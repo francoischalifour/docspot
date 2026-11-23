@@ -135,8 +135,14 @@ export const DocspotInternalContext =
 
 export function useDocspotInternal(component: string) {
   const state = use(DocspotInternalContext);
-  if (!state)
-    throw new Error(`Docspot: <${component}> must be inside <Docspot.Root>.`);
+  if (!state) {
+    const name = component.startsWith('use')
+      ? `${component}()`
+      : `<${component}>`;
+    throw new Error(
+      `Docspot: ${name} must be used inside <Docspot> or <Docspot.Root>.`
+    );
+  }
   return state;
 }
 
