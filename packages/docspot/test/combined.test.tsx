@@ -242,7 +242,7 @@ it('offers only search controls and shortcuts without chat', async () => {
   await expect.element(panel()).not.toBeInTheDocument();
 });
 
-it('rejects a configuration without search or chat, or with a relative site URL', async () => {
+it('rejects a configuration without search or chat, with a relative site URL, or an unreadable shortcut', async () => {
   class Boundary extends Component<{ children: ReactNode }, { error?: Error }> {
     override state: { error?: Error } = {};
     static getDerivedStateFromError(error: Error) {
@@ -283,13 +283,22 @@ it('rejects a configuration without search or chat, or with a relative site URL'
       <Docspot search={() => results} siteUrl="docs.example.com" />
     </Boundary>
   );
-  removeEventListener('error', onError);
   await expect
     .element(
       page.getByText(
         'Docspot: `siteUrl` must be an absolute URL, such as https://example.com.'
       )
     )
+    .toBeVisible();
+
+  await render(
+    <Boundary>
+      <Docspot search={() => results} shortcuts={{ search: 'Hyper+K' }} />
+    </Boundary>
+  );
+  removeEventListener('error', onError);
+  await expect
+    .element(page.getByText(/^Docspot: `shortcuts` can't read "Hyper\+K"/))
     .toBeVisible();
 });
 

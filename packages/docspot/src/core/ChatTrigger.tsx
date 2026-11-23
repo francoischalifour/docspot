@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 
 import { Kbd } from '@/ui/Kbd';
+import { toAriaKeyShortcuts, toKbdKeys } from '@/core/shortcuts';
 import { type RenderProp, mergeProps, renderElement } from '@/ui/renderElement';
 import { useDocspotInternal } from '@/core/context';
 
@@ -25,9 +26,10 @@ export function ChatTrigger({ render, ...props }: ChatTriggerProps) {
   const preload = () => {
     if (config.preload) chat.preload();
   };
+  const keys = toKbdKeys(config.shortcuts.chat);
   const own: ComponentProps<'button'> = {
     type: 'button',
-    'aria-keyshortcuts': 'Meta+J Control+J',
+    'aria-keyshortcuts': toAriaKeyShortcuts(config.shortcuts.chat),
     className: 'docspot-trigger docspot-chat-trigger',
     onPointerEnter: preload,
     // Touch has no hover; a press comes before its click.
@@ -39,11 +41,9 @@ export function ChatTrigger({ render, ...props }: ChatTriggerProps) {
         <span className="docspot-trigger-text">
           {config.messages.trigger.chat}
         </span>
-        <Kbd
-          aria-hidden="true"
-          keys={['mod', 'j']}
-          className="docspot-trigger-kbd"
-        />
+        {keys && (
+          <Kbd aria-hidden="true" keys={keys} className="docspot-trigger-kbd" />
+        )}
       </>
     ),
   };

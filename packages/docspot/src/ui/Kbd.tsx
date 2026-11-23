@@ -17,7 +17,10 @@ type KbdProps = ComponentProps<'kbd'> & {
   variant?: 'default' | 'ghost';
 };
 
-/** Keyboard keys. `mod` is ⌘ on Apple platforms and Ctrl elsewhere. */
+/**
+ * Keyboard keys. `mod` is ⌘ on Apple platforms and Ctrl elsewhere, and
+ * `alt` is ⌥ on Apple platforms.
+ */
 export function Kbd({
   keys,
   variant = 'default',
@@ -34,15 +37,19 @@ export function Kbd({
     >
       {keys.map(key => (
         <span key={key}>
-          {key === 'mod'
-            ? isApple
-              ? '⌘'
-              : labels.control
-            : key === 'esc'
-              ? labels.escape
-              : (keySymbols[key] ??
-                // Letters print as on the keycap: ⌘K, not ⌘k.
-                (key.length === 1 ? key.toUpperCase() : key))}
+          {(key === 'mod' && isApple) || key === 'meta'
+            ? '⌘'
+            : key === 'mod' || key === 'control'
+              ? labels.control
+              : key === 'alt'
+                ? isApple
+                  ? '⌥'
+                  : 'Alt'
+                : key === 'esc'
+                  ? labels.escape
+                  : (keySymbols[key] ??
+                    // Letters print as on the keycap: ⌘K, not ⌘k.
+                    (key.length === 1 ? key.toUpperCase() : key))}
         </span>
       ))}
     </kbd>

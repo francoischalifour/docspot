@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 
 import { Kbd } from '@/ui/Kbd';
+import { toAriaKeyShortcuts, toKbdKeys } from '@/core/shortcuts';
 import { mergeProps } from '@/ui/renderElement';
 import { useDocspotInternal } from '@/core/context';
 
@@ -23,9 +24,10 @@ export function ChatLauncher(props: ChatLauncherProps) {
   const preload = () => {
     if (config.preload) chat.preload();
   };
+  const keys = toKbdKeys(config.shortcuts.chat);
   const own: ComponentProps<'button'> = {
     type: 'button',
-    'aria-keyshortcuts': 'Meta+J Control+J',
+    'aria-keyshortcuts': toAriaKeyShortcuts(config.shortcuts.chat),
     ref: chat.registerLauncher,
     className: 'docspot-launcher',
     onPointerEnter: preload,
@@ -34,11 +36,9 @@ export function ChatLauncher(props: ChatLauncherProps) {
     children: (
       <>
         {config.messages.chat.launcher}
-        <Kbd
-          aria-hidden="true"
-          keys={['mod', 'j']}
-          className="docspot-trigger-kbd"
-        />
+        {keys && (
+          <Kbd aria-hidden="true" keys={keys} className="docspot-trigger-kbd" />
+        )}
       </>
     ),
   };

@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { SearchIcon } from '@/ui/icons';
 import { SlotIcon } from '@/ui/SlotIcon';
 import { Kbd } from '@/ui/Kbd';
+import { toAriaKeyShortcuts, toKbdKeys } from '@/core/shortcuts';
 import { type RenderProp, mergeProps, renderElement } from '@/ui/renderElement';
 import { useDocspotInternal } from '@/core/context';
 
@@ -34,9 +35,10 @@ export function SearchTrigger({ render, ...props }: SearchTriggerProps) {
   const label = config.canChat
     ? config.messages.trigger.searchWithAsk
     : config.messages.trigger.search;
+  const keys = toKbdKeys(config.shortcuts.search);
   const own: ComponentProps<'button'> = {
     type: 'button',
-    'aria-keyshortcuts': 'Meta+K Control+K /',
+    'aria-keyshortcuts': toAriaKeyShortcuts(config.shortcuts.search),
     'aria-haspopup': 'dialog',
     // Focus returns to a visible trigger when search closes.
     ref: search.registerTrigger,
@@ -52,11 +54,9 @@ export function SearchTrigger({ render, ...props }: SearchTriggerProps) {
           <SlotIcon name="search" icon={SearchIcon} className="docspot-muted" />
           <span className="docspot-trigger-text">{label}</span>
         </span>
-        <Kbd
-          aria-hidden="true"
-          keys={['mod', 'k']}
-          className="docspot-trigger-kbd"
-        />
+        {keys && (
+          <Kbd aria-hidden="true" keys={keys} className="docspot-trigger-kbd" />
+        )}
       </>
     ),
   };

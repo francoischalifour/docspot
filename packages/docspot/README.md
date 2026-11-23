@@ -67,7 +67,7 @@ export function Header() {
 }
 ```
 
-`<Docspot>` renders a trigger button where you place it, and the search dialog. <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd> and <kbd>/</kbd> open search.
+`<Docspot>` renders a trigger button where you place it, and the search dialog. <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd> and <kbd>/</kbd> open search, unless [`shortcuts`](#shortcuts) changes them.
 
 Create `search` and `chat` once, outside components or in `useMemo`. A new `chat` starts a new chat session, and a new `search` schedules its preload again.
 
@@ -97,7 +97,7 @@ const chat = createChat({
 />;
 ```
 
-The trigger opens the chat panel. <kbd>⌘J</kbd> or <kbd>Ctrl J</kbd> toggles it.
+The trigger opens the chat panel. <kbd>⌘J</kbd> or <kbd>Ctrl J</kbd> toggles it, unless [`shortcuts`](#shortcuts) changes it.
 
 Each request body includes the question's context in `docspot`, typed as `DocspotRequestContext` from `docspot/chat`, which your endpoint can use:
 
@@ -234,6 +234,7 @@ The methods keep their identity across renders, so they are safe in effect depen
 | `history`      | Persists history. Without it, history lasts until the page reloads                                                                                                                              |
 | `id`           | Scopes persisted history, for several instances on one origin                                                                                                                                   |
 | `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                                                                                         |
+| `shortcuts`    | `{ search, chat }`: keys that open search and toggle chat, or `false` to turn one off. See [Keyboard](#keyboard)                                                                                |
 | `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                                                                           |
 | `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                                                                                       |
 | `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                                                                           |
@@ -837,7 +838,7 @@ syncUrl={{
 Docspot gets ready before it's needed, so the first open and the first query don't wait:
 
 - Once the page has loaded and the browser is idle, the search dialog and chat load, and the search function's `preload` runs. A reader saving data or on a slow connection skips this.
-- They also load when a trigger is hovered, pressed, or focused, and when ⌘ or Ctrl is pressed before a shortcut. Opening search runs `preload` too.
+- They also load when a trigger is hovered, pressed, or focused, and when the modifier of a shortcut, such as ⌘ or Ctrl, is pressed before it. Opening search runs `preload` too.
 - Once loaded, the dialog opens in the same frame. Opened sooner, it keeps what is typed while it loads.
 - A query search opens with, from `?q=` or `openSearch(query)`, is searched while the dialog loads.
 - `createMiniSearchSearch` loads and builds its index on `preload`, and `createAlgoliaSearch` opens its connection. Algolia requests skip the CORS preflight.
@@ -900,6 +901,29 @@ With React Server Components, Docspot's components and hooks are client componen
 | <kbd>Esc</kbd>                                  | Clear the query, then close     |
 | <kbd>⌘J</kbd> / <kbd>Ctrl J</kbd>               | Toggle chat                     |
 | <kbd>Enter</kbd>, <kbd>Shift Enter</kbd>        | Send a question, or add a line  |
+
+### Shortcuts
+
+`shortcuts` replaces the keys that open search and toggle chat, for sites that already use them. Give each surface a shortcut or a list, written as `aria-keyshortcuts` writes them, or `false` to turn it off. Leave one out to keep its default.
+
+```tsx
+<Docspot
+  search={search}
+  chat={chat}
+  shortcuts={{ search: ['Mod+Shift+K', '/'], chat: false }}
+/>
+```
+
+| Key      | Default          | Does                                                 |
+| -------- | ---------------- | ---------------------------------------------------- |
+| `search` | `['Mod+K', '/']` | Opens search, and closes it                          |
+| `chat`   | `'Mod+J'`        | Toggles chat, and asks about the query inside search |
+
+- `Mod` is <kbd>⌘</kbd> or <kbd>Ctrl</kbd> on every platform, shown as <kbd>⌘</kbd> on Apple platforms and <kbd>Ctrl</kbd> elsewhere. `Meta` and `Control` are only that key. `Alt` and `Shift` combine with any of them, as in `Shift+Mod+F`.
+- Triggers and the launcher show the first shortcut as their key hint and announce them all with `aria-keyshortcuts`. A surface whose shortcut is `false` shows no hint.
+- A shortcut without <kbd>⌘</kbd> or <kbd>Ctrl</kbd>, such as `/` or `?`, never fires while typing in a field, so inside search only shortcuts with one apply.
+- Letters work by the letter typed on Latin layouts and by the key's position on others, as the defaults do.
+- An unreadable shortcut, such as `Hyper+K`, throws when Docspot renders.
 
 ## Accessibility
 

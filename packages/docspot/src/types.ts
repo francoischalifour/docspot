@@ -396,6 +396,21 @@ type DocspotSearchProps = {
   onQueryChange?: (query: string) => void;
 };
 
+/**
+ * Keys for one surface, as `aria-keyshortcuts` writes them, such as
+ * `Mod+K`, `Shift+Meta+F`, or `/`, or `false` to turn them off. `Mod` is ⌘
+ * or Ctrl on every platform, shown as ⌘ on Apple ones and Ctrl elsewhere;
+ * `Meta` and `Control` are only that key.
+ */
+export type DocspotShortcut = string | string[] | false;
+
+export type DocspotShortcuts = {
+  /** Opens search, and closes it with ⌘ or Ctrl. Defaults to `['Mod+K', '/']`. */
+  search?: DocspotShortcut;
+  /** Toggles chat, and asks about search's query. Defaults to `'Mod+J'`. */
+  chat?: DocspotShortcut;
+};
+
 type DocspotSharedProps = {
   /** Scopes persisted history, for several Docspot instances on one origin. */
   id?: string;
@@ -405,6 +420,11 @@ type DocspotSharedProps = {
    * a shortcut.
    */
   owner?: RefObject<HTMLElement | null>;
+  /**
+   * Replaces or turns off the keys that open search and toggle chat. Keys
+   * and hints follow it everywhere.
+   */
+  shortcuts?: DocspotShortcuts;
   /** The page being read, suggested questions, and how chat reads pages. */
   context?: DocspotContextInput;
   /** Defaults to `window.location.assign`. */
