@@ -220,7 +220,7 @@ afterAll(async () => {
   const update = inject('updateBaseline');
   const baseline: Record<string, Counts> = update
     ? {}
-    : JSON.parse(await commands.readFile(BASELINE).catch(() => '{}'));
+    : JSON.parse(await commands.readFile(BASELINE));
   const failures: string[] = [];
   const lines: string[] = [];
   for (const [name, measure] of Object.entries(results)) {
@@ -228,7 +228,9 @@ afterAll(async () => {
     const notes: string[] = [];
     for (const key of ['commits', 'renders'] as const) {
       const before = previous?.[key];
-      if (before !== undefined && measure[key] > before + tolerance(before))
+      if (before === undefined)
+        failures.push(`${name}: missing ${key} baseline`);
+      else if (measure[key] > before + tolerance(before))
         failures.push(`${name}: ${key} ${measure[key]}, baseline ${before}`);
       if (before !== undefined && measure[key] !== before)
         notes.push(`${key} ${before} → ${measure[key]}`);
@@ -254,6 +256,6 @@ afterAll(async () => {
   }
   if (failures.length)
     throw new Error(
-      `Grew past the baseline:\n${failures.join('\n')}\n\nIf the growth is intended, run \`bun run bench:update\` and explain it in the pull request.`
+      `Render benchmark failed:\n${failures.join('\n')}\n\nIf the change is intended, run \`bun run bench --update\` and explain it in the pull request.`
     );
 });

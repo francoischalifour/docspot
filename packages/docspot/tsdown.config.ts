@@ -17,6 +17,7 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
+  inputOptions: { preserveEntrySignatures: 'allow-extension' },
   copy: [{ from: 'src/styles.css', to: 'dist' }],
   outputOptions: {
     codeSplitting: {

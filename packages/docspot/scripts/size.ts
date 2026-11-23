@@ -78,11 +78,8 @@ async function measure(source: string, directory: string): Promise<Size> {
   // Bundlers emit chunks for every import() they see, even unused ones;
   // only chunks the eager code can import count.
   const lazy = new Set<(typeof chunks)[number]>();
-  for (const chunk of [...eager, ...lazy])
-    for (const name of [
-      ...chunk.dynamicImports,
-      ...(eager.has(chunk) ? [] : chunk.imports),
-    ]) {
+  for (const chunk of eager)
+    for (const name of chunk.dynamicImports) {
       const dependency = byName.get(name);
       if (dependency && !eager.has(dependency)) lazy.add(dependency);
     }
@@ -94,7 +91,7 @@ async function measure(source: string, directory: string): Promise<Size> {
   const code = (list: Iterable<(typeof chunks)[number]>) =>
     [...list].map(chunk => chunk.code).join('\n');
   return {
-    eager: gzip(code([...eager])),
+    eager: gzip(code(eager)),
     lazy: lazy.size ? gzip(code(lazy)) : 0,
   };
 }
@@ -110,13 +107,9 @@ function change(current: number, previous: number | undefined) {
   return `${delta > 0 ? '+' : '−'}${Math.abs(delta)} B${percent}`;
 }
 
-const baseline: Baseline = (() => {
-  try {
-    return JSON.parse(readFileSync(baselinePath, 'utf8')) as Baseline;
-  } catch {
-    return { consumers: {}, css: 0 };
-  }
-})();
+const baseline: Baseline = updating
+  ? { consumers: {}, css: 0 }
+  : (JSON.parse(readFileSync(baselinePath, 'utf8')) as Baseline);
 
 // Inside the package, so `docspot` resolves to the build through its exports.
 const directory = mkdtempSync(join(packageRoot, 'node_modules', '.size-'));
@@ -133,16 +126,17 @@ const rows: string[][] = [];
 const failures: string[] = [];
 function compare(label: string, size: number, previous: number | undefined) {
   rows.push([label, kB(size), change(size, previous)]);
-  if (previous !== undefined && size > previous + tolerance(previous))
+  if (previous === undefined) failures.push(`${label}: missing baseline`);
+  else if (size > previous + tolerance(previous))
     failures.push(`${label}: ${kB(size)}, baseline ${kB(previous)}`);
 }
 for (const [name, size] of Object.entries(current.consumers)) {
   const previous = baseline.consumers[name];
   compare(`${name}, eager`, size.eager, previous?.eager);
-  if (size.lazy || previous?.lazy)
+  if (size.lazy || previous?.lazy || previous?.lazy === undefined)
     compare(`${name}, lazy`, size.lazy, previous?.lazy);
 }
-compare('styles.css', current.css, baseline.css || undefined);
+compare('styles.css', current.css, baseline.css);
 
 if (updating) {
   writeFileSync(baselinePath, `${JSON.stringify(current, null, 2)}\n`);
@@ -166,7 +160,7 @@ if (updating) {
 
 if (failures.length && !updating) {
   console.error(
-    `\nGrew past the baseline:\n${failures.map(line => `  ${line}`).join('\n')}\n\nIf the growth is intended, run \`bun run size --update\` and explain it in the pull request.`
+    `\nBundle size check failed:\n${failures.map(line => `  ${line}`).join('\n')}\n\nIf the change is intended, run \`bun run size --update\` and explain it in the pull request.`
   );
   process.exit(1);
 }

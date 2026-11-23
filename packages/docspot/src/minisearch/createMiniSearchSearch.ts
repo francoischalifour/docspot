@@ -52,6 +52,7 @@ function getTermsIn(text: string) {
 
 /** The sentence matching the most terms, trimmed around the first match. */
 function createExcerpt(text: string, terms: string[], maxLength = 180) {
+  if (maxLength <= 0) return '';
   const termSet = new Set(terms);
   let best = '';
   let bestScore = -1;
@@ -70,9 +71,14 @@ function createExcerpt(text: string, terms: string[], maxLength = 180) {
   }
   if (position === best.length) position = 0;
   const offset = Math.max(0, position - Math.floor(maxLength / 3));
-  const start = offset ? best.lastIndexOf(' ', offset) + 1 : 0;
-  const end = best.lastIndexOf(' ', start + maxLength - 3);
-  return `${start ? '…' : ''}${best.slice(start, end > start ? end : start + maxLength - 3)}…`;
+  const wordStart = best.lastIndexOf(' ', offset) + 1;
+  const start = position - wordStart < maxLength - 2 ? wordStart : offset;
+  const prefix = start ? '…' : '';
+  const limit = start + maxLength - prefix.length;
+  if (limit >= best.length) return prefix + best.slice(start);
+  const end = best.lastIndexOf(' ', limit - 1);
+  if (maxLength === 1) return '…';
+  return prefix + best.slice(start, end > position ? end : limit - 1) + '…';
 }
 
 /**
@@ -86,8 +92,7 @@ export function createMiniSearchSearch<T>({
   limit = 10,
   excerptLength = 180,
 }: MiniSearchSearchOptions<T>): DocspotSearch {
-  let loaded: MiniSearch<T> | undefined;
-  let loading: Promise<MiniSearch<T>> | undefined;
+  let cached: MiniSearch<T> | Promise<MiniSearch<T>> | undefined;
 
   function run(miniSearch: MiniSearch<T>, query: string): DocspotResult[] {
     const queryTerms = getTermsIn(query);
@@ -116,14 +121,13 @@ export function createMiniSearchSearch<T>({
   }
 
   function load(): MiniSearch<T> | Promise<MiniSearch<T>> {
-    if (loaded) return loaded;
-    if (typeof index !== 'function') return (loaded = index);
-    return (loading ??= Promise.resolve()
+    if (typeof index !== 'function') return index;
+    return (cached ??= Promise.resolve()
       .then(index)
       .then(
-        miniSearch => (loaded = miniSearch),
+        miniSearch => (cached = miniSearch),
         (error: unknown) => {
-          loading = undefined;
+          cached = undefined;
           throw error;
         }
       ));

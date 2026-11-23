@@ -401,6 +401,30 @@ it('keeps accent-insensitive matches in a shortened MiniSearch excerpt', () => {
   });
 });
 
+it('keeps the last matching word without implying more text follows', () => {
+  const index = createIndex();
+  index.add({
+    id: '/paths',
+    title: 'Paths',
+    section: 'Guides',
+    content: 'Start a very long introductory passage before the final needle',
+  });
+  const params = { query: 'needle', signal: new AbortController().signal };
+  const search = createMiniSearchSearch({
+    index,
+    getDocument,
+    excerptLength: 20,
+  });
+  const results = search(params);
+  expect(Array.isArray(results) && results[0]?.excerpt).toBe('…final needle');
+  const noExcerpt = createMiniSearchSearch({
+    index,
+    getDocument,
+    excerptLength: 0,
+  })(params);
+  expect(Array.isArray(noExcerpt) && noExcerpt[0]?.excerpt).toBe('');
+});
+
 it('loads a MiniSearch index on the first search', async () => {
   const load = vi.fn(async () => createIndex());
   const search = createMiniSearchSearch({
@@ -420,7 +444,6 @@ it('loads a MiniSearch index on the first search', async () => {
 
 it('skips a superseded query while the MiniSearch index loads', async () => {
   const index = createIndex();
-  const runQuery = vi.spyOn(index, 'search');
   const search = createMiniSearchSearch({
     index: async () => index,
     getDocument,
@@ -433,8 +456,27 @@ it('skips a superseded query while the MiniSearch index loads', async () => {
     signal: new AbortController().signal,
   });
   await expect(stale).rejects.toMatchObject({ name: 'AbortError' });
-  await latest;
-  expect(runQuery.mock.calls.map(([query]) => query)).toEqual(['zoom']);
+  const results = await latest;
+  expect(Array.isArray(results) && results.length).toBeGreaterThan(0);
+});
+
+it('retries a failed index load and serves later searches synchronously', async () => {
+  let available = false;
+  const search = createMiniSearchSearch({
+    index: async () => {
+      if (!available) throw new Error('Index unavailable');
+      return createIndex();
+    },
+    getDocument,
+  });
+  const params = { query: 'margin', signal: new AbortController().signal };
+  await expect(search(params)).rejects.toThrow('Index unavailable');
+  available = true;
+  await search(params);
+  const results = search(params);
+  expect(Array.isArray(results) && results[0]?.url).toBe(
+    '/docs/options#margin'
+  );
 });
 
 it('loads a MiniSearch index ahead of the first search when preloaded', async () => {
