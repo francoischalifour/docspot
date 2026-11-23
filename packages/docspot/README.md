@@ -926,7 +926,28 @@ Docspot adapts to these with no configuration:
 
 ## Browser support
 
-Docspot supports browsers with the Popover API and the `<dialog>` top layer: Chrome and Edge 114, Firefox 125, and Safari 17, and later versions.
+Docspot supports current browsers: the latest two major versions of Chrome, Edge, Firefox, and Safari. It ships modern JavaScript (ES2022) and CSS, untranspiled, so sites that target only these browsers send no fallback code.
+
+It needs these, which every current browser has:
+
+- The `<dialog>` element and the Popover API, for the search dialog, menus, and tooltips in the top layer.
+- `Intl.Segmenter` and `Intl.PluralRules`, for words and plurals in each language.
+- CSS `color-mix()`, `:has()`, logical properties such as `inset-inline`, and dynamic viewport units.
+
+These improve Docspot where a browser has them, and are skipped where it doesn't:
+
+- The Navigation API follows links a client router opens with `syncUrl`; without it, Back and Forward still work.
+- `requestIdleCallback` preloads search and chat once the browser is idle; without it, they preload right after the page loads.
+- CSS `field-sizing` grows the composer with its text; without it, the composer scrolls.
+- `@starting-style` and `text-wrap` animate surfaces in and balance headings.
+
+### Older browsers
+
+To support older browsers, lower Docspot to their level in your build, as you do your own code:
+
+- **JavaScript:** include Docspot in what your bundler transpiles for your targets. Vite and esbuild lower dependencies to `build.target` already. With Next.js, add `transpilePackages: ['docspot']`. With Babel or SWC, stop excluding `node_modules/docspot`.
+- **APIs:** load polyfills before Docspot, such as [`@oddbird/popover-polyfill`](https://github.com/oddbird/popover-polyfill) for popovers and [`@formatjs/intl-segmenter`](https://formatjs.github.io/docs/polyfills/intl-segmenter/) for `Intl.Segmenter`. Your build's polyfill service, such as `core-js` with `useBuiltIns`, covers the rest of the JavaScript.
+- **CSS:** run `docspot/styles.css` through your CSS pipeline, such as Lightning CSS or `postcss-preset-env` with your targets. Some theme colors mix CSS variables with `color-mix()`, which no build can compute ahead of time. In browsers without it, those colors, such as match highlights, the focus ring, and dark-mode secondary text, fall back to inherited ones, so set them to plain colors for those browsers if they matter.
 
 ## License
 
