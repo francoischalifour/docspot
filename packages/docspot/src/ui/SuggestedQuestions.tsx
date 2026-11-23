@@ -1,4 +1,5 @@
 import { QuestionIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { cx } from '@/ui/cx';
 
 type SuggestedQuestionsProps = {
@@ -24,7 +25,7 @@ export function SuggestedQuestions({
             onClick={() => onChoose(question)}
           >
             <span className="docspot-suggestion-icon">
-              <QuestionIcon />
+              <SlotIcon name="ask" icon={QuestionIcon} />
             </span>
             <span>{question}</span>
           </button>

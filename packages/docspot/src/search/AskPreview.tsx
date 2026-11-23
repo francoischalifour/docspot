@@ -1,5 +1,6 @@
 import { type ChatRequest, useDocspotInternal } from '@/core/context';
 import { PageIcon, QuestionIcon, SendIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { Welcome } from '@/ui/Welcome';
 import { getPrompts } from '@/ui/getPrompts';
 import type { AskOption } from '@/search/model';
@@ -20,7 +21,7 @@ export function AskPreview({ item, onStartChat, onSelect }: AskPreviewProps) {
         {item.query || item.prompt ? (
           <div className="docspot-ask-ready">
             <span className="docspot-ask-preview-icon">
-              <QuestionIcon size={22} />
+              <SlotIcon name="ask" icon={QuestionIcon} size={22} />
             </span>
             <div>
               <h3 className="docspot-ask-preview-title">{chat.welcome}</h3>
@@ -30,7 +31,7 @@ export function AskPreview({ item, onStartChat, onSelect }: AskPreviewProps) {
             </div>
             {page && (
               <div className="docspot-ask-context">
-                <PageIcon size={16} />
+                <SlotIcon name="page" icon={PageIcon} size={16} />
                 <div>
                   <div className="docspot-ask-context-label">
                     {search.askContextLabel}
@@ -49,7 +50,7 @@ export function AskPreview({ item, onStartChat, onSelect }: AskPreviewProps) {
               className="docspot-button docspot-ask-send"
               onClick={onSelect}
             >
-              <SendIcon size={16} />
+              <SlotIcon name="send" icon={SendIcon} size={16} />
               {chat.send}
             </button>
           </div>

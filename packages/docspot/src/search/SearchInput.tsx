@@ -1,4 +1,5 @@
 import { LoadingIcon, SearchIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { useSearchContext } from '@/search/SearchContext';
 
 /** The query field, labeled, with a spinner while results are slow. */
@@ -10,9 +11,19 @@ export function SearchInput() {
         {search.messages.title}
       </label>
       {search.status === 'stalled' ? (
-        <LoadingIcon size={20} className="docspot-spin docspot-muted" />
+        <SlotIcon
+          name="loading"
+          icon={LoadingIcon}
+          size={20}
+          className="docspot-spin docspot-muted"
+        />
       ) : (
-        <SearchIcon size={20} className="docspot-muted" />
+        <SlotIcon
+          name="search"
+          icon={SearchIcon}
+          size={20}
+          className="docspot-muted"
+        />
       )}
       <input
         {...search.getInputProps()}

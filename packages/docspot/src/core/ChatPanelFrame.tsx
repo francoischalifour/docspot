@@ -18,6 +18,7 @@ import {
   useVisualViewport,
 } from '@/core/platform';
 import { CloseIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { IconButton } from '@/ui/IconButton';
 import { Shimmer } from '@/ui/Shimmer';
 import { cx } from '@/ui/cx';
@@ -184,7 +185,7 @@ export function ChatPanelFrame({
               label={messages.chat.hide}
               onClick={chat.close}
             >
-              <CloseIcon size={16} />
+              <SlotIcon name="close" icon={CloseIcon} size={16} />
             </IconButton>
           </div>
           <div className="docspot-chat-startup">

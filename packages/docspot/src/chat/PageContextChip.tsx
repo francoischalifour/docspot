@@ -1,6 +1,7 @@
 import type { DocspotMessages } from '@/messages';
 import type { DocspotPage } from '@/types';
 import { CloseIcon, PageIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 
 type PageContextChipProps = {
   page: DocspotPage | undefined;
@@ -20,7 +21,12 @@ export function PageContextChip({
     <span className="docspot-context-chip">
       <span className="docspot-tooltip-anchor" data-side="top">
         <span className="docspot-context-chip-label">
-          <PageIcon size={12} className="docspot-muted" />
+          <SlotIcon
+            name="page"
+            icon={PageIcon}
+            size={12}
+            className="docspot-muted"
+          />
           <span className="docspot-truncate">
             <span className="docspot-sr-only">{messages.pageContext}</span>
             {title}
@@ -36,7 +42,7 @@ export function PageContextChip({
         aria-label={messages.removePageContext}
         onClick={onRemove}
       >
-        <CloseIcon size={12} />
+        <SlotIcon name="close" icon={CloseIcon} size={12} />
       </button>
     </span>
   );

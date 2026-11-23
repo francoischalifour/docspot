@@ -3,7 +3,7 @@ import { afterEach, expect, it } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import { Docspot } from '@/index';
+import { Docspot, type DocspotIconProps } from '@/index';
 import { createChatServer, results } from '@test/fixtures';
 
 const DARK_BACKGROUND = 'rgb(17, 17, 19)';
@@ -97,4 +97,53 @@ it('draws every icon with the same stroke, whatever its size', async () => {
   // Icons from 12px to 22px, all drawn at the same weight.
   expect(strokes.size).toBeGreaterThanOrEqual(3);
   expect(new Set(strokes.values())).toEqual(new Set([1.3]));
+});
+
+it('swaps in a site’s own icons, keeping the rest and how they are drawn', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  // As icon sets such as Lucide take them: a size, and props for the svg.
+  const Magnifier = ({ size, ...props }: DocspotIconProps) => (
+    <svg data-icon="magnifier" width={size} height={size} {...props} />
+  );
+  const Arrow = ({ size, ...props }: DocspotIconProps) => (
+    <svg data-icon="arrow" width={size} height={size} {...props} />
+  );
+  await render(
+    <Docspot
+      search={() => results}
+      chat={chat}
+      slots={{ icons: { search: Magnifier, send: Arrow } }}
+    />
+  );
+  const trigger = page.getByRole('button', { name: 'Search or ask docs' });
+  const magnifier = trigger.element().querySelector('svg');
+  expect(magnifier?.dataset.icon).toBe('magnifier');
+  expect(magnifier?.getAttribute('aria-hidden')).toBe('true');
+  expect(magnifier?.getAttribute('width')).toBe('16');
+
+  const modifier = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
+  await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
+  const panel = page.getByRole('complementary', { name: 'Ask AI' });
+  await expect.element(panel.getByRole('textbox')).toHaveFocus();
+  await userEvent.keyboard('Hi');
+  const send = panel.getByRole('button', { name: 'Send question' });
+  expect(send.element().querySelector('svg')?.dataset.icon).toBe('arrow');
+  // Icons not given stay Docspot's own.
+  const newChat = panel.getByRole('button', { name: 'New chat' });
+  expect(newChat.element().querySelector('svg')?.dataset.icon).toBeUndefined();
+  expect(newChat.element().querySelector('svg path')).not.toBeNull();
+});
+
+it('draws icons at the stroke the page sets', async () => {
+  root.style.setProperty('--docspot-icon-stroke', '2');
+  await render(<Docspot search={() => results} />);
+  const icon = page
+    .getByRole('button', { name: 'Search docs' })
+    .element()
+    .querySelector('svg')!;
+  const drawn =
+    (parseFloat(getComputedStyle(icon).strokeWidth) *
+      icon.getBoundingClientRect().width) /
+    icon.viewBox.baseVal.width;
+  expect(drawn).toBeCloseTo(2);
 });

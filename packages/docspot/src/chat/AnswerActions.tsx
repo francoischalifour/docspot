@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 
 import type { DocspotMessages } from '@/messages';
 import { RetryIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { CopyButton } from '@/ui/CopyButton';
 import { IconButton } from '@/ui/IconButton';
 import { getMetadataTime } from '@/chat/messages';
@@ -37,7 +38,7 @@ export function AnswerActions({
           className="docspot-message-action"
           onClick={onRetry}
         >
-          <RetryIcon size={14} />
+          <SlotIcon name="retry" icon={RetryIcon} size={14} />
         </IconButton>
       )}
       <Timestamp time={getMetadataTime(message, 'answeredAt')} />

@@ -3,6 +3,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { ExternalIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { completeStreamingMarkdown } from '@/chat/messages';
 import { AnswerLink } from '@/chat/AnswerLink';
 
@@ -26,7 +27,12 @@ export function Markdown({
         onNavigate={onNavigate}
         toInternalUrl={toInternalUrl}
         externalIcon={
-          <ExternalIcon size={12} className="docspot-external-icon" />
+          <SlotIcon
+            name="external"
+            icon={ExternalIcon}
+            size={12}
+            className="docspot-external-icon"
+          />
         }
       >
         {children}

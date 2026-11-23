@@ -3,6 +3,7 @@ import { useState, useSyncExternalStore } from 'react';
 import type { StoredConversation } from '@/core/storage';
 import type { DocspotMessages } from '@/messages';
 import { ChatIcon, ChevronDownIcon, DeleteIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { Menu } from '@/ui/Menu';
 import type { ConversationProps } from '@/chat/contract';
 
@@ -45,7 +46,12 @@ export function ConversationSwitcher({
           className="docspot-switcher-button"
         >
           <span className="docspot-truncate">{title}</span>
-          <ChevronDownIcon size={12} className="docspot-muted" />
+          <SlotIcon
+            name="expand"
+            icon={ChevronDownIcon}
+            size={12}
+            className="docspot-muted"
+          />
         </button>
       )}
       items={
@@ -57,14 +63,16 @@ export function ConversationSwitcher({
                 return {
                   key: conversation.id,
                   label: conversation.title,
-                  icon: <ChatIcon />,
+                  icon: <SlotIcon name="conversation" icon={ChatIcon} />,
                   current: isCurrent,
                   onSelect: () => {
                     if (!isCurrent) onSelect(conversation);
                   },
                   secondary: {
                     label: messages.deleteChat(conversation.title),
-                    icon: <DeleteIcon size={14} />,
+                    icon: (
+                      <SlotIcon name="delete" icon={DeleteIcon} size={14} />
+                    ),
                     onSelect: () => {
                       conversations.remove(conversation.id);
                       if (isCurrent) onDeleteCurrent();
@@ -78,7 +86,7 @@ export function ConversationSwitcher({
                 label: isConfirmingClear
                   ? messages.confirmClearHistory
                   : messages.clearHistory,
-                icon: <DeleteIcon />,
+                icon: <SlotIcon name="delete" icon={DeleteIcon} />,
                 // Quiet until it asks to confirm.
                 quiet: !isConfirmingClear,
                 danger: isConfirmingClear,

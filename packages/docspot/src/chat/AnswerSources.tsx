@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 
 import type { DocspotMessages } from '@/messages';
 import { ArrowUpRightIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 import { AnswerLink } from '@/chat/AnswerLink';
 
 type AnswerSourcesProps = {
@@ -33,7 +34,7 @@ export function AnswerSources({
               externalIcon={null}
             >
               {source.title ?? messages.sourceFallback}
-              <ArrowUpRightIcon size={14} />
+              <SlotIcon name="source" icon={ArrowUpRightIcon} size={14} />
             </AnswerLink>
           </li>
         ))}

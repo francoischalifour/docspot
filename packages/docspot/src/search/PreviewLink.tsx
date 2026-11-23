@@ -1,6 +1,7 @@
 import { type SearchLeave, useDocspotInternal } from '@/core/context';
 import { hasModifierKey, isExternalUrl } from '@/core/platform';
 import { ExternalIcon } from '@/ui/icons';
+import { SlotIcon } from '@/ui/SlotIcon';
 
 type PreviewLinkProps = {
   url: string;
@@ -28,7 +29,7 @@ export function PreviewLink({ url, onSelect, onLeave }: PreviewLinkProps) {
       {external
         ? config.messages.search.openLink
         : config.messages.search.openPage}
-      {external && <ExternalIcon size={12} />}
+      {external && <SlotIcon name="external" icon={ExternalIcon} size={12} />}
     </a>
   );
 }
