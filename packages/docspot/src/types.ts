@@ -236,6 +236,34 @@ export type DocspotHandoff = (context: DocspotHandoffContext) => DocspotItem;
 /** Chat created by `createChat` from `docspot/chat` or a provider integration. */
 export type DocspotChat = { readonly [chatBrand]: true };
 
+/** Props only search reads, so they need `search`. */
+type DocspotSearchProps = {
+  /**
+   * The pages and items search lists before typing, in this order. Place
+   * `recentItems` to position the reader's recent pages; they come first
+   * otherwise.
+   */
+  defaultItems?: Array<DocspotResult | DocspotItem | typeof recentItems>;
+  /** Places to send a query besides these docs, such as `docspot/handoffs`. */
+  handoffs?: DocspotHandoff[];
+  /**
+   * Items found by typing their title or keywords, listed before the search
+   * results, such as switching the theme.
+   */
+  items?: DocspotItem[];
+  /**
+   * Controls whether search is open. Docspot asks to change it through
+   * `onSearchOpenChange`, and follows this prop.
+   */
+  searchOpen?: boolean;
+  /** Called when Docspot asks to open or close search. */
+  onSearchOpenChange?: (open: boolean) => void;
+  /** Controls the search query, with `onQueryChange`. */
+  query?: string;
+  /** Called when the query changes, by typing or otherwise. */
+  onQueryChange?: (query: string) => void;
+};
+
 type DocspotSharedProps = {
   /** Scopes persisted history, for several Docspot instances on one origin. */
   id?: string;
@@ -248,19 +276,6 @@ type DocspotSharedProps = {
   context?: DocspotContextInput;
   /** Loads a page's content when a question uses it as context. */
   loadPage?: DocspotLoadPage;
-  /**
-   * The pages and items search lists before typing, in this order. Place
-   * `recentItems` to position the reader's recent pages; they come first
-   * otherwise.
-   */
-  defaultItems?: Array<DocspotResult | DocspotItem | typeof recentItems>;
-  /** Places to send a query besides these docs, such as `docspot/handoffs`. */
-  handoffs?: DocspotHandoff[];
-  /**
-   * Items found by typing their title or keywords, listed before the search
-   * results, such as switching the theme. Needs `search`.
-   */
-  items?: DocspotItem[];
   /** Defaults to `window.location.assign`. */
   navigate?: DocspotNavigate;
   /**
@@ -280,17 +295,6 @@ type DocspotSharedProps = {
    */
   preload?: boolean;
   /**
-   * Controls whether search is open. Docspot asks to change it through
-   * `onSearchOpenChange`, and follows this prop.
-   */
-  searchOpen?: boolean;
-  /** Called when Docspot asks to open or close search. */
-  onSearchOpenChange?: (open: boolean) => void;
-  /** Controls the search query, with `onQueryChange`. */
-  query?: string;
-  /** Called when the query changes, by typing or otherwise. */
-  onQueryChange?: (query: string) => void;
-  /**
    * Controls whether chat is open. Docspot asks to change it through
    * `onChatOpenChange`; a question asked meanwhile is sent once it opens.
    */
@@ -303,9 +307,18 @@ type DocspotSharedProps = {
   children?: ReactNode;
 };
 
-/** At least one of `search` or `chat` is required. */
+/**
+ * At least one of `search` or `chat` is required. Search's own props need
+ * `search`, even if it may be undefined, so chat alone can't take them.
+ */
 export type DocspotRootProps = DocspotSharedProps &
   (
-    | { search: DocspotSearch; chat?: DocspotChat }
-    | { search?: DocspotSearch; chat: DocspotChat }
+    | ({ search: DocspotSearch; chat?: DocspotChat } & DocspotSearchProps)
+    | ({
+        search: DocspotSearch | undefined;
+        chat: DocspotChat;
+      } & DocspotSearchProps)
+    | ({ search?: undefined; chat: DocspotChat } & {
+        [Key in keyof DocspotSearchProps]?: never;
+      })
   );

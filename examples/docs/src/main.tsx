@@ -10,7 +10,6 @@ import 'docspot/styles.css';
 import './style.css';
 import { OptionCard } from './OptionCard';
 import { findPage, pages } from './pages';
-import type { Section } from './search-index';
 
 // Search: a MiniSearch index built in the browser, loaded when Docspot
 // preloads (once the page is idle, or when a trigger is hovered).
@@ -20,11 +19,11 @@ const search = createMiniSearchSearch({
     void loadPreview();
     return import('./search-index').then(module => module.index);
   },
-  // A hit carries the fields the index stores.
+  // A hit carries the fields the index stores, typed as its documents.
   getDocument: hit => {
-    const { title, pageTitle, section, text } = hit as unknown as Section;
+    const { title, pageTitle, section, text } = hit;
     return {
-      url: hit.id as string,
+      url: hit.id,
       title,
       pageTitle,
       breadcrumb: [section, pageTitle],
