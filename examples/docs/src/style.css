@@ -138,3 +138,27 @@ body {
 .option-card dd {
   margin: 0;
 }
+
+/* The site's tooltips, which Docspot uses too. Above the chat panel. */
+.tooltip-positioner {
+  z-index: calc(var(--docspot-z-index, 50) + 1);
+}
+
+.tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--docspot-foreground);
+  color: var(--docspot-background);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  transition: opacity 120ms;
+}
+
+.tooltip[data-starting-style],
+.tooltip[data-ending-style] {
+  opacity: 0;
+}

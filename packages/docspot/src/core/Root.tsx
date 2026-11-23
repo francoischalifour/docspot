@@ -6,7 +6,7 @@ import { useSearchController } from '@/core/useSearchController';
 import { useShortcuts } from '@/core/useShortcuts';
 import { useTriggerRegistry } from '@/core/useTriggerRegistry';
 import { useUrlSync } from '@/core/useUrlSync';
-import { IconsContext } from '@/ui/SlotIcon';
+import { SlotsContext } from '@/ui/SlotsContext';
 
 /**
  * Holds Docspot's state and shares it with the parts inside: triggers, the
@@ -45,7 +45,7 @@ export function DocspotRoot(props: DocspotRootProps) {
     <DocspotInternalContext
       value={{ config, search: searchController, chat: chat.controller }}
     >
-      <IconsContext value={config.slots.icons}>{props.children}</IconsContext>
+      <SlotsContext value={config.slots}>{props.children}</SlotsContext>
     </DocspotInternalContext>
   );
 }

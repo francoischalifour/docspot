@@ -261,10 +261,13 @@
   unicode-bidi: isolate;
 }
 
+/* A key hint inside a tooltip, Docspot's or a site's: its text's color. */
 .docspot-kbd[data-ghost] {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
+  color: inherit;
+  opacity: 0.7;
 }
 
 .docspot-button {
@@ -342,49 +345,41 @@
 }
 
 .docspot-tooltip {
-  position: absolute;
-  z-index: 2;
-  display: inline-flex;
+  /* A popover in the top layer, placed beside its trigger by script. */
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow: visible;
+  display: none;
   align-items: center;
   gap: 0.375rem;
   padding: 0.25rem 0.5rem;
+  border: 0;
   border-radius: var(--docspot-radius-control);
   background: var(--docspot-foreground);
   color: var(--docspot-background);
+  font-family: var(--docspot-font);
   font-size: var(--docspot-text-xs);
+  letter-spacing: var(--docspot-tracking);
   line-height: 1rem;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 120ms ease-out;
+  transition:
+    opacity 120ms ease-out,
+    display 120ms allow-discrete,
+    overlay 120ms allow-discrete;
 }
 
-.docspot-tooltip .docspot-kbd {
-  color: inherit;
-  opacity: 0.7;
-}
-
-.docspot-tooltip-anchor:has(> :hover, > :focus-visible) > .docspot-tooltip {
+.docspot-tooltip:popover-open {
+  display: inline-flex;
   opacity: 1;
-  transition-delay: 400ms;
 }
 
-.docspot-tooltip-anchor[data-side='bottom'] > .docspot-tooltip {
-  top: calc(100% + 0.375rem);
-  left: 50%;
-  translate: -50% 0;
-}
-
-.docspot-tooltip-anchor[data-side='top'] > .docspot-tooltip {
-  bottom: calc(100% + 0.375rem);
-  left: 50%;
-  translate: -50% 0;
-}
-
-.docspot-tooltip-anchor[data-side='left'] > .docspot-tooltip {
-  top: 50%;
-  inset-inline-end: calc(100% + 0.5rem);
-  translate: 0 -50%;
+@starting-style {
+  .docspot-tooltip:popover-open {
+    opacity: 0;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -881,6 +876,11 @@
   align-items: center;
   height: 1.5rem;
   font-weight: 400;
+}
+
+.docspot-result-shortcut .docspot-kbd {
+  color: var(--docspot-muted);
+  opacity: 1;
 }
 
 .docspot-result-path,

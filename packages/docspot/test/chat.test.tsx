@@ -5,6 +5,7 @@ import { render } from 'vitest-browser-react';
 import {
   Docspot,
   type DocspotLoadPage,
+  type DocspotIconProps,
   type DocspotPage,
   useDocspot,
 } from '@/index';
@@ -853,4 +854,23 @@ it('shows a search for the question as asked as thinking', async () => {
   await expect
     .element(answers().getByText('Set port in acme.json.'))
     .toBeVisible();
+});
+
+it('draws the attached page with the site’s icon for it', async () => {
+  const { chat } = createChatServer(() => ({ text: 'Answer.' }));
+  const pageIcon = ({
+    page,
+    size,
+  }: DocspotIconProps & { page: DocspotPage }) => (
+    <svg data-page-icon={page.url} width={size} height={size} />
+  );
+  await render(
+    <Docspot chat={chat} context={{ page: guide }} slots={{ pageIcon }} />
+  );
+  await openChat();
+  const chip = panel().getByText('Zoom guide');
+  await expect.element(chip).toBeVisible();
+  expect(
+    panel().element().querySelector(`[data-page-icon="${guide.url}"]`)
+  ).not.toBeNull();
 });

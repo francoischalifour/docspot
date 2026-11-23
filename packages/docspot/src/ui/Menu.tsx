@@ -1,6 +1,7 @@
 import {
   type ComponentProps,
   type ReactNode,
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -8,6 +9,7 @@ import {
 } from 'react';
 
 import { cx } from '@/ui/cx';
+import { anchorFloating } from '@/ui/floating';
 
 export type MenuItem =
   | {
@@ -52,6 +54,9 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   // Where focus goes once a secondary action, such as delete, removes its row.
   const refocusRef = useRef<number | null>(null);
+  // Stops keeping the open menu beside its button.
+  const followRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => followRef.current?.(), []);
   useLayoutEffect(() => {
     const index = refocusRef.current;
     if (index === null) return;
@@ -68,22 +73,6 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
       ...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ??
         []),
     ];
-  }
-
-  /** Places the menu below the button, or above it when there is no room. */
-  function position() {
-    const menu = menuRef.current;
-    const button = buttonRef.current;
-    if (!menu || !button) return;
-    const anchor = button.getBoundingClientRect();
-    const height = menu.offsetHeight;
-    const below = anchor.bottom + 4;
-    const top =
-      below + height > window.innerHeight && anchor.top - height - 4 > 0
-        ? anchor.top - height - 4
-        : below;
-    menu.style.top = `${top}px`;
-    menu.style.left = `${Math.max(4, anchor.left)}px`;
   }
 
   function close({ restoreFocus = true } = {}) {
@@ -122,8 +111,17 @@ export function Menu({ trigger, items, className, onOpenChange }: MenuProps) {
           const isOpen = event.newState === 'open';
           setOpen(isOpen);
           onOpenChange?.(isOpen);
-          if (isOpen) {
-            position();
+          followRef.current?.();
+          followRef.current = null;
+          const menu = menuRef.current;
+          const button = buttonRef.current;
+          if (isOpen && menu && button) {
+            // Below the button, or above it without room, as either moves.
+            followRef.current = anchorFloating(button, menu, {
+              side: 'bottom',
+              align: 'start',
+              gap: 4,
+            });
             getItems()[0]?.focus();
           }
         }}

@@ -1,4 +1,10 @@
-import type { ComponentType, MouseEvent, ReactNode, RefObject } from 'react';
+import type {
+  ComponentType,
+  MouseEvent,
+  ReactElement,
+  ReactNode,
+  RefObject,
+} from 'react';
 
 import type { DocspotMessagesInput } from '@/messages';
 import type { recentItems } from '@/search/items';
@@ -171,6 +177,21 @@ export type DocspotResultIconProps = {
   recent: boolean;
 };
 
+/**
+ * What a tooltip receives. Render `children`, the trigger, as it is, and
+ * show `label` beside it on hover and keyboard focus. The trigger already
+ * has `label` as its accessible name, so the tooltip should be hidden from
+ * screen readers.
+ */
+export type DocspotTooltipProps = {
+  label: string;
+  /** Docspot's key hint for the trigger's shortcut, when it has one. */
+  shortcut?: ReactNode;
+  /** The side Docspot places it on, flipping when there is no room. */
+  side: 'top' | 'bottom' | 'left';
+  children: ReactElement;
+};
+
 /** What an icon receives. Spread it onto the `<svg>`. */
 export type DocspotIconProps = {
   /** Width and height in pixels. */
@@ -247,6 +268,13 @@ export type DocspotSlots = {
   shortcut?: ComponentType<DocspotShortcutProps>;
   /** Replaces Docspot's icons, such as with a site's own icon set. */
   icons?: Partial<DocspotIcons>;
+  /**
+   * Draws a page's icon where chat shows the page a question uses, such as
+   * its section's icon. Receives the page and `DocspotIconProps`.
+   */
+  pageIcon?: ComponentType<DocspotIconProps & { page: DocspotPage }>;
+  /** Replaces Docspot's tooltips, such as with a site's own component. */
+  tooltip?: ComponentType<DocspotTooltipProps>;
 };
 
 export type DocspotQuestionSource =

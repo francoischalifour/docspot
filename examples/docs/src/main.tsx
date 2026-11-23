@@ -10,6 +10,7 @@ import 'docspot/styles.css';
 import './style.css';
 import { OptionCard } from './OptionCard';
 import { findPage, pages } from './pages';
+import { Tooltip } from './Tooltip';
 
 // Search: a MiniSearch index built in the browser, loaded when Docspot
 // preloads (once the page is idle, or when a trigger is hovered).
@@ -138,7 +139,7 @@ function App() {
         toggleTheme,
       ]}
       handoffs={handoffs}
-      slots={{ preview: Preview, pageActions: PageActions }}
+      slots={{ preview: Preview, pageActions: PageActions, tooltip: Tooltip }}
       onEvent={event => console.debug('[docspot]', event)}
     >
       <div className="layout">
