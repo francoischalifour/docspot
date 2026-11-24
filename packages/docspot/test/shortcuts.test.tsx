@@ -178,7 +178,13 @@ it('fires a character shortcut only outside fields', async () => {
 it('warms search on a modifier only when one of its shortcuts holds it', async () => {
   const preload = vi.fn();
   const search = createSearch(() => results, { preload });
-  await render(<Docspot search={search} shortcuts={{ search: '/' }} />);
+  // No trigger: hovering one warms search too, wherever an earlier test
+  // left the pointer.
+  await render(
+    <Docspot.Root search={search} shortcuts={{ search: '/' }}>
+      <Docspot.SearchDialog />
+    </Docspot.Root>
+  );
   await vi.waitFor(() => expect(preload).toHaveBeenCalled());
   preload.mockClear();
   await userEvent.keyboard(`{${modifier}}`);
