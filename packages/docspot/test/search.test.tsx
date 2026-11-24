@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import { type ComponentProps, use } from 'react';
 import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -277,6 +277,58 @@ it('shows previews only when the search viewport is at least 640px wide', async 
   } finally {
     await page.viewport(1440, 900);
   }
+});
+
+it('shows a skeleton for the first preview, then keeps the last one dimmed while the next loads', async () => {
+  type Document = { promise: Promise<string>; resolve: (text: string) => void };
+  const documents = new Map<string, Document>();
+  const load = (url: string) => {
+    let document = documents.get(url);
+    if (!document) {
+      let resolve!: (text: string) => void;
+      const promise = new Promise<string>(done => {
+        resolve = done;
+      });
+      document = { promise, resolve };
+      documents.set(url, document);
+    }
+    return document;
+  };
+  function Preview({ result }: { result: DocspotResult }) {
+    return <p>{use(load(result.url).promise)}</p>;
+  }
+  await render(
+    <Docspot
+      search={() => results}
+      defaultItems={[
+        { url: '/docs/start', title: 'Introduction', group: 'Popular' },
+        { url: '/docs/faq', title: 'FAQ', group: 'Popular' },
+      ]}
+      slots={{ preview: Preview }}
+    />
+  );
+  await openSearch();
+  const loading = page.getByRole('status', { name: 'Loading preview' });
+  await expect.element(loading).toBeVisible();
+  load('/docs/start').resolve('Introduction document');
+  await expect.element(page.getByText('Introduction document')).toBeVisible();
+
+  await userEvent.keyboard('{ArrowDown}');
+  const frame = page
+    .getByText('Introduction document')
+    .element()
+    .closest('.docspot-search-preview')!;
+  await expect.poll(() => frame.hasAttribute('inert')).toBe(true);
+  expect(frame.getAttribute('aria-busy')).toBe('true');
+  expect(frame.querySelector('.docspot-stale')).not.toBeNull();
+  await expect.element(loading).not.toBeInTheDocument();
+
+  load('/docs/faq').resolve('FAQ document');
+  await expect.element(page.getByText('FAQ document')).toBeVisible();
+  await expect
+    .element(page.getByText('Introduction document'))
+    .not.toBeInTheDocument();
+  expect(frame.hasAttribute('inert')).toBe(false);
 });
 
 it('shows the Enter hint only on the selected result, beside its title', async () => {

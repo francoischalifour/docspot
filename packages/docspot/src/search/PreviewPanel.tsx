@@ -31,7 +31,9 @@ export function PreviewPanel({
   onStartChat,
   onSelect,
 }: PreviewPanelProps) {
-  const deferredItem = useDeferredValue(activeItem);
+  // A deferred render that suspends keeps the last preview on screen. Before
+  // the first one, there is none to keep, so the live item shows the skeleton.
+  const deferredItem = useDeferredValue(activeItem) ?? activeItem;
   const isStale = Boolean(
     deferredItem &&
     (deferredItem.query !== query || deferredItem !== activeItem)
