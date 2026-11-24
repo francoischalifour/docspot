@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/francoischalifour/docspot/compare/0.5.0...0.5.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* keep the send button at the end of the composer with a site's tooltips ([#39](https://github.com/francoischalifour/docspot/issues/39)) ([f8c2450](https://github.com/francoischalifour/docspot/commit/f8c2450f01c198bda04d085c33f2874d5733d25e))
+* show the preview skeleton before the first preview loads ([#37](https://github.com/francoischalifour/docspot/issues/37)) ([faeb948](https://github.com/francoischalifour/docspot/commit/faeb948a9a1b8a6b0cde92f7a329ecfdbec5a280))
+
 ## [0.5.0](https://github.com/francoischalifour/docspot/compare/0.4.0...0.5.0) (2026-11-24)
 
 

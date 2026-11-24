@@ -1,6 +1,6 @@
 {
   "name": "docspot",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Docs search and Ask AI for React. Any search backend, any AI model, accessible and keyboard-first.",
   "keywords": [
     "ai-chat",
