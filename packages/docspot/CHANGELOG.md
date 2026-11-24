@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/francoischalifour/docspot/compare/0.4.0...0.5.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* `useDocspot().setDraft` becomes `draftQuestion`, and `useDocspot().close()` is removed; call `closeSearch()` and `closeChat()`. `context.prompts` and a page's `prompts` become `suggestions`, and the `chat.submit` source `prompt` becomes `suggestion`. The `history.clear` event becomes `search.clearRecent`. `DocspotRootProps` and `DocspotPageActionsProps` are removed; use `DocspotProps` and `DocspotPreviewProps`. `defineItem`, `shouldPrioritizeChat`, `slots.shortcut`, and `DocspotShortcutProps` are removed. `DocspotSearchParams.locale` is required, so code calling a search function itself passes one, such as `{ code: 'en' }`.
+
+### Features
+
+* make the search and chat shortcuts configurable ([#34](https://github.com/francoischalifour/docspot/issues/34)) ([f05cd5c](https://github.com/francoischalifour/docspot/commit/f05cd5c9ff18c7ab753c793de37ab971da5a5eee))
+
+
+### Code Refactoring
+
+* name the API by what it does, and drop what it does not need ([#36](https://github.com/francoischalifour/docspot/issues/36)) ([ce83d2e](https://github.com/francoischalifour/docspot/commit/ce83d2e7d1568820404cc2f88804cbc41f4e6a53))
+
 ## [0.4.0](https://github.com/francoischalifour/docspot/compare/0.3.0...0.4.0) (2026-11-23)
 
 
