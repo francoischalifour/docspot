@@ -1892,7 +1892,9 @@
   padding: 0 0.5rem 0.5rem 0.625rem;
 }
 
-.docspot-composer-bar > .docspot-tooltip-anchor:last-child {
+.docspot-composer-send {
+  display: flex;
+  flex-shrink: 0;
   margin-inline-start: auto;
 }
 
@@ -1910,6 +1912,7 @@
 }
 
 .docspot-send[aria-disabled='true'] {
+  border-color: transparent;
   background: var(--docspot-accent);
   color: var(--docspot-subtle);
   cursor: default;
