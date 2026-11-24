@@ -73,25 +73,28 @@ export function Composer({
           onRemove={onRemoveContext}
           messages={messages}
         />
-        <IconButton
-          type={busy ? 'button' : 'submit'}
-          label={busy ? messages.stop : messages.send}
-          tooltip={disabled ? messages.enterQuestion : undefined}
-          side="top"
-          aria-disabled={disabled || undefined}
-          data-variant={busy ? 'outline' : 'primary'}
-          className="docspot-send"
-          onClick={event => {
-            if (busy) onStop();
-            else if (disabled) event.preventDefault();
-          }}
-        >
-          {busy ? (
-            <SlotIcon name="stop" icon={StopIcon} size={14} />
-          ) : (
-            <SlotIcon name="send" icon={SendIcon} size={14} />
-          )}
-        </IconButton>
+        {/* Its own box, so the button stays at the end with any tooltip. */}
+        <div className="docspot-composer-send">
+          <IconButton
+            type={busy ? 'button' : 'submit'}
+            label={busy ? messages.stop : messages.send}
+            tooltip={disabled ? messages.enterQuestion : undefined}
+            side="top"
+            aria-disabled={disabled || undefined}
+            data-variant={busy ? 'outline' : 'primary'}
+            className="docspot-send"
+            onClick={event => {
+              if (busy) onStop();
+              else if (disabled) event.preventDefault();
+            }}
+          >
+            {busy ? (
+              <SlotIcon name="stop" icon={StopIcon} size={14} />
+            ) : (
+              <SlotIcon name="send" icon={SendIcon} size={14} />
+            )}
+          </IconButton>
+        </div>
       </div>
     </form>
   );

@@ -7,6 +7,7 @@ import {
   type DocspotLoadPage,
   type DocspotIconProps,
   type DocspotPage,
+  type DocspotTooltipProps,
   useDocspot,
 } from '@/index';
 import { type DocspotToolProps, createChat } from '@/chat';
@@ -946,4 +947,76 @@ it('draws the attached page with the site’s icon for it', async () => {
   expect(
     panel().element().querySelector(`[data-page-icon="${guide.url}"]`)
   ).not.toBeNull();
+});
+
+// A site tooltip that adds no element, as headless libraries render them.
+function BareTooltip({ children }: DocspotTooltipProps) {
+  return children;
+}
+
+for (const [name, slots] of [
+  ['its own tooltips', {}],
+  ['a site’s tooltips', { tooltip: BareTooltip }],
+] as const) {
+  it(`ends the composer row with the send and stop button, with ${name}`, async () => {
+    const { chat, nextRequest } = createTestChat({
+      answer: ({ index }) => (index === 0 ? undefined : 'Answer.'),
+    });
+    await render(
+      <Docspot chat={chat} context={{ page: guide }} slots={slots} />
+    );
+    await openChat();
+    await expect.element(panel().getByText('Zoom guide')).toBeVisible();
+    const form = composer().element().closest('form');
+    if (!form) throw new Error('The composer has no form');
+    const endGap = (button: Element) =>
+      form.getBoundingClientRect().right - button.getBoundingClientRect().right;
+
+    const send = panel().getByRole('button', { name: 'Send question' });
+    expect(endGap(send.element())).toBeLessThan(12);
+
+    await userEvent.keyboard('What is the margin?{Enter}');
+    (await nextRequest()).tool('searchDocs', { query: 'zoom margin' });
+    const stop = panel().getByRole('button', { name: 'Stop response' });
+    await expect.element(stop).toBeVisible();
+    expect(endGap(stop.element())).toBeLessThan(12);
+  });
+}
+
+it('draws the send button as disabled until there is a question', async () => {
+  const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
+  await render(<Docspot chat={chat} />);
+  await openChat();
+  const send = panel().getByRole('button', { name: 'Send question' });
+  const style = () => getComputedStyle(send.element());
+  const primary = getComputedStyle(send.element()).getPropertyValue(
+    '--docspot-primary'
+  );
+  const probe = (color: string) => {
+    const element = document.createElement('span');
+    element.style.color = color;
+    document.body.append(element);
+    const value = getComputedStyle(element).color;
+    element.remove();
+    return value;
+  };
+
+  await expect.element(send).toHaveAttribute('aria-disabled', 'true');
+  expect(style().backgroundColor).not.toBe(probe(primary));
+  expect(style().borderColor).toBe('rgba(0, 0, 0, 0)');
+  // Says why it does nothing, and sends nothing.
+  await send.hover();
+  await expect.element(page.getByText('Enter a question')).toBeVisible();
+  await composer().click();
+  await userEvent.keyboard('{Enter}');
+  expect(answers().elements()).toHaveLength(0);
+
+  // Whitespace is still no question.
+  await userEvent.fill(composer(), '   ');
+  await expect.element(send).toHaveAttribute('aria-disabled', 'true');
+
+  await userEvent.fill(composer(), 'What is the margin?');
+  await expect.element(send).not.toHaveAttribute('aria-disabled');
+  expect(style().backgroundColor).toBe(probe(primary));
+  expect(style().width).toBe('28px');
 });
