@@ -22,7 +22,7 @@ const answers = () => panel().getByRole('article', { name: 'Docs answer' });
 const guide: DocspotPage = {
   url: '/docs/guides/zoom',
   title: 'Zoom guide',
-  prompts: ['How do I zoom an image?'],
+  suggestions: ['How do I zoom an image?'],
 };
 
 async function openChat() {
@@ -82,6 +82,32 @@ it('floats a launcher while chat is hidden, and returns focus to it', async () =
   await expect.element(launcher).toHaveFocus();
 });
 
+it('renders the launcher as another element, as triggers do', async () => {
+  const { chat } = createTestChat({ answer: () => ({ text: 'Hi.' }) });
+  await render(
+    <Docspot.Root chat={chat}>
+      <Docspot.ChatLauncher
+        render={(props, { open }) => (
+          <button {...props} data-open={open}>
+            Help
+          </button>
+        )}
+      />
+      <Docspot.ChatPanel />
+    </Docspot.Root>
+  );
+  const launcher = page.getByRole('button', { name: 'Help' });
+  await expect.element(launcher).toHaveClass('docspot-launcher');
+  await expect.element(launcher).toHaveAttribute('aria-expanded', 'false');
+  await expect.element(launcher).toHaveAttribute('data-open', 'false');
+  await launcher.click();
+  await expect.element(composer()).toHaveFocus();
+  // It stays mounted while hidden, so focus returns to it.
+  await expect.element(launcher).not.toBeInTheDocument();
+  await userEvent.keyboard(`{${modifier}>}j{/${modifier}}`);
+  await expect.element(launcher).toHaveFocus();
+});
+
 it('works without search: prompts, page context, streaming Markdown, and sources', async () => {
   // The test streams the first answer; the second is scripted.
   const { chat, requests, nextRequest } = createTestChat({
@@ -93,7 +119,7 @@ it('works without search: prompts, page context, streaming Markdown, and sources
   await render(
     <Docspot
       chat={chat}
-      context={{ page: guide, prompts: ['Default question'], loadPage }}
+      context={{ page: guide, suggestions: ['Default question'], loadPage }}
     />
   );
   // Chat-only exposes chat controls and shortcuts, not search.

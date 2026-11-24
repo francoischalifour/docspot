@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type {
-  DocspotRootProps,
+  DocspotProps,
   DocspotSearchResponse,
   DocspotUrlAdapter,
 } from '@/types';
@@ -42,7 +42,7 @@ type EarlySearch = {
 };
 
 type SearchStateProps = Pick<
-  DocspotRootProps,
+  DocspotProps,
   'searchOpen' | 'onSearchOpenChange' | 'query' | 'onQueryChange'
 >;
 

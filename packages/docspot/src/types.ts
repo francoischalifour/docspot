@@ -92,10 +92,9 @@ export type DocspotSearchParams = {
   signal: AbortSignal;
   /**
    * The interface's language, for searches that depend on it, such as
-   * `isQuestion(query, locale)`. Docspot always passes it; other callers
-   * may leave it out, for English.
+   * `isQuestion(query, locale)`.
    */
-  locale?: DocspotSearchLocale;
+  locale: DocspotSearchLocale;
 };
 
 /**
@@ -139,7 +138,7 @@ export type DocspotPage = {
   url: string;
   title?: string;
   /** Questions to suggest while this page is attached. */
-  prompts?: string[];
+  suggestions?: string[];
 };
 
 export type DocspotPageContent = {
@@ -157,7 +156,7 @@ export type DocspotContextInput = {
   /** The page being read. Chat attaches it to questions until removed. */
   page?: DocspotPage;
   /** Questions suggested when the attached page has none. */
-  prompts?: string[];
+  suggestions?: string[];
   /**
    * Describes pages referenced by URL, such as `askPage` links, normalizing
    * their URL. Returning undefined ignores a page the site does not know.
@@ -190,25 +189,15 @@ export type DocspotUrlAdapter = {
  * elsewhere on the page.
  */
 export type DocspotPreviewProps = {
+  /** The result being previewed. */
   result: DocspotResult;
   query: string;
   /** Opens a URL and closes search. */
   navigate: (url: string) => void;
-  /** Shows a short status message inside search. */
-  notify: (message: string) => void;
-};
-
-export type DocspotPageActionsProps = {
-  result: DocspotResult;
-  query: string;
+  /** Closes search. */
   close: () => void;
   /** Shows a short status message inside search. */
   notify: (message: string) => void;
-};
-
-export type DocspotShortcutProps = {
-  /** As `aria-keyshortcuts` writes it, such as `Meta+S`. */
-  shortcut: string;
 };
 
 /** What a result's icon receives: the result, and `DocspotIconProps`. */
@@ -301,14 +290,12 @@ export type DocspotSlots = {
   /** Credits the search provider in the dialog footer. */
   branding?: ComponentType;
   /** Extra actions for the previewed result, such as copying Markdown. */
-  pageActions?: ComponentType<DocspotPageActionsProps>;
+  pageActions?: ComponentType<DocspotPreviewProps>;
   /**
    * Draws a result's icon, such as its section's. Takes precedence over
    * `icons.page`, `icons.section`, and `icons.recent` for results.
    */
   resultIcon?: ComponentType<DocspotResultIconProps>;
-  /** Replaces how an item's shortcut is drawn. */
-  shortcut?: ComponentType<DocspotShortcutProps>;
   /** Replaces Docspot's icons, such as with a site's own icon set. */
   icons?: Partial<DocspotIcons>;
   /**
@@ -321,7 +308,7 @@ export type DocspotSlots = {
 };
 
 export type DocspotQuestionSource =
-  'composer' | 'prompt' | 'search' | 'url' | 'api';
+  'composer' | 'suggestion' | 'search' | 'url' | 'api';
 
 export type DocspotEvent =
   | { type: 'search.open' }
@@ -331,7 +318,7 @@ export type DocspotEvent =
       { result: DocspotResult } | { item: DocspotItem }
     ))
   | { type: 'search.error'; query: string; error: unknown }
-  | { type: 'history.clear' }
+  | { type: 'search.clearRecent' }
   | { type: 'chat.open' }
   | { type: 'chat.close' }
   | {
@@ -368,7 +355,7 @@ export type DocspotHandoff = (context: DocspotHandoffContext) => DocspotItem;
 /** Chat created by `createChat` from `docspot/chat` or a provider integration. */
 export type DocspotChat = { readonly [chatBrand]: true };
 
-/** Props only search reads, so they need `search`. */
+/** Props only search reads. */
 type DocspotSearchProps = {
   /**
    * The pages and items search lists before typing, in this order. Place
@@ -465,17 +452,12 @@ type DocspotSharedProps = {
 };
 
 /**
- * At least one of `search` or `chat` is required. Search's own props need
- * `search`, even if it may be undefined, so chat alone can't take them.
+ * At least one of `search` or `chat` is required. Props for a capability
+ * that is not configured are ignored.
  */
-export type DocspotRootProps = DocspotSharedProps &
+export type DocspotProps = DocspotSharedProps &
+  DocspotSearchProps &
   (
-    | ({ search: DocspotSearch; chat?: DocspotChat } & DocspotSearchProps)
-    | ({
-        search: DocspotSearch | undefined;
-        chat: DocspotChat;
-      } & DocspotSearchProps)
-    | ({ search?: undefined; chat: DocspotChat } & {
-        [Key in keyof DocspotSearchProps]?: never;
-      })
+    | { search: DocspotSearch; chat?: DocspotChat }
+    | { search?: DocspotSearch; chat: DocspotChat }
   );

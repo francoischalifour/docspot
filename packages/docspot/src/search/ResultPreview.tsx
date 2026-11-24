@@ -125,6 +125,7 @@ export function ResultPreview({
                 result={result}
                 query={query}
                 navigate={navigate}
+                close={onClose}
                 notify={onNotify}
               />
             </PreviewErrorBoundary>
@@ -142,6 +143,7 @@ export function ResultPreview({
           <PageActions
             result={result}
             query={query}
+            navigate={navigate}
             close={onClose}
             notify={onNotify}
           />

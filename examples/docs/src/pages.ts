@@ -4,7 +4,7 @@ export type Page = {
   title: string;
   /** The sidebar section the page belongs to. */
   section: string;
-  prompts: string[];
+  suggestions: string[];
   markdown: string;
 };
 
@@ -13,7 +13,7 @@ export const pages: Page[] = [
     url: '/',
     title: 'Getting started',
     section: 'Guides',
-    prompts: ['How do I install the CLI?', 'What does a project contain?'],
+    suggestions: ['How do I install the CLI?', 'What does a project contain?'],
     markdown: `# Getting started
 
 Acme turns a folder of Markdown into a documentation site.
@@ -30,7 +30,7 @@ A project contains an \`acme.json\` file, a \`content\` folder, and a \`public\`
     url: '/configuration',
     title: 'Configuration',
     section: 'Reference',
-    prompts: ['How do I change the port?', 'Which options are required?'],
+    suggestions: ['How do I change the port?', 'Which options are required?'],
     markdown: `# Configuration
 
 \`acme.json\` configures the site.
@@ -47,7 +47,10 @@ Environment variables prefixed with \`ACME_\` override options, such as \`ACME_P
     url: '/deployment',
     title: 'Deployment',
     section: 'Guides',
-    prompts: ['How do I deploy to a static host?', 'Can I preview a build?'],
+    suggestions: [
+      'How do I deploy to a static host?',
+      'Can I preview a build?',
+    ],
     markdown: `# Deployment
 
 ## Build

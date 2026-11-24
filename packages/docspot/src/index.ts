@@ -1,6 +1,5 @@
 // The `docspot` entry point.
 export { Docspot } from '@/core/Docspot';
-export type { DocspotProps } from '@/core/Docspot';
 export { useDocspot } from '@/core/useDocspot';
 export type { DocspotApi } from '@/core/useDocspot';
 export type { ChatPanelProps } from '@/core/ChatPanel';
@@ -27,8 +26,8 @@ export type {
   DocspotMessagesInput,
 } from '@/messages';
 export { highlightTerms, parseHighlightedString } from '@/search/model';
-export { defineItem, recentItems } from '@/search/items';
+export { recentItems } from '@/search/items';
 export { createSearch } from '@/search/createSearch';
 export type { CreateSearchOptions } from '@/search/createSearch';
 export type * from '@/types';
-export { isQuestion, shouldPrioritizeChat } from '@/search/intent';
+export { isQuestion } from '@/search/intent';

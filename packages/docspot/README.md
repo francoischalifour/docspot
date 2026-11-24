@@ -89,9 +89,9 @@ const chat = createChat({
     page: {
       url: '/docs/install',
       title: 'Install',
-      prompts: ['How do I upgrade?'],
+      suggestions: ['How do I upgrade?'],
     },
-    prompts: ['What can I build?'],
+    suggestions: ['What can I build?'],
     loadPage: async ({ url }) => (await fetch(`${url}.md`)).text(),
   }}
 />;
@@ -128,7 +128,7 @@ The default trigger opens search, which is the way into chat, so `<Docspot>` ren
 </Docspot>
 ```
 
-Docspot requires at least one of `search` or `chat`. TypeScript reports a missing capability, and rendering throws.
+Docspot requires at least one of `search` or `chat`. TypeScript reports a missing capability, and rendering throws. Props for a capability that is not configured, such as `items` without `search`, are ignored.
 
 ### Composition
 
@@ -146,7 +146,7 @@ Place each surface yourself, and control them with `useDocspot()`:
 function AskAboutThisPage() {
   const docspot = useDocspot();
   return (
-    <button onClick={() => docspot.setDraft('Summarize this page')}>
+    <button onClick={() => docspot.draftQuestion('Summarize this page')}>
       Ask about this page
     </button>
   );
@@ -189,7 +189,7 @@ Every part accepts the props of the element it renders, including `ref`: trigger
 - Your handlers run before Docspot's. Calling `event.preventDefault()` skips Docspot's: in a trigger's `onClick`, it keeps the surface closed, and in the dialog's or the panel's `onKeyDown`, it keeps <kbd>Esc</kbd> from closing them.
 - Pass `children` to replace a trigger's or the launcher's content. The dialog's and the panel's content, `open`, `hidden`, and the panel's `id` are Docspot's.
 
-`render` replaces the `<button>` a trigger renders, for example with your design system's button. An element receives the trigger's props merged into its own: both handlers run, yours first, classes join, and refs both receive the element. A function receives the props and the trigger's state, `{ open }`, and returns what to render:
+`render` replaces the `<button>` a trigger or the launcher renders, for example with your design system's button. An element receives the part's props merged into its own: both handlers run, yours first, classes join, and refs both receive the element. A function receives the props and the part's state, `{ open }`, and returns what to render:
 
 ```tsx
 <Docspot.SearchTrigger render={<Button variant="ghost" />} />
@@ -209,10 +209,9 @@ Every part accepts the props of the element it renders, including `ref`: trigger
 | `isSearchOpen`, `isChatOpen`                | Whether each surface is open                                      |
 | `openSearch(query?)`, `closeSearch()`       | Opens search, optionally with a query, or closes it               |
 | `openChat()`, `closeChat()`, `toggleChat()` | Opens chat on its last conversation, closes it, or toggles it     |
-| `setDraft(text, { page? })`                 | Opens chat with text to edit                                      |
+| `draftQuestion(text, { page? })`            | Opens chat with a question to edit                                |
 | `submitQuestion(text, { page? })`           | Opens chat and sends a question, replacing any answer in progress |
 | `startConversation()`                       | Opens chat on a new conversation                                  |
-| `close()`                                   | Closes search and chat                                            |
 | `preloadSearch()`, `preloadChat()`          | Loads search or chat ahead of opening it, such as on hover        |
 
 `page` attaches a page to the question; `null` attaches none. Without it, the current page stays attached.
@@ -221,29 +220,29 @@ The methods keep their identity across renders, so they are safe in effect depen
 
 ## Props
 
-| Prop           | Description                                                                                                                                                                                     |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `search`       | From `createSearch()` or a provider integration                                                                                                                                                 |
-| `chat`         | From `createChat()` or a provider integration                                                                                                                                                   |
-| `context`      | `{ page, prompts, resolvePage, loadPage }`: the page being read, default suggested questions, and how chat describes pages named by URL and loads their content, once per page and conversation |
-| `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                                                                             |
-| `items`        | Items found by typing their title or keywords, such as switching the theme. See [Results and items](#results-and-items)                                                                         |
-| `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                                                                               |
-| `navigate`     | `(url, { event }) => void \| Promise`. Search closes once a returned promise resolves; rejection keeps it open. Defaults to `window.location.assign`                                            |
-| `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                                                                                      |
-| `history`      | Persists history. Without it, history lasts until the page reloads                                                                                                                              |
-| `id`           | Scopes persisted history, for several instances on one origin                                                                                                                                   |
-| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                                                                                         |
-| `shortcuts`    | `{ search, chat }`: keys that open search and toggle chat, or `false` to turn one off. See [Keyboard](#keyboard)                                                                                |
-| `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                                                                           |
-| `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                                                                                       |
-| `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                                                                           |
-| `query`        | Controls the search query, with `onQueryChange`                                                                                                                                                 |
-| `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                                                                                          |
-| `slots`        | Components that replace parts of the interface                                                                                                                                                  |
-| `locale`       | The interface's language, from `docspot/locale` or your own. See [Languages and text](#languages-and-text)                                                                                      |
-| `messages`     | Text that replaces the locale's, such as `assistant`, the name of who answers                                                                                                                   |
-| `onEvent`      | Receives interaction events, for analytics                                                                                                                                                      |
+| Prop           | Description                                                                                                                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search`       | From `createSearch()` or a provider integration                                                                                                                                                     |
+| `chat`         | From `createChat()` or a provider integration                                                                                                                                                       |
+| `context`      | `{ page, suggestions, resolvePage, loadPage }`: the page being read, default suggested questions, and how chat describes pages named by URL and loads their content, once per page and conversation |
+| `defaultItems` | What search lists before typing, in this order. See [Before typing](#before-typing)                                                                                                                 |
+| `items`        | Items found by typing their title or keywords, such as switching the theme. See [Results and items](#results-and-items)                                                                             |
+| `handoffs`     | Places to send a query besides these docs, such as a general assistant. See [Handoffs](#handoffs)                                                                                                   |
+| `navigate`     | `(url, { event }) => void \| Promise`. Search closes once a returned promise resolves; rejection keeps it open. Defaults to `window.location.assign`                                                |
+| `siteUrl`      | The canonical origin, such as `https://example.com`, for copied links, chat page context, and answer links                                                                                          |
+| `history`      | Persists history. Without it, history lasts until the page reloads                                                                                                                                  |
+| `id`           | Scopes persisted history, for several instances on one origin                                                                                                                                       |
+| `owner`        | Element ref that scopes keyboard shortcuts and docked layout. Defaults to the document.                                                                                                             |
+| `shortcuts`    | `{ search, chat }`: keys that open search and toggle chat, or `false` to turn one off. See [Keyboard](#keyboard)                                                                                    |
+| `syncUrl`      | `true` for the browser history, or an adapter for routers that own it                                                                                                                               |
+| `preload`      | `false` loads search and chat only on open, or with `preloadSearch()` and `preloadChat()`                                                                                                           |
+| `searchOpen`   | Controls whether search is open, with `onSearchOpenChange`. See [Controlled state](#controlled-state)                                                                                               |
+| `query`        | Controls the search query, with `onQueryChange`                                                                                                                                                     |
+| `chatOpen`     | Controls whether chat is open, with `onChatOpenChange`                                                                                                                                              |
+| `slots`        | Components that replace parts of the interface                                                                                                                                                      |
+| `locale`       | The interface's language, from `docspot/locale` or your own. See [Languages and text](#languages-and-text)                                                                                          |
+| `messages`     | Text that replaces the locale's, such as `assistant`, the name of who answers                                                                                                                       |
+| `onEvent`      | Receives interaction events, for analytics                                                                                                                                                          |
 
 ### Results and items
 
@@ -288,24 +287,24 @@ A URL is listed once, whether a result or an item opens it. The preview pane, wh
 
 #### Search results
 
-`createSearch(fn, { preload })` makes search from a function that receives `{ query, signal, locale }` and returns results, or `{ results, prioritizeChat }`. `locale` is the interface's language: its `code`, such as `fr`, and its question words. A plain function works too. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query, locale)` and `shouldPrioritizeChat({ …, locale })` help decide `prioritizeChat`: they recognize questions in the locale's language, and in English whatever the language, since readers often search in English.
+`createSearch(fn, { preload })` makes search from a function that receives `{ query, signal, locale }` and returns results, or `{ results, prioritizeChat }`. `locale` is the interface's language: its `code`, such as `fr`, and its question words. A plain function works too. `parseHighlightedString(value, preTag, postTag)` and `highlightTerms(text, terms)` build highlights. `isQuestion(query, locale)` helps decide `prioritizeChat`: it recognizes questions in the locale's language, and in English whatever the language, since readers often search in English.
 
 Docspot cancels a request when the query changes (through `signal`), ignores outdated responses, and never opens a result that belongs to an older query. Search functions can return results synchronously.
 
 #### Found by typing
 
-`items` are listed when their title or keywords start with every word typed, ignoring case and accents, before the search results. Items without a group are listed under "Actions". `defineItem(item)` checks an item's shape where it is declared, so one item can be listed both before and after typing.
+`items` are listed when their title or keywords start with every word typed, ignoring case and accents, before the search results. Items without a group are listed under "Actions". Declare an item once to list it both before and after typing.
 
 ```tsx
-import { defineItem } from 'docspot';
+import type { DocspotItem } from 'docspot';
 
-const darkTheme = defineItem({
+const darkTheme: DocspotItem = {
   id: 'theme-dark',
   title: 'Dark theme',
   keywords: ['appearance', 'night'],
   shortcut: 'Shift+Meta+L',
   action: () => setTheme('dark'),
-});
+};
 
 <Docspot search={search} items={[darkTheme]} />;
 ```
@@ -454,16 +453,15 @@ For a tool that runs in the browser, such as a confirmation, call `addOutput` wi
 />
 ```
 
-| Slot          | Props                                                                                                                                                                                                                                                                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `preview`     | `{ result, query, navigate, notify }`. Renders the active page beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the URL's hash. The two panes stay visible while searching. Without a preview, results use one column with two-line excerpts and a 640 px maximum floating width |
-| `pageActions` | `{ result, query, close, notify }`. Actions beside **Open page**                                                                                                                                                                                                                                                                         |
-| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                                                                         |
-| `resultIcon`  | `{ result, recent, size, className, 'aria-hidden', focusable }`. Draws a result's icon, such as its section's                                                                                                                                                                                                                            |
-| `icons`       | Icons by what they mean. See [Icons](#icons)                                                                                                                                                                                                                                                                                             |
-| `pageIcon`    | `{ page, size, className, 'aria-hidden', focusable }`. Draws the icon of the page a question uses, such as its section's                                                                                                                                                                                                                 |
-| `tooltip`     | `{ label, shortcut, side, children }`. Replaces Docspot's tooltips. See [Tooltips](#tooltips)                                                                                                                                                                                                                                            |
-| `shortcut`    | `{ shortcut }`. Draws an item's shortcut, given as `aria-keyshortcuts` writes it                                                                                                                                                                                                                                                         |
+| Slot          | Props                                                                                                                                                                                                                                                                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preview`     | `{ result, query, navigate, close, notify }`. Renders the active page beside the results, and may suspend. It opens at the element whose `data-docspot-anchor` or `id` matches the URL's hash. The two panes stay visible while searching. Without a preview, results use one column with two-line excerpts and a 640 px maximum floating width |
+| `pageActions` | The same props as `preview`. Actions beside **Open page**                                                                                                                                                                                                                                                                                       |
+| `branding`    | None. Shown in the search footer                                                                                                                                                                                                                                                                                                                |
+| `resultIcon`  | `{ result, recent, size, className, 'aria-hidden', focusable }`. Draws a result's icon, such as its section's                                                                                                                                                                                                                                   |
+| `icons`       | Icons by what they mean. See [Icons](#icons)                                                                                                                                                                                                                                                                                                    |
+| `pageIcon`    | `{ page, size, className, 'aria-hidden', focusable }`. Draws the icon of the page a question uses, such as its section's                                                                                                                                                                                                                        |
+| `tooltip`     | `{ label, shortcut, side, children }`. Replaces Docspot's tooltips. See [Tooltips](#tooltips)                                                                                                                                                                                                                                                   |
 
 Search is a modal dialog in the browser's top layer. Popups that slots open must render inside it, and feedback goes through `notify(message)` rather than toasts elsewhere on the page.
 
@@ -829,7 +827,7 @@ syncUrl={{
 
 ## Events
 
-`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select` (with the chosen `result` or `item`), `search.error`, `history.clear`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
+`onEvent` receives `search.open`, `search.close`, `search.results`, `search.select` (with the chosen `result` or `item`), `search.error`, `search.clearRecent`, `chat.open`, `chat.close`, `chat.submit`, `chat.answer`, `chat.error`, `chat.stop`, `chat.retry`, `conversation.new`, `conversation.resume`, `conversation.delete`, and `conversation.clear`.
 
 ## Loading and server rendering
 

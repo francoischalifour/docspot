@@ -1,4 +1,4 @@
-import { Docspot, defineItem, recentItems, useDocspot } from 'docspot';
+import { Docspot, type DocspotItem, recentItems, useDocspot } from 'docspot';
 import { createChat } from 'docspot/chat';
 import { chatGptHandoff, claudeHandoff } from 'docspot/handoffs';
 import { createMiniSearchSearch } from 'docspot/minisearch';
@@ -111,13 +111,13 @@ function App() {
   const page = findPage(path) ?? pages[0]!;
 
   // Items: things to do, found by typing their title or keywords.
-  const toggleTheme = defineItem({
+  const toggleTheme: DocspotItem = {
     id: 'toggle-theme',
     title: theme === 'dark' ? 'Light theme' : 'Dark theme',
     keywords: ['appearance', 'color', 'mode'],
     group: 'Actions',
     action: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
-  });
+  };
 
   return (
     <Docspot.Root
@@ -127,8 +127,12 @@ function App() {
       syncUrl
       navigate={navigate}
       context={{
-        page: { url: page.url, title: page.title, prompts: page.prompts },
-        prompts: ['What can I build with Acme?'],
+        page: {
+          url: page.url,
+          title: page.title,
+          suggestions: page.suggestions,
+        },
+        suggestions: ['What can I build with Acme?'],
         resolvePage: url => findPage(url),
         loadPage: async ({ url }) => findPage(url)?.markdown ?? null,
       }}

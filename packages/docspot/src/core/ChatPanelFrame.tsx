@@ -218,7 +218,7 @@ export function ChatPanelFrame({ dock = 'fixed', ...props }: ChatPanelProps) {
           onDraftChange={chat.setDraft}
           contextPage={chat.contextPage}
           onRemoveContext={chat.removeContext}
-          prompts={config.prompts}
+          suggestions={config.suggestions}
           conversations={{
             list: config.stores.conversations.get,
             subscribe: config.stores.conversations.subscribe,

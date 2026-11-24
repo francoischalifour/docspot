@@ -2,12 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
-import {
-  Docspot,
-  type DocspotLocale,
-  type DocspotSearchParams,
-  defineItem,
-} from '@/index';
+import { Docspot, type DocspotLocale, type DocspotSearchParams } from '@/index';
 import * as entry from '@/locale';
 import { pluralize } from '@/locale';
 import { results } from '@test/fixtures';
@@ -159,7 +154,7 @@ it.each([
 ])(
   'finds items by a word inside their title in %s, written without spaces',
   async (_name, locale, title, typed) => {
-    const item = defineItem({ id: 'theme', title, action: () => {} });
+    const item = { id: 'theme', title, action: () => {} };
     await render(<Docspot search={() => []} items={[item]} locale={locale} />);
     await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
     await expect.element(page.getByRole('dialog')).toBeVisible();
@@ -306,7 +301,7 @@ it.each(Object.entries(locales))(
             locale={locale}
             context={{
               page: { url: '/docs/guides/zoom', title: 'Zoom guide' },
-              prompts: ['How do I zoom?'],
+              suggestions: ['How do I zoom?'],
             }}
           >
             <Docspot.ChatTrigger />

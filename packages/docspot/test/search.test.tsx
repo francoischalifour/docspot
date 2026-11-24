@@ -427,7 +427,7 @@ it('offers the page questions as rows when there is nothing else to list', async
         page: {
           url: '/docs/query',
           title: 'Query data',
-          prompts: ['How do I join tables?', 'Can I export results?'],
+          suggestions: ['How do I join tables?', 'Can I export results?'],
         },
       }}
     />
@@ -523,6 +523,7 @@ it('shows default results and recent pages before typing, with separate clearing
     { url: '/docs/start', title: 'Getting started' },
     { url: '/docs/query/http-api', title: 'HTTP API' },
   ];
+  const onEvent = vi.fn();
   await render(
     <Docspot
       search={({ query }) =>
@@ -531,6 +532,7 @@ it('shows default results and recent pages before typing, with separate clearing
       defaultItems={defaults}
       navigate={() => {}}
       history
+      onEvent={onEvent}
     />
   );
   await openSearch();
@@ -551,6 +553,7 @@ it('shows default results and recent pages before typing, with separate clearing
 
   await recent.getByRole('button', { name: 'Clear history' }).click();
   await expect.element(recent).not.toBeInTheDocument();
+  expect(onEvent).toHaveBeenCalledWith({ type: 'search.clearRecent' });
   await expect.element(suggested.getByRole('option')).toHaveLength(2);
   await expect.element(searchInput()).toHaveFocus();
 });
@@ -624,6 +627,47 @@ it('renders slots for previews, page actions, and branding', async () => {
   await expect.element(page.getByText('Search by Example')).toBeVisible();
   await page.getByRole('button', { name: 'Related' }).click();
   expect(navigate).toHaveBeenCalledWith('/docs/related', {});
+});
+
+it('gives the preview and the page actions the same props', async () => {
+  const navigate = vi.fn();
+  await render(
+    <Docspot
+      search={() => results}
+      navigate={navigate}
+      slots={{
+        preview: ({ result, close }) => (
+          <button type="button" onClick={close}>
+            Dismiss {result.title}
+          </button>
+        ),
+        pageActions: ({ result, navigate }) => (
+          <button type="button" onClick={() => navigate(`${result.url}.md`)}>
+            View source
+          </button>
+        ),
+      }}
+    />
+  );
+  await openSearch();
+  await userEvent.keyboard('http');
+  await expect
+    .element(page.getByRole('option', { name: /HTTP API/ }))
+    .toBeVisible();
+  await userEvent.keyboard('{ArrowDown}');
+  await page.getByRole('button', { name: 'View source' }).click();
+  expect(navigate).toHaveBeenCalledWith(
+    expect.stringMatching(/\.md$/),
+    expect.anything()
+  );
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+
+  await openSearch();
+  await userEvent.keyboard('http');
+  await userEvent.keyboard('{ArrowDown}');
+  await page.getByRole('button', { name: 'Dismiss HTTP API' }).click();
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+  expect(navigate).toHaveBeenCalledTimes(1);
 });
 
 it('records pages opened from the preview in recent pages and selection events', async () => {

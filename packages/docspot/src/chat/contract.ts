@@ -44,7 +44,7 @@ export type ConversationProps = {
   contextPage: DocspotPage | undefined;
   onRemoveContext: () => void;
   /** Questions to offer when the attached page has none. */
-  prompts: string[];
+  suggestions: string[];
   conversations: {
     list: () => StoredConversation[];
     subscribe: (listener: () => void) => () => void;

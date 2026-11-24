@@ -268,14 +268,15 @@ it('rejects a configuration without search or chat, with a relative site URL, or
     .element(page.getByText('Docspot: configure `search`, `chat`, or both.'))
     .toBeVisible();
 
-  // Search's own props need search, which may be undefined.
+  // Either capability may be undefined while the other is set, and props
+  // for a capability that is not configured are accepted and ignored.
   const { chat } = createTestChat({ answer: () => ({ text: 'Answer.' }) });
   const maybeSearch = undefined as DocspotSearch | undefined;
   void (
     <>
-      {/* @ts-expect-error Items need search. */}
       <Docspot chat={chat} items={[]} />
       <Docspot chat={chat} search={maybeSearch} items={[]} />
+      <Docspot search={() => results} chatOpen />
     </>
   );
   await render(
@@ -412,7 +413,7 @@ it('composes surfaces and controls them with useDocspot', async () => {
         </button>
         <button
           type="button"
-          onClick={() => docspot.setDraft('Draft text', { page: null })}
+          onClick={() => docspot.draftQuestion('Draft text', { page: null })}
         >
           Draft
         </button>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import type { DocspotRootProps } from '@/types';
+import type { DocspotProps } from '@/types';
 import { DocspotInternalContext, type SearchController } from '@/core/context';
 import { useChatController } from '@/core/useChatController';
 import { useDocspotConfig } from '@/core/useDocspotConfig';
@@ -15,7 +15,7 @@ import { SlotsContext } from '@/ui/SlotsContext';
  * Holds Docspot's state and shares it with the parts inside: triggers, the
  * search dialog, the chat panel, and `useDocspot()`.
  */
-export function DocspotRoot(props: DocspotRootProps) {
+export function DocspotRoot(props: DocspotProps) {
   const { config, url, chatLoader } = useDocspotConfig(props);
   const triggers = useTriggerRegistry();
   const search = useSearchController(props, config, url, triggers);

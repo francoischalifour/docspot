@@ -7,7 +7,6 @@ import {
   type DocspotEvent,
   type DocspotItem,
   type DocspotResult,
-  defineItem,
   recentItems,
 } from '@/index';
 import { results } from '@test/fixtures';
@@ -164,32 +163,14 @@ it('runs an action and keeps search open with its query, with the modifier key',
   await expect.element(searchDialog()).not.toBeInTheDocument();
 });
 
-it('shows a shortcut beside its item, drawn by the shortcut slot when given', async () => {
+it('shows a shortcut beside its item', async () => {
   const { list } = commands();
-  const screen = await render(<Docspot search={search} items={list} />);
+  await render(<Docspot search={search} items={list} />);
   await openSearch();
   await userEvent.keyboard('save');
   const save = actions().getByRole('option', { name: /Save the tree/ });
   await expect.element(save.getByText('⌘')).toBeVisible();
   await expect.element(save.getByText('S', { exact: true })).toBeVisible();
-  await screen.unmount();
-
-  await render(
-    <Docspot
-      search={search}
-      items={list}
-      slots={{ shortcut: ({ shortcut }) => <kbd>keys {shortcut}</kbd> }}
-    />
-  );
-  await openSearch();
-  await userEvent.keyboard('save');
-  await expect
-    .element(
-      actions()
-        .getByRole('option', { name: /Save the tree/ })
-        .getByText('keys Meta+S')
-    )
-    .toBeVisible();
 });
 
 it('keeps actions out of recent pages and gives them no link to copy or open', async () => {
@@ -302,13 +283,13 @@ it('finds links among items by keyword and opens them, outside recent pages', as
     <Docspot
       search={search}
       items={[
-        defineItem({
+        {
           id: 'changelog',
           action: '/changelog',
           title: 'Changelog',
           keywords: ['releases'],
           group: 'Go to',
-        }),
+        },
       ]}
       navigate={navigate}
       history

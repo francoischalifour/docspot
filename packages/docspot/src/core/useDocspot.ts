@@ -15,7 +15,10 @@ export type DocspotApi = {
   closeChat: () => void;
   toggleChat: () => void;
   /** Opens chat with text in the composer, ready to edit. */
-  setDraft: (text: string, options?: { page?: DocspotPage | null }) => void;
+  draftQuestion: (
+    question: string,
+    options?: { page?: DocspotPage | null }
+  ) => void;
   /** Opens chat and sends a question, replacing any answer in progress. */
   submitQuestion: (
     question: string,
@@ -23,8 +26,6 @@ export type DocspotApi = {
   ) => void;
   /** Opens chat on a new, empty conversation. */
   startConversation: () => void;
-  /** Closes search and chat. */
-  close: () => void;
   /** Loads search ahead of opening it, such as when a custom trigger is hovered. */
   preloadSearch: () => void;
   /** Loads chat ahead of opening it. */
@@ -51,10 +52,10 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
     openChat: () => latest.current.chat.open(),
     closeChat: () => latest.current.chat.close(),
     toggleChat: () => latest.current.chat.toggle(),
-    setDraft: (text, options) =>
+    draftQuestion: (question, options) =>
       latest.current.chat.open({
         action: 'draft',
-        text,
+        text: question,
         page: options?.page,
         source: 'api',
       }),
@@ -66,11 +67,6 @@ function useStableActions(state: DocspotInternalState): DocspotActions {
         source: 'api',
       }),
     startConversation: () => latest.current.chat.open({ action: 'reset' }),
-    close() {
-      const { search, chat } = latest.current;
-      if (search.isOpen) search.close();
-      chat.close();
-    },
     preloadSearch: () => latest.current.search.preload(),
     preloadChat: () => latest.current.chat.preload(),
   }));

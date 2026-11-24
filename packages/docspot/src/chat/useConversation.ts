@@ -83,7 +83,7 @@ export function useConversation(props: ConversationProps) {
     chatMessages.length &&
     !busy &&
     !isSamePage(contextPage, getQuestionPage(chatMessages))
-      ? (contextPage?.prompts ?? [])
+      ? (contextPage?.suggestions ?? [])
       : [];
 
   const composerElement = useRef<HTMLTextAreaElement | null>(null);
@@ -92,12 +92,12 @@ export function useConversation(props: ConversationProps) {
     [props.composerRef]
   );
 
-  function ask(question: string, source: 'composer' | 'prompt') {
+  function ask(question: string, source: 'composer' | 'suggestion') {
     if (!question.trim() || busy) return;
     void askSession(chat, question, contextPage, source);
     // A chosen suggestion leaves with its list; typing goes on in the
     // composer.
-    if (source === 'prompt')
+    if (source === 'suggestion')
       composerElement.current?.focus({ preventScroll: true });
   }
 

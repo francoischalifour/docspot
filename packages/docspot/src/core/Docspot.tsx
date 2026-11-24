@@ -5,9 +5,7 @@ import { ChatTrigger } from '@/core/ChatTrigger';
 import { SearchDialog } from '@/core/SearchDialog';
 import { SearchTrigger } from '@/core/SearchTrigger';
 import { Trigger } from '@/core/Trigger';
-import type { DocspotRootProps } from '@/types';
-
-export type DocspotProps = DocspotRootProps;
+import type { DocspotProps } from '@/types';
 
 /**
  * Documentation search and chat with a default trigger. For custom

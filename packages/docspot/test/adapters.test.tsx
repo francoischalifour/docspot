@@ -11,6 +11,9 @@ import { type MiniSearchHit, createMiniSearchSearch } from '@/minisearch';
 
 afterEach(() => vi.unstubAllGlobals());
 
+/** The interface's language, as Docspot gives it to a search. */
+const locale = { code: 'en' };
+
 const H = (text: string) =>
   `__docspot_highlight__${text}__/docspot_highlight__`;
 
@@ -91,6 +94,7 @@ async function searchAlgolia(query: string) {
   const response = await algolia({
     query,
     signal: new AbortController().signal,
+    locale,
   });
   if (Array.isArray(response)) throw new Error('Expected a response object');
   return response;
@@ -198,6 +202,7 @@ it('uses the returned result order for chat priority and hierarchy', async () =>
   const response = await search({
     query: 'how do I configure agents?',
     signal: new AbortController().signal,
+    locale,
   });
   if (Array.isArray(response)) throw new Error('Expected a response object');
   expect(response.results[0]).toMatchObject({
@@ -356,6 +361,7 @@ it('searches a MiniSearch index synchronously with highlights and excerpts', () 
   const results = search({
     query: 'zoomed space',
     signal: new AbortController().signal,
+    locale,
   });
   if (!Array.isArray(results)) throw new Error('Expected synchronous results');
   expect(results[0]).toMatchObject({
@@ -393,6 +399,7 @@ it('keeps accent-insensitive matches in a shortened MiniSearch excerpt', () => {
   const response = search({
     query: 'cafe',
     signal: new AbortController().signal,
+    locale,
   });
   if (!Array.isArray(response)) throw new Error('Expected synchronous results');
   expect(response[0]?.excerpt).toContain('café');
@@ -411,7 +418,11 @@ it('keeps the last matching word without implying more text follows', () => {
     section: 'Guides',
     content: 'Start a very long introductory passage before the final needle',
   });
-  const params = { query: 'needle', signal: new AbortController().signal };
+  const params = {
+    query: 'needle',
+    signal: new AbortController().signal,
+    locale,
+  };
   const search = createMiniSearchSearch({
     index,
     getDocument,
@@ -435,12 +446,12 @@ it('loads a MiniSearch index on the first search', async () => {
     search: ({ index, query }) => index.search(query, { prefix: true }),
   });
   const signal = new AbortController().signal;
-  const first = await search({ query: 'backgr', signal });
+  const first = await search({ query: 'backgr', signal, locale });
   // The matched document term is marked, not only the typed prefix.
   expect(Array.isArray(first) && first[0]?.highlights?.title).toEqual([
     { text: 'background', highlighted: true },
   ]);
-  await search({ query: 'open', signal });
+  await search({ query: 'open', signal, locale });
   expect(load).toHaveBeenCalledTimes(1);
 });
 
@@ -451,11 +462,12 @@ it('skips a superseded query while the MiniSearch index loads', async () => {
     getDocument,
   });
   const first = new AbortController();
-  const stale = search({ query: 'old', signal: first.signal });
+  const stale = search({ query: 'old', signal: first.signal, locale });
   first.abort();
   const latest = search({
     query: 'zoom',
     signal: new AbortController().signal,
+    locale,
   });
   await expect(stale).rejects.toMatchObject({ name: 'AbortError' });
   const results = await latest;
@@ -471,7 +483,11 @@ it('retries a failed index load and serves later searches synchronously', async 
     },
     getDocument,
   });
-  const params = { query: 'margin', signal: new AbortController().signal };
+  const params = {
+    query: 'margin',
+    signal: new AbortController().signal,
+    locale,
+  };
   await expect(search(params)).rejects.toThrow('Index unavailable');
   available = true;
   await search(params);
@@ -493,6 +509,7 @@ it('loads a MiniSearch index ahead of the first search when preloaded', async ()
   const results = search({
     query: 'margin',
     signal: new AbortController().signal,
+    locale,
   });
   expect(Array.isArray(results) && results[0]?.url).toBe(
     '/docs/options#margin'
